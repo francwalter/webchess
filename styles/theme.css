@@ -1,0 +1,456 @@
+/*
+    WebChess Dark Theme CSS
+    Provides dark mode styling for the entire application
+*/
+
+/* Dark theme base colors */
+body.dark-theme {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .navbar {
+    background-color: #0d0d0d !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+body.dark-theme .navbar-brand {
+    color: #fff !important;
+}
+
+body.dark-theme .nav-link {
+    color: #b0b0b0 !important;
+}
+
+body.dark-theme .nav-link:hover {
+    color: #fff !important;
+}
+
+body.dark-theme .nav-link.active {
+    background-color: #333 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .card {
+    background-color: #2a2a2a !important;
+    border-color: #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .card-header {
+    background-color: #333 !important;
+    border-color: #444 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .card-body {
+    background-color: #2a2a2a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background-color: #333 !important;
+    border-color: #555 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus {
+    background-color: #3a3a3a !important;
+    border-color: #007bff !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+body.dark-theme .form-control::placeholder {
+    color: #999 !important;
+}
+
+body.dark-theme .form-label {
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .table {
+    color: #e0e0e0 !important;
+    border-color: #444 !important;
+}
+
+body.dark-theme .table-light {
+    background-color: #333 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .table-hover tbody tr:hover {
+    background-color: #3a3a3a !important;
+}
+
+body.dark-theme .btn-primary {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+}
+
+body.dark-theme .btn-primary:hover {
+    background-color: #003d82 !important;
+    border-color: #002e5c !important;
+}
+
+body.dark-theme .btn-secondary {
+    background-color: #5a5a5a !important;
+    border-color: #444 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .btn-secondary:hover {
+    background-color: #6a6a6a !important;
+    border-color: #555 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .btn-outline-primary {
+    color: #007bff !important;
+    border-color: #007bff !important;
+}
+
+body.dark-theme .btn-outline-primary:hover {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    color: #fff !important;
+}
+
+body.dark-theme .btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+body.dark-theme .btn-outline-secondary:hover {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+body.dark-theme .alert {
+    background-color: #3a3a3a !important;
+    border-color: #555 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .alert-danger {
+    background-color: #5a2a2a !important;
+    border-color: #8b4545 !important;
+    color: #ff9999 !important;
+}
+
+body.dark-theme .alert-warning {
+    background-color: #5a4a2a !important;
+    border-color: #8b7545 !important;
+    color: #ffcc99 !important;
+}
+
+body.dark-theme .alert-info {
+    background-color: #2a4a5a !important;
+    border-color: #4575a3 !important;
+    color: #99ccff !important;
+}
+
+body.dark-theme .alert-success {
+    background-color: #2a5a3a !important;
+    border-color: #45a366 !important;
+    color: #99ff99 !important;
+}
+
+body.dark-theme .text-muted {
+    color: #999 !important;
+}
+
+body.dark-theme .bg-light {
+    background-color: #333 !important;
+}
+
+body.dark-theme .text-center.text-muted {
+    color: #999 !important;
+}
+
+body.dark-theme .border {
+    border-color: #444 !important;
+}
+
+body.dark-theme .text-decoration-none {
+    color: #007bff !important;
+}
+
+body.dark-theme .text-decoration-none:hover {
+    color: #0056b3 !important;
+}
+
+body.dark-theme .login-container {
+    background: transparent;
+}
+
+body.dark-theme .shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6) !important;
+}
+
+body.dark-theme .shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-theme .badge {
+    background-color: #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+body.dark-theme .badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+body.dark-theme .fw-bold {
+    color: #fff !important;
+}
+
+body.dark-theme .small {
+    color: #b0b0b0 !important;
+}
+
+/* Chess page specific styling - Dark theme */
+body.dark-theme #wrapper {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme #header {
+    background-color: #0d0d0d !important;
+    border-color: #333 !important;
+}
+
+body.dark-theme #heading {
+    color: #fff !important;
+}
+
+body.dark-theme #boardsection {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme #moveinfo {
+    background-color: #2a3f7f !important;
+    border: 1px solid #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme #curmove,
+body.dark-theme #whosmove {
+    color: #fff !important;
+}
+
+body.dark-theme #curmove:hover {
+    color: #ffff99 !important;
+}
+
+body.dark-theme #gamebuttons {
+    background-color: #2a2a2a !important;
+    border: 1px solid #444 !important;
+    padding: 10px !important;
+    border-radius: 5px !important;
+    margin: 10px 0 !important;
+}
+
+body.dark-theme .button {
+    background-color: #333 !important;
+    border: 1px solid #555 !important;
+    color: #e0e0e0 !important;
+    cursor: pointer !important;
+    padding: 5px 10px !important;
+}
+
+body.dark-theme .button:hover {
+    background-color: #444 !important;
+    border: 1px solid #666 !important;
+}
+
+body.dark-theme .button:disabled,
+body.dark-theme .button[disabled] {
+    background-color: #1a1a1a !important;
+    border: 1px solid #333 !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+}
+
+body.dark-theme #content {
+    background-color: #2a2a2a !important;
+    border: 1px solid #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .move_header {
+    background-color: #3a3a3a !important;
+    border: 1px solid #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .header_enabled {
+    background-color: #3a3a3a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .header_disabled {
+    background-color: #2a2a2a !important;
+    color: #999 !important;
+}
+
+body.dark-theme #players,
+body.dark-theme #gameid {
+    color: #fff !important;
+}
+
+body.dark-theme #gamebody {
+    color: #e0e0e0 !important;
+    background-color: #1a1a1a !important;
+}
+
+body.dark-theme #checkmsg {
+    background-color: #6b2020 !important;
+    color: #ff9999 !important;
+}
+
+body.dark-theme #statusmsg {
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme #captures {
+    background-color: #333 !important;
+    border: 1px solid #444 !important;
+}
+
+body.dark-theme #captheading {
+    color: #e0e0e0 !important;
+    background-color: #3a3a3a !important;
+    font-weight: bold !important;
+}
+
+body.dark-theme #gamenav {
+    color: #b0b0b0 !important;
+}
+
+body.dark-theme #footer {
+    background-color: #0d0d0d !important;
+    border-top: 1px solid #333 !important;
+    color: #999 !important;
+}
+
+body.dark-theme #footer p {
+    color: #999 !important;
+}
+
+body.dark-theme #footer a {
+    color: #007bff !important;
+}
+
+body.dark-theme #footer a:hover {
+    color: #0056b3 !important;
+}
+
+body.dark-theme div {
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme input[type="text"],
+body.dark-theme textarea {
+    background-color: #333 !important;
+    border: 1px solid #555 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Theme toggle button styling */
+#theme-toggle-btn {
+    background-color: #e9ecef !important;
+    border: 1px solid #ccc !important;
+    color: #333 !important;
+    cursor: pointer !important;
+    padding: 5px 10px !important;
+    margin-left: 10px !important;
+    font-size: 18px !important;
+    font-weight: normal !important;
+    transition: background-color 0.3s ease !important;
+}
+
+#theme-toggle-btn:hover {
+    background-color: #dee2e6 !important;
+    border: 1px solid #adb5bd !important;
+}
+
+body.dark-theme #theme-toggle-btn {
+    background-color: #333 !important;
+    border: 1px solid #555 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme #theme-toggle-btn:hover {
+    background-color: #444 !important;
+    border: 1px solid #666 !important;
+}
+
+/* Light theme explicit styling */
+body.light-theme {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+}
+
+body.light-theme #wrapper {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+body.light-theme #header {
+    background-color: #052B69 !important;
+    color: white !important;
+}
+
+body.light-theme #heading {
+    color: white !important;
+}
+
+body.light-theme #boardsection {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+body.light-theme #moveinfo {
+    background-color: #3C86F6 !important;
+    color: white !important;
+}
+
+body.light-theme #gamebuttons {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+body.light-theme #content {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+body.light-theme #footer {
+    background-color: #F5F5DC !important;
+    color: #663 !important;
+}
+
+body.light-theme .button {
+    background-color: #e9ecef !important;
+    border: 1px solid #ccc !important;
+    color: #333 !important;
+}
+
+body.light-theme .button:hover {
+    background-color: #dee2e6 !important;
+}
+
+/* Smooth transitions between themes */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
+
