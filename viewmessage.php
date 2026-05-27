@@ -43,88 +43,89 @@
 	/* connect to database */
 	require 'connectdb.php';
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-
-
+<!doctype html>
+<html lang="de">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
-    <link rel="stylesheet" href="styles/mainmenu.css" type="text/css" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?php echo htmlspecialchars(gettext("WebChess") . " :: " . gettext("Message View"));?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
+    <script type="text/javascript" src="javascript/theme.js"></script>
     <script type="text/javascript" src="javascript/messages.js"></script>
-    <title><?php echo gettext("WebChess") . " :: " . gettext("Message View");?></title>
+    <style>
+        body { background-color: #f8f9fa; }
+        .message-card { max-width: 900px; margin: 2.5rem auto; }
+        .message-body { white-space: pre-wrap; }
+    </style>
 </head>
 <body>
 
-<div class="viewmessage-form">
-    <div class="login-text">
-        <div class="ctr"><img src="images/webchess.jpg" width="65" height="92" alt="security" /></div>
-        <p><a href="mainmenu.php"><?php echo gettext("Return to Main Menu");?></a></p>
-    </div>
-    <div class="message-block">
-    <?php
-        if(isset($_POST['messageID']))
-        {
-            $messageID = $_POST['messageID'];
-
-            $SqlQuery="SELECT * FROM " . $CFG_TABLE['communication'] . " WHERE commID = $messageID";
-            $tmpGames = mysqli_query($dbh, $SqlQuery);
-
-            if (mysqli_num_rows($tmpGames) == 0)
-            {
-            ?>
-                <div class="inputlabel"><?php echo gettext(" Message not found!");?> </div>
-                <div>
-                <p><?php echo gettext("There has been an error! The message you're trying to view can't be found.");?></p>
-                </div>
-            <?php
-            } else {
-                $rowNbr = 0;
-                while($tmpGame = mysqli_fetch_assoc($tmpGames))
-                {
-                if($tmpGame['fromID']!=0)
-                {
-                    $innerSQL = "SELECT * FROM " . $CFG_TABLE['players'] . " WHERE playerID = " . $tmpGame['fromID'];
-                    $innerRes = mysqli_query($dbh, $innerSQL);
-                    $tempRes = mysqli_fetch_assoc($innerRes);
-                    $FromPlayer = $tempRes['nick'];
-                } else {
-                    $FromPlayer = gettext("Webchess Administrator");
-                }
-                ?>
-                    <div class="messageheader">
-                    <?php
-                        echo gettext("From:") . " " . $FromPlayer;
-                        if($tmpGame['fromID']!=0) {
-                            echo "(<a href=\"javascript:MessagePlayer(" . $tmpGame['fromID'] . ")" . gettext("Reply") . "</a>)";
-                        }
-                        echo " " . gettext("on") . " " . $tmpGame['postDate'];
-
-                        if($tmpGame['fromID']!=0) {
-                            echo "<a href=\"javascript:HideMessage(" . $messageID . ")\">" . gettext("Archive") . "</a>";
-                        }
-                    ?>
-                    </div>
-                    <form name="messageHideForm" action="mainmenu.php" method="post">
-                    <input type="hidden" name="messageID" />
-                    <input type="hidden" name="ToDo" value="HideMessage" />
-                    </form>
-                    <div class="inputlabel"> <?php echo $tmpGame['title'];?> </div>
-                    <div>
-                        <p> <?php echo str_replace("\n", "</p><p>", $tmpGame['text']);?> </p>
-                    </div>
-                <?php
-                }
-            }
-
-        } else {
-    ?>
-        <div class="inputlabel"> <?php echo gettext("Message Error");?> </div>
-        <div>
-        <p><?php echo gettext("An error ocurred!.");?></p>
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="mainmenu.php">♔ WebChess</a>
+        <div class="d-flex gap-2">
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()">🌙</button>
+            <a class="btn btn-outline-light btn-sm" href="mainmenu.php"><?php echo htmlspecialchars(gettext("Return to Main Menu"));?></a>
         </div>
-    <?php } ?>
+    </div>
+</nav>
+
+<div class="container message-card">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <?php
+            if (isset($_POST['messageID'])) {
+                $messageID = (int) $_POST['messageID'];
+
+                $SqlQuery = "SELECT * FROM " . $CFG_TABLE['communication'] . " WHERE commID = " . $messageID;
+                $tmpGames = mysqli_query($dbh, $SqlQuery);
+
+                if (!$tmpGames || mysqli_num_rows($tmpGames) == 0) {
+                    echo '<div class="alert alert-warning">' . htmlspecialchars(gettext("Message not found!")) . '</div>';
+                } else {
+                    while ($tmpGame = mysqli_fetch_assoc($tmpGames)) {
+                        if ($tmpGame['fromID'] != 0) {
+                            $innerSQL = "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = " . (int)$tmpGame['fromID'];
+                            $innerRes = mysqli_query($dbh, $innerSQL);
+                            $tempRes = mysqli_fetch_assoc($innerRes);
+                            $FromPlayer = $tempRes['nick'];
+                        } else {
+                            $FromPlayer = gettext("Webchess Administrator");
+                        }
+                        ?>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="card-title mb-0"><?php echo htmlspecialchars($tmpGame['title']); ?></h5>
+                                <small class="text-muted"><?php echo htmlspecialchars(gettext("From:") . " " . $FromPlayer . " " . gettext("on") . " " . $tmpGame['postDate']); ?></small>
+                            </div>
+                            <div class="text-end">
+                                <?php if ($tmpGame['fromID'] != 0) { ?>
+                                    <button class="btn btn-sm btn-outline-primary me-1" type="button" onclick="MessagePlayer(<?php echo (int)$tmpGame['fromID']; ?>)"><?php echo htmlspecialchars(gettext("Reply")); ?></button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="HideMessage(<?php echo $messageID; ?>)"><?php echo htmlspecialchars(gettext("Archive")); ?></button>
+                                <?php } ?>
+                            </div>
+                        </div>
+
+                        <hr />
+                        <div class="message-body mb-3"><?php echo nl2br(htmlspecialchars($tmpGame['text'])); ?></div>
+                        <?php
+                    }
+                }
+            } else {
+                echo '<div class="alert alert-danger">' . htmlspecialchars(gettext("Message Error")) . '</div>';
+                echo '<p>' . htmlspecialchars(gettext("An error ocurred!.")) . '</p>';
+            }
+            ?>
+        </div>
     </div>
 </div>
 
-</body></html>
+<form name="messageHideForm" action="mainmenu.php" method="post" style="display:none;">
+    <input type="hidden" name="messageID" />
+    <input type="hidden" name="ToDo" value="HideMessage" />
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

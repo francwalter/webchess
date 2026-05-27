@@ -29,25 +29,50 @@
 	require 'chessconstants.php';
 
 	/* include outside functions */
-#	if (!isset($_CHESSUTILS))
 	require 'chessutils.php';
 	require 'gui.php';
 	require 'chessdb.php';
 
-	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
-#	fixOldPHPVersions();
+	/* ensure compatibility helpers are available (older code paths removed) */
 
 	/* check session status */
-//	require 'sessioncheck.php';
+	require 'sessioncheck.php';
 
 	/* debug flag */
 	define ("DEBUG", 0);
 
-	/* connect to database */
-	require 'connectdb.php';
-	/* load game */
+				/* connect to database */
+				require 'connectdb.php';
 
-$output_file = 'game'.$_SESSION['gameID'].'.pgn';
+				/* validate session and game selection */
+				if (!isset($_SESSION['gameID']) || !is_numeric($_SESSION['gameID'])) {
+					// Friendly HTML response when no game is selected in session
+					header('Content-Type: text/html; charset=utf-8');
+					echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>PGN Download</title>';
+					echo '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>';
+					echo '<div style="max-width:800px;margin:3rem auto;font-family:Arial,Helvetica,sans-serif;">';
+					echo '<h2>Kein Spiel ausgewählt</h2>';
+					echo '<p>Es wurde kein gültiges Spiel in Ihrer Session gefunden. Bitte öffnen Sie ein Spiel und versuchen Sie es erneut.</p>';
+					echo '<p><a href="mainmenu.php">Zurück zum Hauptmenü</a></p>';
+					echo '</div></body></html>';
+					exit;
+				}
+
+				$gid = (int)$_SESSION['gameID'];
+				$chk = mysqli_query($dbh, "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE gameID = " . $gid);
+				if (!$chk || mysqli_num_rows($chk) == 0) {
+					header('Content-Type: text/html; charset=utf-8');
+					echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>PGN Download</title>';
+					echo '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>';
+					echo '<div style="max-width:800px;margin:3rem auto;font-family:Arial,Helvetica,sans-serif;">';
+					echo '<h2>Spiel nicht gefunden</h2>';
+					echo '<p>Das angeforderte Spiel existiert nicht oder ist nicht mehr verfügbar.</p>';
+					echo '<p><a href="mainmenu.php">Zurück zum Hauptmenü</a></p>';
+					echo '</div></body></html>';
+					exit;
+				}
+
+				$output_file = 'game' . $gid . '.pgn';
 
 header('Cache-Control: no-store, no-cache, must-revalidate'); // HTTP 1.1
 header('Cache-Control: pre-check=0, post-check=0, max-age=0'); // HTTP 1.1
@@ -59,7 +84,12 @@ header('Content-Type: application/x-chess-pgn; name="'. $output_file . '"');
 header('Content-Disposition: attachment; filename="' .$output_file . '"');
 // header("Content-length: $content_len");
 
+/* load history and write PGN for the current game */
 loadHistory();
-ReturnGameInfo($_SESSION['gameID']);
+ReturnGameInfo((int)$_SESSION['gameID']);
 writePGN();
-mysql_close();
+
+/* close mysqli connection (connectdb.php exposes $dbh) */
+if (isset($dbh) && is_object($dbh)) {
+	mysqli_close($dbh);
+}

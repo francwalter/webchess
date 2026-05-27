@@ -464,13 +464,106 @@
     <script type="text/javascript" src="javascript/tablesort.js"></script>
     <script type="text/javascript" src="javascript/menu.js"></script>
     <script type="text/javascript" src="javascript/messages.js"></script>
-    <style>
-        body { background-color: #f8f9fa; }
-        .nav-link { cursor: pointer; }
-        .card { margin-bottom: 20px; border-radius: 1rem; }
-        #navlist .active { font-weight: bold; background-color: #e9ecef; border-radius: 0.5rem; }
-        .section-content { display: none; }
-    </style>
+     <style>
+        body { 
+            background-color: #f8f9fa; 
+            transition: background-color 0.3s ease;
+        }
+        body[data-theme="dark"] { 
+            background-color: #1a1a1a; 
+            color: #e0e0e0;
+        }
+        .nav-link { 
+            cursor: pointer; 
+            font-weight: 500;
+        }
+        .card { 
+            margin-bottom: 20px; 
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        body[data-theme="dark"] .card { 
+            background-color: #2d2d2d; 
+            color: #e0e0e0;
+        }
+        body[data-theme="dark"] .card-header { 
+            background-color: #1a1a1a !important; 
+            border-color: #444;
+        }
+        #navlist .active { 
+            font-weight: bold; 
+            background-color: rgba(255,255,255,0.15);
+            border-bottom: 3px solid #0d6efd;
+            border-radius: 0;
+            padding: 0.5rem 1rem;
+            color: #fff !important;
+        }
+        #navlist .nav-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 0.5rem;
+        }
+        body[data-theme="dark"] #navlist .active {
+            background-color: rgba(255,255,255,0.1);
+            border-bottom-color: #0d6efd;
+        }
+        .section-content { 
+            display: none; 
+        }
+        .section-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .btn { 
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .table { 
+            margin-bottom: 0;
+        }
+        body[data-theme="dark"] .table {
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        body[data-theme="dark"] .table-light {
+            background-color: #3a3a3a !important;
+        }
+        body[data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: #3a3a3a;
+        }
+        .alert {
+            border-radius: 0.75rem;
+        }
+        body[data-theme="dark"] .alert {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            border: 1px solid #ddd;
+        }
+        body[data-theme="dark"] .form-control,
+        body[data-theme="dark"] .form-select {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+     </style>
 	<script type="text/javascript">
 		function validatePersonalInfo()
 		{
@@ -558,17 +651,17 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto" id="navlist">
-                <li class="nav-item"><a class="nav-link" href="#continuegame"><?php echo gettext("Active games"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#invitations"><?php echo gettext("Pending challenges"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#messages"><?php echo gettext("Messages"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#challenge"><?php echo gettext("Challenge others"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#viewgame"><?php echo gettext("Replay"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#preferences"><?php echo gettext("Preferences"); ?></a></li>
-                <li class="nav-item"><a class="nav-link" href="#personalinfo"><?php echo gettext("Personal"); ?></a></li>
-                <li class="nav-item"><a class="nav-link text-warning" href="#" onclick="reload()"><?php echo gettext("Reload"); ?></a></li>
-                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-link nav-link" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button></li>
-                <li class="nav-item"><a class="nav-link text-danger" href="#" onclick="logout()"><?php echo gettext("Logout"); ?></a></li>
+            <ul class="navbar-nav ms-auto d-flex align-items-center gap-2" id="navlist">
+                <li class="nav-item"><a class="nav-link px-2" href="#continuegame"><?php echo gettext("Active games"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#invitations"><?php echo gettext("Pending challenges"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#messages"><?php echo gettext("Messages"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#challenge"><?php echo gettext("Challenge others"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#viewgame"><?php echo gettext("Replay"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#preferences"><?php echo gettext("Preferences"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#personalinfo"><?php echo gettext("Personal"); ?></a></li>
+                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button></li>
+                <li class="nav-item"><button class="btn btn-outline-danger btn-sm" type="button" onclick="reload()" title="<?php echo gettext('Reload'); ?>"><?php echo gettext("Reload"); ?></button></li>
+                <li class="nav-item"><button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo gettext("Logout"); ?></button></li>
             </ul>
         </div>
     </div>
@@ -678,8 +771,10 @@
                                                 <td><?php echo mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0]; ?></td>
                                                 <td><small><?php echo substr($tmpGame['dateCreated'], 0, -3); ?></small></td>
                                                 <td>
-                                                    <button class="btn btn-xs btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)"><?php echo gettext("Accept"); ?></button>
-                                                    <button class="btn btn-xs btn-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)"><?php echo gettext("Decline"); ?></button>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">✓ <?php echo gettext("Accept"); ?></button>
+                                                        <button class="btn btn-outline-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">✕ <?php echo gettext("Decline"); ?></button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         <?php endwhile; endif; ?>
@@ -725,7 +820,7 @@
                                 <input name="pwdPassword2" type="password" class="form-control" />
                             </div>
                             <div class="col-12">
-                                <button type="button" class="btn btn-primary" onclick="validatePersonalInfo()"><?php echo gettext("Update");?></button>
+                                <button type="button" class="btn btn-primary btn-lg" onclick="validatePersonalInfo()"><i class="bi bi-check-circle"></i> <?php echo gettext("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePersonalInfo" />
                             </div>
                         </form>
@@ -762,7 +857,7 @@
                                 <input type="number" class="form-control" name="txtReload" value="<?php echo ($_SESSION['pref_autoreload']); ?>" min="<?php echo $CFG_MINAUTORELOAD; ?>" />
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-secondary"><?php echo gettext("Update");?></button>
+                                <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-sliders"></i> <?php echo gettext("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePrefs" />
                             </div>
                         </form>
@@ -787,7 +882,7 @@
                                     }
                                     ?>
                                 </select>
-                                <button class="btn btn-primary" type="button" onclick="MessagePlayer(document.getElementById('player_select').value)"><?php echo gettext("Open Window");?></button>
+                                <button class="btn btn-primary" type="button" onclick="MessagePlayer(document.getElementById('player_select').value)"><i class="bi bi-chat-dots"></i> <?php echo gettext("Open Window");?></button>
                             </div>
                         </div>
 
@@ -843,7 +938,7 @@
                                 </div>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary"><?php echo gettext("Invite");?></button>
+                                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-suit-heart"></i> <?php echo gettext("Invite");?></button>
                                 <input type="hidden" name="ToDo" value="InvitePlayer" />
                             </div>
                         </form>
@@ -895,6 +990,7 @@
 <!-- Forms for actions -->
 <form name="messageViewForm" method="post" action="viewmessage.php"><input type="hidden" name="messageID" value="" /></form>
 <form name="endedGames" action="chess.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="sharePC" value="no" /></form>
+<form name="withdrawRequestForm" action="mainmenu.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="ToDo" value="WithdrawRequest" /></form>
 
 <!-- Bootstrap JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
