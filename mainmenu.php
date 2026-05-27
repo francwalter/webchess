@@ -438,8 +438,11 @@
 				webchessMail('test', $_SESSION['pref_emailnotification'], '', '', '');
 			break;
                 case 'HideMessage':
-                        $tmpQuery = "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = " . $_POST['messageID'];
+                        $tmpQuery = "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = " . (int)$_POST['messageID'];
                         mysqli_query($dbh, $tmpQuery);
+                        /* set a flash message to be shown after redirect */
+                        $_SESSION['flash_msg'] = gettext('Message archived');
+                        $_SESSION['flash_type'] = 'success';
                         break;
 
 	}
