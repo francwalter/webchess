@@ -20,7 +20,7 @@
 
 function getObject(obj) {
     if (!obj) return null;
-    if (typeof obj == \"object\") return obj;
+    if (typeof obj == "object") return obj;
     
     if (document.getElementById) {
         var element = document.getElementById(obj);
@@ -92,10 +92,10 @@ function displayCaptPieces() {
 		for(var j=0; j < captPieces[i].length; j++)
 		{
 			piece = color + '_' + captPieces[i][j];
-			html += '<img src=\"images/' + CURRENTTHEME + '/' + piece + '.' + cfgImageExt + '\" width=\"';
-			html += parseInt(squareSize * 3 / 5) + '\" height=\"' + parseInt(squareSize * 3 / 5) + '\" alt=\"' + piece + '\" />';
+			html += '<img src="images/' + CURRENTTHEME + '/' + piece + '.' + cfgImageExt + '" width="';
+			html += parseInt(squareSize * 3 / 5) + '" height="' + parseInt(squareSize * 3 / 5) + '" alt="' + piece + '" />';
 		}
-		html += \"</div>\\n<div>\";
+		html += "</div>\\n<div>";
 		color = 'black';
 	}
 	html += '</div>';
@@ -180,22 +180,22 @@ function displayMovesColumns() {
 	var objGamebody = getObject('gamebody');
     if (!objGamebody) return;
 
-	var theMoves = '<span id=\"m0\"></span>';
+	var theMoves = '<span id="m0"></span>';
 	var moveId = 1;
-	theMoves += '<div align=\"center\" style=\"padding-top:5px; padding-bottom:5px;\"><table cellpadding=\"0\" cellspacing=\"0\" style=\"padding:0; border-collapse: collapse;border-spacing:0;\" width=\"225px\">';
+	theMoves += '<div align="center" style="padding-top:5px; padding-bottom:5px;"><table cellpadding="0" cellspacing="0" style="padding:0; border-collapse: collapse;border-spacing:0;" width="225px">';
 	for(var i = 0; i < moves.length; i++)
 	{
 		if(isGameOver == '1')
 		{
-			theMoves += '<tr><td class=\"mn\" style=\"border:1px solid #888; text-align:right;\">' + (i+1) + '. </td>';
-			theMoves += '<td id=\"m' + (moveId) + '\" class=\"wm\" ' + 'onclick=\"moveTo(this);\" style=\"border:1px solid #888;\">' + moves[i][0] + '</td>';
-			theMoves += '<td id=\"m' + (moveId+1) + '\" class=\"bm\" ' + 'onclick=\"moveTo(this);\" style=\"border:1px solid #888;\"> ' + moves[i][1] + '</td></tr>';
+			theMoves += '<tr><td class="mn" style="border:1px solid #888; text-align:right;">' + (i+1) + '. </td>';
+			theMoves += '<td id="m' + (moveId) + '" class="wm" ' + 'onclick="moveTo(this);" style="border:1px solid #888;">' + moves[i][0] + '</td>';
+			theMoves += '<td id="m' + (moveId+1) + '" class="bm" ' + 'onclick="moveTo(this);" style="border:1px solid #888;"> ' + moves[i][1] + '</td></tr>';
 			moveId = moveId + 2;
 		}
 		else
 		{
-			theMoves += '<tr><td class=\"mn\" style=\"border:1px solid #888; text-align:right;\">' + (i+1) + '.</td> <td class=\"wm\" style=\"border:1px solid #888;\">';
-			theMoves += moves[i][0] + '</td><td style=\"border:1px solid #888;\"> ' + moves[i][1] + '</td></tr>';
+			theMoves += '<tr><td class="mn" style="border:1px solid #888; text-align:right;">' + (i+1) + '.</td> <td class="wm" style="border:1px solid #888;">';
+			theMoves += moves[i][0] + '</td><td style="border:1px solid #888;"> ' + moves[i][1] + '</td></tr>';
 		}
 	}
 	theMoves += '</table></div>';
@@ -206,18 +206,18 @@ function displayMovesParagraph() {
 	var objGamebody = getObject('gamebody');
     if (!objGamebody) return;
 
-	var theMoves = '<span id=\"m0\"></span>';
+	var theMoves = '<span id="m0"></span>';
 	var moveId = 1;
 	for(var i = 0; i < moves.length; i++)
 	{
 		if(isGameOver == '1')
 		{
-			theMoves += '<span id=\"m' + moveId++ + '\" class=\"wm\" ' + 'onclick=\"moveTo(this);\"><span class=\"mn\">' + (i+1) + '.</span> ' + moves[i][0] + '</span>';
-			theMoves += '<span id=\"m' + moveId++ + '\" class=\"bm\" ' + 'onclick=\"moveTo(this);\"> ' + moves[i][1] + '</span> ';
+			theMoves += '<span id="m' + moveId++ + '" class="wm" ' + 'onclick="moveTo(this);"><span class="mn">' + (i+1) + '.</span> ' + moves[i][0] + '</span>';
+			theMoves += '<span id="m' + moveId++ + '" class="bm" ' + 'onclick="moveTo(this);"> ' + moves[i][1] + '</span> ';
 		}
 		else
 		{
-			theMoves += '<span class=\"wm\"><span class=\"mn\">' + (i+1) + '.</span> ' + moves[i][0] + '</span> ' + moves[i][1] + ' ';
+			theMoves += '<span class="wm"><span class="mn">' + (i+1) + '.</span> ' + moves[i][0] + '</span> ' + moves[i][1] + ' ';
 		}
 	}
 	objGamebody.innerHTML = theMoves;
@@ -255,9 +255,9 @@ function htmlBoard()
 	}
 	var j = 1;
 
-	var theBoardHtml = '<table id=\"theBoard\" cellpadding=\"0\" style=\"border:1px solid #888; padding:0; border-collapse: collapse;border-spacing:0; margin-bottom:5px; margin-left: auto; margin-right: auto;\">';
-	theBoardHtml += '<tr id=\"bordertop\" style=\"height:' + borderWidth + 'px;\"><td colspan=\"10\" class=\"' + classHeader + '\">&nbsp;</td></tr>';
-	theBoardHtml += '<tr><td id=\"rank' + rank-- + '\" class=\"' + classHeader + '\" width=\"' + borderWidth + '\">' + rankLabel + '</td>';
+	var theBoardHtml = '<table id="theBoard" cellpadding="0" style="border:1px solid #888; padding:0; border-collapse: collapse;border-spacing:0; margin-bottom:5px; margin-left: auto; margin-right: auto;">';
+	theBoardHtml += '<tr id="bordertop" style="height:' + borderWidth + 'px;"><td colspan="10" class="' + classHeader + '">&nbsp;</td></tr>';
+	theBoardHtml += '<tr><td id="rank' + rank-- + '" class="' + classHeader + '" width="' + borderWidth + '">' + rankLabel + '</td>';
 	var row = 0;
 	var col = 0;
 	for(var k = 63; k >= 0; k--)
@@ -275,7 +275,7 @@ function htmlBoard()
 			else
 				i++;
 		}
-		theBoardHtml += '<td id=\"tsq' + i + '\" class=\"' + sqBackground[j] + '\" width=\"' + squareSize + '\" height=\"' + squareSize + '\">';
+		theBoardHtml += '<td id="tsq' + i + '" class="' + sqBackground[j] + '" width="' + squareSize + '" height="' + squareSize + '">';
 		var piece = '';
 		var source = '';
 		row = parseInt(i / 8);
@@ -284,8 +284,8 @@ function htmlBoard()
 		{
 			piece = getPieceColor(board[row][col]) + '_' + getPieceName(board[row][col]);
 			source = 'images/' + CURRENTTHEME + '/' + piece + '.' + cfgImageExt;	// Update the square
-			theBoardHtml += '<img alt=\"' + piece + '\" id=\"sq' + i + '\" ';
-			theBoardHtml += 'src=\"' + source + '\" width=\"' + squareSize + '\" height=\"' + squareSize + '\">';
+			theBoardHtml += '<img alt="' + piece + '" id="sq' + i + '" ';
+			theBoardHtml += 'src="' + source + '" width="' + squareSize + '" height="' + squareSize + '">';
 		}
 		else
 		{
@@ -293,7 +293,7 @@ function htmlBoard()
 		}
 		theBoardHtml += '</td>';
 		if((k % 8) === 0) {
-			theBoardHtml += '<td id=\"rbrd' + (rank+1) + '\" class=\"' + classHeader + '\" width=' + borderWidth + '\">&nbsp;</td></tr>';
+			theBoardHtml += '<td id="rbrd' + (rank+1) + '" class="' + classHeader + '" width=' + borderWidth + '">&nbsp;</td></tr>';
 			if(k != 0) {
 				if(invertBoard)
 				{
@@ -303,7 +303,7 @@ function htmlBoard()
 				{
 					rankLabel = rank;
 				}
-				theBoardHtml += '<tr><td id=\"rank' + rank-- + '\" class=\"' + classHeader + '\" width=\"' + borderWidth + '\">' + rankLabel + '</td>';
+				theBoardHtml += '<tr><td id="rank' + rank-- + '" class="' + classHeader + '" width="' + borderWidth + '">' + rankLabel + '</td>';
 			}
 		}
 		else
@@ -311,7 +311,7 @@ function htmlBoard()
 			j = 1 - j;
 		}
 	}
-	theBoardHtml += '<tr id=\"borderbottom\" class=\"' + classHeader + '\" height=\"' + borderWidth + '\"><td width=\"' + borderWidth + '\">&nbsp;</td>';
+	theBoardHtml += '<tr id="borderbottom" class="' + classHeader + '" height="' + borderWidth + '"><td width="' + borderWidth + '">&nbsp;</td>';
 	var fileLabel;
 	for(i = 0; i < 8; i++) {
 		if(invertBoard) {
@@ -321,9 +321,9 @@ function htmlBoard()
 		{
 			fileLabel = Files[i];
 		}
-		theBoardHtml += '<td id=\"file' + i + '\" class=\"' + classHeader + '\">' + fileLabel + '</td>';
+		theBoardHtml += '<td id="file' + i + '" class="' + classHeader + '">' + fileLabel + '</td>';
 	}
-	theBoardHtml += '<td id=\"rbrd0\" class=\"' + classHeader + '\">&nbsp;</td></tr></table>';
+	theBoardHtml += '<td id="rbrd0" class="' + classHeader + '">&nbsp;</td></tr></table>';
 	return theBoardHtml;
 }
 
@@ -373,48 +373,48 @@ function initChessBoard()
 
 	theFEN = historyToFEN();
 
-	if (getObject(\"btnMainMenu\")) getObject(\"btnMainMenu\").disabled = false;
-	if (getObject(\"btnReload\")) getObject(\"btnReload\").disabled = false;
-	if (getObject(\"btnPGN\")) getObject(\"btnPGN\").disabled = false;
-	if (getObject(\"btnLogout\")) getObject(\"btnLogout\").disabled = false;
+	if (getObject("btnMainMenu")) getObject("btnMainMenu").disabled = false;
+	if (getObject("btnReload")) getObject("btnReload").disabled = false;
+	if (getObject("btnPGN")) getObject("btnPGN").disabled = false;
+	if (getObject("btnLogout")) getObject("btnLogout").disabled = false;
 
-	if (getObject(\"btnMainMenu\")) getObject(\"btnMainMenu\").onclick = function(){displayMainmenu();};
-	if (getObject(\"btnReload\")) getObject(\"btnReload\").onclick = function(){reloadPage(this);};
-	if (getObject(\"btnPGN\")) getObject(\"btnPGN\").onclick = function(){downloadPGN();};
-	if (getObject(\"btnLogout\")) getObject(\"btnLogout\").onclick = function(){logout();};
+	if (getObject("btnMainMenu")) getObject("btnMainMenu").onclick = function(){displayMainmenu();};
+	if (getObject("btnReload")) getObject("btnReload").onclick = function(){reloadPage(this);};
+	if (getObject("btnPGN")) getObject("btnPGN").onclick = function(){downloadPGN();};
+	if (getObject("btnLogout")) getObject("btnLogout").onclick = function(){logout();};
 
-	if (getObject(\"btnUndo\")) getObject(\"btnUndo\").onclick = function(){undo();};
-	if (getObject(\"btnDraw\")) getObject(\"btnDraw\").onclick = function(){draw();};
-	if (getObject(\"btnResign\")) getObject(\"btnResign\").onclick = function(){resigngame();};
+	if (getObject("btnUndo")) getObject("btnUndo").onclick = function(){undo();};
+	if (getObject("btnDraw")) getObject("btnDraw").onclick = function(){draw();};
+	if (getObject("btnResign")) getObject("btnResign").onclick = function(){resigngame();};
 
 	if(isBoardDisabled != '1')
 	{
-		if (getObject(\"btnUndo\")) getObject(\"btnUndo\").disabled = false;
-		if (getObject(\"btnDraw\")) getObject(\"btnDraw\").disabled = false;
-		if (getObject(\"btnResign\")) getObject(\"btnResign\").disabled = false;
+		if (getObject("btnUndo")) getObject("btnUndo").disabled = false;
+		if (getObject("btnDraw")) getObject("btnDraw").disabled = false;
+		if (getObject("btnResign")) getObject("btnResign").disabled = false;
 	}
 	if(isGameOver == '1')
 	{ // Allow game replay
 		if (getObject('gamebuttons')) getObject('gamebuttons').style.display = 'none';
 		currMoveIdx = theFEN.length - 1;
-		var navButtons = '<form id=\"navigation\" action=\"\">';
-		navButtons += '<span id=\"navbuttons\">';
-		navButtons += '<input id=\"start\" title=\"Start of game\" type=\"button\" value=\"Start\" />';
-		navButtons += '<input id=\"jmpback\" title=\"Go back five halfmoves\" type=\"button\" value=\"&nbsp;<lt;<lt;&nbsp;\" />';
-		navButtons += '<input id=\"prev\" title=\"Go back one halfmove\" type=\"button\" value=\"&nbsp;<lt;&nbsp;\" />';
-		navButtons += '<input id=\"next\" title=\"Go forward one halfmove\" type=\"button\" value=\"&nbsp;>gt;&nbsp;\" />';
-		navButtons += '<input id=\"jmpfwd\" title=\"Go forward five halfmoves\" type=\"button\" value=\"&nbsp;>gt;>gt;&nbsp;\" />';
-		navButtons += '<input id=\"end\" title=\"End of game\" type=\"button\" value=\"End\" />';
+		var navButtons = '<form id="navigation" action="">';
+		navButtons += '<span id="navbuttons">';
+		navButtons += '<input id="start" title="Start of game" type="button" value="Start" />';
+		navButtons += '<input id="jmpback" title="Go back five halfmoves" type="button" value="&nbsp;<lt;<lt;&nbsp;" />';
+		navButtons += '<input id="prev" title="Go back one halfmove" type="button" value="&nbsp;<lt;&nbsp;" />';
+		navButtons += '<input id="next" title="Go forward one halfmove" type="button" value="&nbsp;>gt;&nbsp;" />';
+		navButtons += '<input id="jmpfwd" title="Go forward five halfmoves" type="button" value="&nbsp;>gt;>gt;&nbsp;" />';
+		navButtons += '<input id="end" title="End of game" type="button" value="End" />';
 		navButtons += '</span>';
 		navButtons += '</form>';
 		if (getObject('gamenav')) getObject('gamenav').innerHTML = navButtons;
 		
-        if (getObject(\"start\")) getObject(\"start\").onclick = function(){moveJmp(-10000);};
-		if (getObject(\"jmpback\")) getObject(\"jmpback\").onclick = function(){moveJmp(-5);};
-		if (getObject(\"prev\")) getObject(\"prev\").onclick = function(){moveJmp(-1);};
-		if (getObject(\"next\")) getObject(\"next\").onclick = function(){moveJmp(1);};
-		if (getObject(\"jmpfwd\")) getObject(\"jmpfwd\").onclick = function(){moveJmp(5);};
-		if (getObject(\"end\")) getObject(\"end\").onclick = function(){moveJmp(10000);};
+        if (getObject("start")) getObject("start").onclick = function(){moveJmp(-10000);};
+		if (getObject("jmpback")) getObject("jmpback").onclick = function(){moveJmp(-5);};
+		if (getObject("prev")) getObject("prev").onclick = function(){moveJmp(-1);};
+		if (getObject("next")) getObject("next").onclick = function(){moveJmp(1);};
+		if (getObject("jmpfwd")) getObject("jmpfwd").onclick = function(){moveJmp(5);};
+		if (getObject("end")) getObject("end").onclick = function(){moveJmp(10000);};
 	}
 	else
 	{ // Alert the players it's stalemate, 50 move draw or the same position has occurred three times
@@ -424,7 +424,7 @@ function initChessBoard()
 	if(isPlayersTurn == '1')
 	{ // No need to set event handlers unless it's the player's move
 		for(var i=0; i < 64; i++) {
-			var sq = getObject(\"tsq\" + i);
+			var sq = getObject("tsq" + i);
             if (sq) sq.onclick = function(){squareClicked(this);};
 		}
 	}

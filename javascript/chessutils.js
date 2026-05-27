@@ -36,7 +36,7 @@ colorLtrToName = {'w':'white', 'b':'black'};
 
 function getObject(obj) {
     if (document.getElementById) {
-        if (typeof obj == \"string\") {
+        if (typeof obj == "string") {
             var element = document.getElementById(obj);
             if(element) {
                 return element;
@@ -62,20 +62,20 @@ function isInBoard(row, col)
 	function getPieceColor(piece)
 	{
 		if (BLACK & piece)
-			return \"black\";
+			return "black";
 		else
-			return \"white\";
+			return "white";
 	}
 
 	function getPieceName(piece)
 	{
 		var pieceName = new Array();
-		pieceName[PAWN] = \"pawn\";
-		pieceName[ROOK] = \"rook\";
-		pieceName[KNIGHT] = \"knight\";
-		pieceName[BISHOP] = \"bishop\";
-		pieceName[QUEEN] = \"queen\";
-		pieceName[KING] = \"king\";
+		pieceName[PAWN] = "pawn";
+		pieceName[ROOK] = "rook";
+		pieceName[KNIGHT] = "knight";
+		pieceName[BISHOP] = "bishop";
+		pieceName[QUEEN] = "queen";
+		pieceName[KING] = "king";
 
 		return pieceName[piece & COLOR_MASK];
 	}
@@ -85,43 +85,43 @@ function isInBoard(row, col)
 		var code;
 		switch(piece)
 		{
-			case \"pawn\":
+			case "pawn":
 				code = PAWN;
 				break;
-			case \"knight\":
+			case "knight":
 				code = KNIGHT;
 				break;
-			case \"bishop\":
+			case "bishop":
 				code = BISHOP;
 				break;
-			case \"rook\":
+			case "rook":
 				code = ROOK;
 				break;
-			case \"queen\":
+			case "queen":
 				code = QUEEN;
 				break;
-			case \"king\":
+			case "king":
 				code = KING;
 				break;
 		}
 
-		if (color == \"black\")
+		if (color == "black")
 			code = BLACK | code;
 
 		return code;
 	}
 
-	var tmpOriginalClassName = \"\";
+	var tmpOriginalClassName = "";
 
 	function highlight(row, col)
 	{
-		if (board[parseInt(row)][parseInt(col)] != \"\")
+		if (board[parseInt(row)][parseInt(col)] != "")
 		{
 			var square = parseInt(row) * 8 + parseInt(col);
-			var element = document.getElementById(\"tsq\" + square);
+			var element = document.getElementById("tsq" + square);
             if (element) {
                 tmpOriginalClassName = element.className;
-                element.className = \"highlighted\";
+                element.className = "highlighted";
             }
 		}
 
@@ -131,13 +131,13 @@ function isInBoard(row, col)
 	function unhighlight(row, col)
 	{
 		if (DEBUG)
-			alert(\"unhighlight -> row = \" + row + \", col = \" + col);
+			alert("unhighlight -> row = " + row + ", col = " + col);
 
 
-		if (board[parseInt(row)][parseInt(col)] != \"\")
+		if (board[parseInt(row)][parseInt(col)] != "")
 		{
 			var square = parseInt(row) * 8 + parseInt(col);
-			var element = document.getElementById(\"tsq\" + square);
+			var element = document.getElementById("tsq" + square);
             if (element) {
                 element.className = tmpOriginalClassName;
             }
@@ -148,10 +148,10 @@ function isInBoard(row, col)
 
 	function getOtherColor(color)
 	{
-		if (color == \"white\")
-			return \"black\";
+		if (color == "white")
+			return "black";
 		else
-			return \"white\";
+			return "white";
 	}
 
 //
@@ -168,7 +168,7 @@ function ExpandFEN(FEN) {
       theFEN = theFEN + '' +  FEN.charAt(i);
     }
   }
-  return theFEN.replace(/\\//g, \"\");                     // Leave only pieces and empty squares
+  return theFEN.replace(/\\//g, "");                     // Leave only pieces and empty squares
 }
 
 function SetSquare(Square, Piece) {
@@ -207,7 +207,7 @@ function PackFEN(piecePlacement, activeColor, castlingAvail, epSquare, halfmoveC
 		{ // New row
 			if(empty > 0)
 			{ // Count of empty squares does not continue across rows
-				FEN += empty + \"\";
+				FEN += empty + "";
 				empty = 0;
 				idx++;
 			}
@@ -222,17 +222,17 @@ function PackFEN(piecePlacement, activeColor, castlingAvail, epSquare, halfmoveC
 		{ // Non-empty square
 			if(empty > 0)
 			{ // Add the number of consecutive empty squares to the output string
-				FEN += empty + \"\";
+				FEN += empty + "";
 				empty = 0;
 				idx++;
 			}
-			FEN += c + \"\";
+			FEN += c + "";
 			idx++;
 		}
 	}
 	if(empty > 0)
 	{
-		FEN += empty + \"\";
+		FEN += empty + "";
 	}
 	return FEN + ' ' + activeColor + ' ' + castlingAvail + ' ' + epSquare + ' ' + halfmoveClock + ' ' + fullmoveNumber;
 }
@@ -276,7 +276,7 @@ function historyToFEN()
 			halfmoveClock = 0;	// Restart the count after pawn move or capture
 		else
 			halfmoveClock++;
-		if(typeof chessHistory[i][PROMOTEDTO] == \"undefined\")
+		if(typeof chessHistory[i][PROMOTEDTO] == "undefined")
 			piece = FEN[i+1].charAt((7 - fromRow) * 8 + fromCol);
 		else
 		{
