@@ -23,4 +23,3 @@
 	$mailmsg = "Your opponent ".$opponent." has resigned the game on board ".$gameID.".";
 	$mailmsg .= "\n\nThis message has been automatically been sent by WebChess and should not be replied to.\n";
 	$mailmsg .= "Go to: " . $CFG_MAINPAGE . " to play.\n";
-?>

@@ -1,4 +1,4 @@
-<?php	
+<?php
 // $Id: chessutils.php,v 1.12 2010/08/14 16:57:54 sandking Exp $
 
 /*
@@ -121,7 +121,7 @@
 
 		/* if current player is promoting, a message needs to be replied to (Undo or Draw) or the game is over, then board is Disabled */
 		$tmpIsBoardDisabled = (($isPromoting || $isUndoRequested || $isDrawRequested || $isGameOver) == true);
-		
+
 		/* if opponent is in the process of promoting, then board is diabled */
 		if (!$tmpIsBoardDisabled)
 		{
@@ -141,7 +141,7 @@
 	function moveToPGNString($curColor, $piece, $fromRow, $fromCol, $toRow, $toCol, $pieceCaptured, $promotedTo, $isChecking)
 	{
 		$pgnString = "";
-		
+
 		/* check for castling */
 		if (($piece == "king") && (abs($toCol - $fromCol) == 2))
 		{
@@ -172,7 +172,7 @@
 			if ($promotedTo != "")
 				$pgnString .= "=".getPGNCode($promotedTo);
 		}
-		
+
 		/* check for CHECK */
 		if ($isChecking)
 			$pgnString .= "+";
@@ -185,7 +185,7 @@
 	function moveToVerbousString($curColor, $piece, $fromRow, $fromCol, $toRow, $toCol, $pieceCaptured, $promotedTo, $isChecked)
 	{
 		$verbousString = "";
-		
+
 		/* ex: white queen from a4 to c6 */
 		$verbousString .= $curColor." ".$piece." from ".chr($fromCol + 97).($fromRow + 1)." to ".chr($toCol + 97).($toRow + 1);
 
@@ -196,13 +196,13 @@
 		/* check for en passant */
 		if (($piece == "pawn") && ($toCol != $fromCol) && ($pieceCaptured == ""))
 			$verbousString .= " eating pawn en-passant";
-			
+
 		if ($pieceCaptured != "")
 			$verbousString .= " eating ".$pieceCaptured;
 
 		if ($promotedTo != "")
 			$verbousString .= "<br>Pawn promoted to ".$promotedTo;
-		
+
 		return $verbousString;
 	}
 
@@ -213,7 +213,7 @@
 		/* default message and subject */
 		$mailmsg = "";
 		$mailsubject = "WebChess";
-		
+
 		/* load specific message and subject */
 		switch($msgType)
 		{
@@ -249,7 +249,7 @@
 	function minimum_version( $vercheck ) {
 		$minver = explode(".", $vercheck);
 		$curver = explode(".", phpversion());
-		
+
 		if (($curver[0] < $minver[0])
 			|| (($curver[0] == $minver[0])
 				&& ($curver[1] < $minver[1]))
@@ -281,17 +281,17 @@
 		while (list($varname, $varvalue) = each($temp2)) {
 			$temp[$varname] = $varvalue;
 		}
-		
+
 		return ($temp);
 	}
-	
+
 	function fixOldPHPVersions()
 	{
 		global $_fixOldPHPVersions;
 
 		if (isset($_fixOldPHPVersions))
 			return;
-		
+
 		if (!minimum_version("4.1.0"))
 		{
 			global $_POST, $_GET, $_SESSION;
@@ -299,7 +299,7 @@
 			$_POST = createNewHttpVars("POST");
 			$_GET = createNewHttpVars("GET");
 			//$_SESSION = createNewHttpVars("SESSION");
-			
+
 			if (!isset($HTTP_SESSION_VARS["_SESSION"]))
 				session_register("_SESSION");
 		}
@@ -314,8 +314,8 @@
 		list($usec, $sec) = explode(' ', microtime());
 		return (float) $sec + ((float) $usec * 100000);
 	}
-	
-	
+
+
 	// this function was provided to the PHP documentation
 	// by houtex_boy@yahoo.com and slightly modified to use
 	// the above make_seed()
@@ -331,7 +331,7 @@
 		}
 	}
 
-	
+
 	function coordsToSquare($xRow,$xCol)
 	{
 	  $xRow+=1;
@@ -351,7 +351,7 @@
 	function moveToPGNString2($curColor, $piece, $fromRow, $fromCol, $toRow, $toCol, $pieceCaptured, $promotedTo, $isChecking)
 	{
 		$pgnString = "";
-		
+
 		/* check for castling */
 		if (($piece == "king") && (abs($toCol - $fromCol) == 2))
 		{
@@ -370,12 +370,12 @@
 			$pgnString .= chr($fromCol + 97).($fromRow + 1);
 
 			/* check for captured pieces */
-			
+
 			if ($piece='pawn' && $fromCol!=$toCol)
 				$pgnString .="x";
 			else
 			{
-	
+
 			if ($pieceCaptured != "")
 				$pgnString .= "x";
 			else
@@ -389,7 +389,7 @@
 			if ($promotedTo != "")
 				$pgnString .= "=".getPGNCode($promotedTo);
 		}
-		
+
 		/* check for CHECK */
 		if ($isChecking)
 			$pgnString .= "+";
@@ -406,17 +406,17 @@
 
 		$tmpGameQ = mysqli_query($dbh, "SELECT whitePlayer,blackPlayer,dateCreated,gameMessage FROM " . $CFG_TABLE['games'] . " WHERE gameID = " . $GameID) or die(mysqli_error($dbh));
 		$tmpGame = mysqli_fetch_assoc($tmpGameQ);
-		
+
 		$gStart = $tmpGame['dateCreated'];
 		$isDraw="";
 		if($tmpGame['gameMessage']=="draw"){$isDraw=true;}else{$isDraw="";}
-		
+
 		$tmpBlackQ = mysqli_query($dbh, "SELECT nick,firstName,lastName FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['blackPlayer']);
                 $xBlack = mysqli_fetch_assoc($tmpBlackQ);
                 $pBlack = $xBlack['nick'];
 		$pBlackF = $xBlack['firstName'];
 		$pBlackL = $xBlack['lastName'];
-     
+
 	        $tmpWhiteQ = mysqli_query($dbh, "SELECT nick,firstName,lastName FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['whitePlayer']);
                 $xWhite = mysqli_fetch_assoc($tmpWhiteQ);
                 $pWhite = $xWhite['nick'];
@@ -437,7 +437,6 @@
 		{
 			$MyColor="none";
 		}
-                
+
 
         }
-?>

@@ -45,5 +45,3 @@ while($row=mysqli_fetch_assoc($f)){
 } // End while
 
 echo "]];\n";
-
-?>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 // $Id: chessdb.php,v 1.10 2010/08/14 16:57:54 sandking Exp $
 
 /*
@@ -27,7 +27,7 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		mysqli_query($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET lastMove = NOW() WHERE gameID = ".(int)$_SESSION['gameID']);
 	}
 
@@ -35,11 +35,11 @@
 	{
 		global $CFG_TABLE, $dbh;
 		global $history, $numMoves;
-		
+
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		$allMoves = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".(int)$_SESSION['gameID']." ORDER BY timeOfMove");
 
 		$numMoves = -1;
@@ -58,7 +58,7 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		if ($isInCheck)
 		{
 			$tmpIsInCheck = 1;
@@ -73,7 +73,7 @@
 		mysqli_query($dbh, $tmpQuery);
 
 		updateTimestamp();
-	
+
 		/* if email notification is activated and move does not result in a pawn's promotion... */
 		if ($CFG_USEEMAILNOTIFICATION && ! $_SESSION['isSharedPC'])
 		{
@@ -87,15 +87,15 @@
 				$oppColor = "black";
 			else
 				$oppColor = "white";
-			
+
 			/* get opponent's player ID */
 			if ($oppColor == 'white')
 				$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
 			else
 				$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
-			
+
 			$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
-			
+
 			/* if opponent is using email notification... */
 			$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
 			if (mysqli_num_rows($tmpOpponentEmail) > 0)
@@ -106,16 +106,16 @@
 					/* get opponent's nick */
 					$tmpOpponentNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$_SESSION['playerID']);
 					$opponentNick = mysqli_fetch_row($tmpOpponentNick)[0];
-					
+
 					/* get opponent's prefered history type */
 					$tmpOpponentHistory = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'history'");
-					
+
 					/* default to PGN */
 					if (mysqli_num_rows($tmpOpponentHistory) > 0)
 						$opponentHistory = mysqli_fetch_row($tmpOpponentHistory)[0];
 					else
 						$opponentHistory = 'pgn';
-					
+
 					/* notify opponent of move via email */
 					if ($opponentHistory == 'pgn')
 						webchessMail('move', $opponentEmail, moveToPGNString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, $history[$numMoves]['promotedTo'], $isInCheck), $opponentNick, $_SESSION['gameID']);
@@ -125,7 +125,7 @@
 			}
 		}
 	}
-	
+
 	function saveHistory()
 	{
 		global $CFG_TABLE, $dbh;
@@ -134,13 +134,13 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		/* set destination row for pawn promotion */
 		if ($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK)
 			$targetRow = 0;
 		else
 			$targetRow = 7;
-		
+
 		/* determine if move results in pawn promotion */
 		if ((($board[$_POST['fromRow']][$_POST['fromCol']] & COLOR_MASK) == PAWN) && ($_POST['toRow'] == $targetRow))
 			$isPromoting = true;
@@ -183,13 +183,13 @@
 
 		if ($board[$_POST['toRow']][$_POST['toCol']] == 0)
 		{
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", null, null, ".$history[$numMoves]['isInCheck'].")"; 
+			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", null, null, ".$history[$numMoves]['isInCheck'].")";
 			$history[$numMoves]['replaced'] = null;
 			$tmpReplaced = "";
 		}
 		else
 		{
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['toRow']][$_POST['toCol']]))."', null, ".$history[$numMoves]['isInCheck'].")"; 
+			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['toRow']][$_POST['toCol']]))."', null, ".$history[$numMoves]['isInCheck'].")";
 
 			$history[$numMoves]['replaced'] = getPieceName($board[$_POST['toRow']][$_POST['toCol']]);
 			$tmpReplaced = $history[$numMoves]['replaced'];
@@ -206,9 +206,9 @@
 				$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
 			else
 				$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
-			
+
 			$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
-			
+
 			/* if opponent is using email notification... */
 			$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
 			if (mysqli_num_rows($tmpOpponentEmail) > 0)
@@ -219,16 +219,16 @@
 					/* get opponent's nick */
 					$tmpOpponentNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$_SESSION['playerID']);
 					$opponentNick = mysqli_fetch_row($tmpOpponentNick)[0];
-					
+
 					/* get opponent's prefered history type */
 					$tmpOpponentHistory = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'history'");
-					
+
 					/* default to PGN */
 					if (mysqli_num_rows($tmpOpponentHistory) > 0)
 						$opponentHistory = mysqli_fetch_row($tmpOpponentHistory)[0];
 					else
 						$opponentHistory = 'pgn';
-					
+
 					/* notify opponent of move via email */
 					if ($opponentHistory == 'pgn')
 						webchessMail('move', $opponentEmail, moveToPGNString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, '', $isInCheck), $opponentNick, $_SESSION['gameID']);
@@ -247,7 +247,7 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		/* clear board data */
 		for ($i = 0; $i < 8; $i++)
 			for ($j = 0; $j < 8; $j++)
@@ -261,7 +261,7 @@
 		{
 			$board[$thisPiece["row"]][$thisPiece["col"]] = getPieceCode($thisPiece["color"], $thisPiece["piece"]);
 		}
-		
+
 		/* get current player's color */
 		$tmpQuery = "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID'];
 		$tmpTurns = mysqli_query($dbh, $tmpQuery);
@@ -281,7 +281,7 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		/* clear old data */
 		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
 
@@ -319,13 +319,13 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		if (DEBUG)
 			echo("Entering processMessages()<br>\n");
 
 		$isUndoRequested = false;
 		$isGameOver = false;
-		
+
 		/* find out which player (black or white) we are serving */
 		/* NOTE: When playing in the same computer $playersColor is always the player who logged in first */
 		if (DEBUG)
@@ -366,10 +366,10 @@
 				mysqli_query($dbh, $tmpQuery);
                                 // ToDo: Mail an undo request notice to other player??
 			}
-			
+
 			updateTimestamp();
 		}
-		
+
 		/* queue a request for a draw */
 		if (isset($_POST['requestDraw']) && $_POST['requestDraw'] == "yes")
 		{
@@ -401,14 +401,14 @@
 				}
 				else
 					$tmpStatus = "denied";
-			
+
 				$tmpQuery = "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = '".$tmpStatus."', destination = '".$opponentColor."' WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'request' AND destination = '".$currentPlayer."'";
 				mysqli_query($dbh, $tmpQuery);
-			
+
 				updateTimestamp();
 			}
 		}
-		
+
 		/* response to a request for a draw */
 		if (isset($_POST['drawResponse']))
 		{
@@ -422,14 +422,14 @@
 				}
 				else
 					$tmpStatus = "denied";
-			
+
 				$tmpQuery = "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = '".$tmpStatus."', destination = '".$opponentColor."' WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'request' AND destination = '".$currentPlayer."'";
 				mysqli_query($dbh, $tmpQuery);
 
 				updateTimestamp();
 			}
 		}
-		
+
 		/* resign the game */
 		if (isset($_POST['resign']) && $_POST['resign'] == "yes")
 		{
@@ -446,11 +446,11 @@
 					$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
 				else
 					$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
-				
+
 				$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
-			
+
 				$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
-				
+
 				/* if opponent is using email notification... */
 				if (mysqli_num_rows($tmpOpponentEmail) > 0)
 				{
@@ -463,8 +463,8 @@
 				}
 			}
 		}
-		
-		
+
+
 		/* ******************************************* */
 		/* process queued messages (ie: from database) */
 		/* ******************************************* */
@@ -494,7 +494,7 @@
 							break;
 					}
 					break;
-				
+
 				case 'draw':
 					switch($tmpMessage['msgStatus'])
 					{
@@ -531,8 +531,8 @@
 					$statusMessage .= "Your request for a draw is pending";
 					break;
 			}
-		}	
-		
+		}
+
 		/* game level status: draws, resignations and checkmate */
 		/* if checkmate, update games table */
 		if (isset($_POST['isCheckMate']) && $_POST['isCheckMate'] == 'true')
@@ -542,7 +542,7 @@
 		$tmpQuery = "SELECT gameMessage, messageFrom FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID'];
 		$tmpMessages = mysqli_query($dbh, $tmpQuery);
 		$tmpMessage = mysqli_fetch_assoc($tmpMessages);
-		
+
 		if ($tmpMessage['gameMessage'] == "draw")
 		{
 			$statusMessage .= "Game ended in a draw";
@@ -562,4 +562,3 @@
 			$isCheckMate = true;
 		}
 	}
-?>

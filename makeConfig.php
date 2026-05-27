@@ -135,4 +135,3 @@ $CFG_TABLE['preferences'] = "preferences";
 <?php
 echo "\$CFG_IMAGE_EXT = '".$_POST['imageExtension']."';\n";
 echo "?>";
-?>

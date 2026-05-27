@@ -435,8 +435,29 @@ function initChessBoard()
         }, autoreload * 1000);
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initChessBoard);
-} else {
-    initChessBoard();
-}
+// Initialize on page load - try multiple methods to ensure it runs
+(function() {
+    var initialized = false;
+    
+    function ensureInit() {
+        if (!initialized) {
+            initialized = true;
+            initChessBoard();
+        }
+    }
+    
+    // Try DOMContentLoaded
+    if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', ensureInit, false);
+    }
+    
+    // Try window load
+    if (window.addEventListener) {
+        window.addEventListener('load', ensureInit, false);
+    }
+    
+    // Try immediate if already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(ensureInit, 10);
+    }
+})();

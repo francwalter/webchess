@@ -432,4 +432,3 @@
 		echo ($xheader);
 		echo ($body);
 	}
-?>

@@ -60,4 +60,3 @@
 	/* theme settings */
 	$CFG_BOARDSQUARESIZE = 50; /* May be used to resize board size */
 	$CFG_IMAGE_EXT = "png";
-?>

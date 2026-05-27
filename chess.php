@@ -125,27 +125,27 @@
     <meta charset="ISO-8859-1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="pragma" content="no-cache" />
-    <!-- Use inline script to prevent theme flicker on reload -->
-    <script type="text/javascript">
-        (function() {
-            var theme = localStorage.getItem('webchess-theme');
-            if (!theme) {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    theme = 'dark';
-                } else {
-                    theme = 'light';
-                }
-            }
-            document.documentElement.setAttribute('data-bs-theme', theme);
-        })();
-    </script>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/chess.css" type="text/css" />
     <?php
         echo("<link rel='stylesheet' href='images/");
         echo($_SESSION['pref_theme'] . "/wctheme.css' type='text/css' />\n");
-
+    ?>
+    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
+    <script type="text/javascript" src="javascript/theme.js"></script>
+    <style>
+        body { background-color: #f8f9fa; transition: background-color 0.3s ease; }
+        body[data-theme="dark"] { background-color: #1a1a1a; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        body[data-theme="dark"] .card { background-color: #2d2d2d; color: #e0e0e0; }
+        body[data-theme="dark"] .card-header { background-color: #1a1a1a !important; border-color: #444; }
+        body[data-theme="dark"] .btn-outline-secondary { color: #adb5bd; border-color: #adb5bd; }
+        body[data-theme="dark"] .btn-outline-secondary:hover { background-color: #495057; border-color: #adb5bd; color: #fff; }
+        body[data-theme="dark"] .text-muted { color: #adb5bd !important; }
+        body[data-theme="dark"] .alert { background-color: #3a3a3a; color: #e0e0e0; border-color: #555; }
+    </style>
+    <?php
         /* find out if it's the current player's turn */
         if (( (($numMoves == -1) || (($numMoves % 2) == 1)) && ($playersColor == "white"))
                 || ((($numMoves % 2) == 0) && ($playersColor == "black")))
@@ -160,8 +160,6 @@
         else
             echo("<title>WebChess - Opponent's Move</title>\n");
     ?>
-    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
-    <script type="text/javascript" src="javascript/theme.js"></script>
     <script type="text/javascript">
     <?php
         echo("var cfgImageExt = '$CFG_IMAGE_EXT';\n");
@@ -198,35 +196,32 @@
     <script type="text/javascript" src="javascript/validation.js"></script>
     <?php
     if($isPlayersTurn || $_SESSION['isSharedPC'] || $isPromoting)
-        echo('
-    <script type="text/javascript" src="javascript/isCheckMate.js"></script>');
+        echo('<script type="text/javascript" src="javascript/isCheckMate.js"></script>');
     if(!isBoardDisabled() || $_SESSION['isSharedPC'])
-        echo('
-    <script type="text/javascript" src="javascript/squareclicked.js"></script>');
+        echo('<script type="text/javascript" src="javascript/squareclicked.js"></script>');
     ?>
     <script type="text/javascript" src="javascript/board.js"></script>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="mainmenu.php">WEBCHESS</a>
-        <div class="navbar-text text-light">
-            <?php echo $whiteNick; ?> vs <?php echo $blackNick; ?> (Game #<?php echo $_SESSION['gameID']; ?>)
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h5">♔ WebChess</span>
+        <div class="text-light small">
+            <span id="players"></span>
         </div>
-        <div class="ms-auto d-flex align-items-center">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm me-3" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
-            <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+        <div class="ms-auto d-flex gap-2">
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
         </div>
     </div>
 </nav>
 
-<div class="container pb-5">
-    <div class="row">
+<div class="container-fluid px-3 px-lg-5 pb-5">
+    <div class="row g-4">
         <!-- Chess Board Section -->
-        <div class="col-lg-7 text-center">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-body p-3">
                     <form name="gamedata" method="post" action="chess.php">
                         <?php
                             if ($isPromoting && (!$isPlayersTurn || $_SESSION['isSharedPC']))
@@ -236,17 +231,17 @@
                             if (isset($isDrawRequested) && $isDrawRequested)
                                 writeDrawRequest();
                         ?>
-                        <div id="chessboard" class="d-inline-block mb-3"></div>
+                        <div id="chessboard" class="text-center mb-3"></div>
 
-                        <div id="moveinfo" class="alert alert-secondary py-2 mb-3">
+                        <div id="moveinfo" class="alert alert-secondary py-2 mb-3 text-center">
                             <span id="curmove" class="fw-bold me-3"></span>
                             <span id="whosmove" class="badge bg-primary"></span>
                         </div>
 
-                        <div id="gamebuttons" class="d-flex justify-content-center gap-2 mb-3">
-                            <button type="button" id="btnUndo" class="btn btn-warning shadow-sm" disabled="disabled">Request Undo</button>
-                            <button type="button" id="btnDraw" class="btn btn-info shadow-sm" disabled="disabled">Request Draw</button>
-                            <button type="button" id="btnResign" class="btn btn-danger shadow-sm" disabled="disabled">Resign</button>
+                        <div id="gamebuttons" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
+                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="Request Undo" disabled="disabled" onclick="undo()" />
+                            <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="Request Draw" disabled="disabled" onclick="draw()" />
+                            <input type="button" id="btnResign" class="btn btn-danger btn-sm" value="Resign" disabled="disabled" onclick="resigngame()" />
                         </div>
 
                         <input type="hidden" name="requestUndo" value="no" />
@@ -260,41 +255,45 @@
                         <input type="hidden" name="isCheckMate" value="false" />
                     </form>
 
-                    <div id="gamenav" class="mb-3"></div>
-
-                    <div class="text-muted small mb-3">
+                    <div class="text-muted small text-center mb-3">
                         When castling, just move the king (the rook will move automatically).
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white py-2">
-                    <h6 class="mb-0">Captured Pieces</h6>
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-dark border-0 text-white">
+                    <h6 class="mb-0">♟ Captured Pieces</h6>
                 </div>
-                <div class="card-body py-3">
-                    <div id="captures"></div>
+                <div class="card-body">
+                    <div id="captures" class="text-center"></div>
                 </div>
             </div>
+
+            <div id="gamenav" class="mt-4"></div>
         </div>
 
         <!-- Info & Controls Section -->
         <div class="col-lg-5">
-            <div class="card shadow-sm mb-4 h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Game Info</h5>
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white border-0">
+                    <h5 class="mb-0">📋 Game Information</h5>
                 </div>
                 <div class="card-body">
-                    <div id="checkmsg" class="text-danger fw-bold mb-2"></div>
-                    <div id="statusmsg" class="text-info mb-3"></div>
+                    <div id="gameid" class="mb-3 small text-muted"></div>
 
-                    <h6 class="border-bottom pb-2 mb-3">Moves History</h6>
-                    <div id="gamebody" class="overflow-auto" style="max-height: 400px; font-family: monospace;"></div>
+                    <div class="alert alert-info mb-3" id="statusmsg"></div>
+
+                    <div id="checkmsg" class="alert alert-danger d-none mb-3"></div>
+
+                    <h6 class="border-bottom pb-2 mb-3">Move History</h6>
+                    <div id="gamebody" class="overflow-auto" style="max-height: 350px;"></div>
 
                     <div class="mt-4 pt-3 border-top d-grid gap-2">
-                        <button id="btnMainMenu" class="btn btn-outline-primary" disabled="disabled">Main Menu</button>
-                        <button id="btnReload" class="btn btn-outline-secondary" disabled="disabled">Reload Board</button>
-                        <button id="btnPGN" class="btn btn-outline-success" disabled="disabled">Download PGN</button>
+                        <input type="button" id="btnMainMenu" class="btn btn-outline-primary" value="Main Menu" disabled="disabled" onclick="displayMainmenu()" />
+                        <input type="button" id="btnReload" class="btn btn-outline-secondary" value="Reload Board" disabled="disabled" onclick="reloadPage(this)" />
+                        <input type="button" id="btnPGN" class="btn btn-outline-success" value="Download PGN" disabled="disabled" onclick="downloadPGN()" />
+                        <input type="button" id="btnLogout" class="btn btn-outline-danger" value="Logout" disabled="disabled" onclick="logout()" />
                     </div>
                 </div>
             </div>
@@ -302,19 +301,42 @@
     </div>
 </div>
 
-<form name="gamemenu" method="post" action="chess.php">
+<form name="gamemenu" method="post" action="chess.php" style="display:none;">
     <input type="hidden" name="ToDo" value="Logout" />
 </form>
 
 <noscript>
     <div class="container mt-3">
         <div class="alert alert-danger text-center">
-            !Warning! Javascript must be enabled for proper operation of WebChess
+            ⚠ Warning: JavaScript must be enabled for WebChess to work properly!
         </div>
     </div>
 </noscript>
 
-<!-- Bootstrap JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript">
+    // Ensure buttons are enabled and working
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var btnMainMenu = document.getElementById('btnMainMenu');
+            var btnReload = document.getElementById('btnReload');
+            var btnPGN = document.getElementById('btnPGN');
+            var btnLogout = document.getElementById('btnLogout');
+            var btnUndo = document.getElementById('btnUndo');
+            var btnDraw = document.getElementById('btnDraw');
+            var btnResign = document.getElementById('btnResign');
+
+            if (btnMainMenu) btnMainMenu.disabled = false;
+            if (btnReload) btnReload.disabled = false;
+            if (btnPGN) btnPGN.disabled = false;
+            if (btnLogout) btnLogout.disabled = false;
+
+            // Enable game buttons if not player's turn
+            if (btnUndo) btnUndo.disabled = false;
+            if (btnDraw) btnDraw.disabled = false;
+            if (btnResign) btnResign.disabled = false;
+        }, 100);
+    });
+</script>
 </body>
 </html>

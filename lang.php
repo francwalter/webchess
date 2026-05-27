@@ -31,12 +31,11 @@ if($GETTEXT_SUPPORT) {
 	//$LANGUAGE = 'es_ES';
 	$LANGUAGE = 'en_US';
 
-	putenv("LANG=$LANGUAGE"); 
+	putenv("LANG=$LANGUAGE");
 	setlocale(LC_ALL, $LANGUAGE);
 
 	// Set the text domain as 'webchess'
 	$domain = 'webchess';
-	bindtextdomain($domain, "./locale"); 
+	bindtextdomain($domain, "./locale");
 	textdomain($domain);
 }
-?>

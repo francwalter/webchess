@@ -38,5 +38,3 @@
 	{
 			die("Session timed out.  Please <a href='index.php'>login again</a> to continue.");
 	}
-?>
-

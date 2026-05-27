@@ -27,13 +27,13 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
-		
+
 		/* if moving en-passant */
 		/* (ie: if pawn moves diagonally without replacing anything) */
 		if ((($board[$_POST['fromRow']][$_POST['fromCol']] & COLOR_MASK) == PAWN) && ($_POST['toCol'] != $_POST['fromCol']) && ($board[$_POST['toRow']][$_POST['toCol']] == 0))
 			/* delete eaten pawn */
 			$board[$_POST['fromRow']][$_POST['toCol']] = 0;
-		
+
 		/* move piece to destination, replacing whatever's there */
 		$board[$_POST['toRow']][$_POST['toCol']] = $board[$_POST['fromRow']][$_POST['fromCol']];
 
@@ -60,4 +60,3 @@
 
 		return true;
 	}
-?>

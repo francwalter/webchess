@@ -63,4 +63,3 @@ loadHistory();
 ReturnGameInfo($_SESSION['gameID']);
 writePGN();
 mysql_close();
-?>

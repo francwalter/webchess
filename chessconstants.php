@@ -30,4 +30,3 @@
 	define ("BLACK", 128);	/* 1000 0000 */
 	define ("WHITE", 0);
 	define ("COLOR_MASK", 127);	/* 0111 1111 */
-?>
