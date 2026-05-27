@@ -19,30 +19,30 @@
 */
 
  /* these are utility functions used by other functions */
-var Files \u003d [\u0027a\u0027, \u0027b\u0027, \u0027c\u0027, \u0027d\u0027, \u0027e\u0027, \u0027f\u0027, \u0027g\u0027, \u0027h\u0027];
+var Files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
-var pieceNameToLtr \u003d new Array();
-pieceNameToLtr \u003d {\u0027king\u0027:\u0027k\u0027, \u0027queen\u0027:\u0027q\u0027, \u0027rook\u0027:\u0027r\u0027, \u0027bishop\u0027:\u0027b\u0027, \u0027knight\u0027:\u0027n\u0027, \u0027pawn\u0027:\u0027p\u0027};
+var pieceNameToLtr = new Array();
+pieceNameToLtr = {'king':'k', 'queen':'q', 'rook':'r', 'bishop':'b', 'knight':'n', 'pawn':'p'};
 
-var pieceLtrToName \u003d new Array();
-pieceLtrToName \u003d {\u0027k\u0027:\u0027king\u0027, \u0027q\u0027:\u0027queen\u0027, \u0027r\u0027:\u0027rook\u0027, \u0027b\u0027:\u0027bishop\u0027, \u0027n\u0027:\u0027knight\u0027, \u0027p\u0027:\u0027pawn\u0027};
+var pieceLtrToName = new Array();
+pieceLtrToName = {'k':'king', 'q':'queen', 'r':'rook', 'b':'bishop', 'n':'knight', 'p':'pawn'};
 
-var pieceColor \u003d new Array();
-pieceColor \u003d {\u0027K\u0027:\u0027w\u0027, \u0027Q\u0027:\u0027w\u0027, \u0027R\u0027:\u0027w\u0027, \u0027B\u0027:\u0027w\u0027, \u0027N\u0027:\u0027w\u0027, \u0027P\u0027:\u0027w\u0027,
-			  \u0027k\u0027:\u0027b\u0027, \u0027q\u0027:\u0027b\u0027, \u0027r\u0027:\u0027b\u0027, \u0027b\u0027:\u0027b\u0027, \u0027n\u0027:\u0027b\u0027, \u0027p\u0027:\u0027b\u0027};
+var pieceColor = new Array();
+pieceColor = {'K':'w', 'Q':'w', 'R':'w', 'B':'w', 'N':'w', 'P':'w',
+			  'k':'b', 'q':'b', 'r':'b', 'b':'b', 'n':'b', 'p':'b'};
 
-var colorLtrToName \u003d new Array();
-colorLtrToName \u003d {\u0027w\u0027:\u0027white\u0027, \u0027b\u0027:\u0027black\u0027};
+var colorLtrToName = new Array();
+colorLtrToName = {'w':'white', 'b':'black'};
 
 function getObject(obj) {
     if (document.getElementById) {
-        if (typeof obj \u003d\u003d \"string\") {
-            var element \u003d document.getElementById(obj);
+        if (typeof obj == \"string\") {
+            var element = document.getElementById(obj);
             if(element) {
                 return element;
             } else {
-                var elements \u003d document.getElementsByName(obj);
-                if (elements \u0026\u0026 elements.length \u003e 0) return elements[0];
+                var elements = document.getElementsByName(obj);
+                if (elements && elements.length > 0) return elements[0];
             }
         } else {
             return obj.style;
@@ -53,7 +53,7 @@ function getObject(obj) {
 
 function isInBoard(row, col)
 {
-	if ((row \u003e\u003d 0) \u0026\u0026 (row \u003c\u003d 7) \u0026\u0026 (col \u003e\u003d 0) \u0026\u0026 (col \u003c\u003d 7))
+	if ((row >= 0) && (row <= 7) && (col >= 0) && (col <= 7))
 		return true;
 	else
 		return false;
@@ -61,7 +61,7 @@ function isInBoard(row, col)
 
 	function getPieceColor(piece)
 	{
-		if (BLACK \u0026 piece)
+		if (BLACK & piece)
 			return \"black\";
 		else
 			return \"white\";
@@ -69,15 +69,15 @@ function isInBoard(row, col)
 
 	function getPieceName(piece)
 	{
-		var pieceName \u003d new Array();
-		pieceName[PAWN] \u003d \"pawn\";
-		pieceName[ROOK] \u003d \"rook\";
-		pieceName[KNIGHT] \u003d \"knight\";
-		pieceName[BISHOP] \u003d \"bishop\";
-		pieceName[QUEEN] \u003d \"queen\";
-		pieceName[KING] \u003d \"king\";
+		var pieceName = new Array();
+		pieceName[PAWN] = \"pawn\";
+		pieceName[ROOK] = \"rook\";
+		pieceName[KNIGHT] = \"knight\";
+		pieceName[BISHOP] = \"bishop\";
+		pieceName[QUEEN] = \"queen\";
+		pieceName[KING] = \"king\";
 
-		return pieceName[piece \u0026 COLOR_MASK];
+		return pieceName[piece & COLOR_MASK];
 	}
 
 	function getPieceCode(color, piece)
@@ -86,42 +86,42 @@ function isInBoard(row, col)
 		switch(piece)
 		{
 			case \"pawn\":
-				code \u003d PAWN;
+				code = PAWN;
 				break;
 			case \"knight\":
-				code \u003d KNIGHT;
+				code = KNIGHT;
 				break;
 			case \"bishop\":
-				code \u003d BISHOP;
+				code = BISHOP;
 				break;
 			case \"rook\":
-				code \u003d ROOK;
+				code = ROOK;
 				break;
 			case \"queen\":
-				code \u003d QUEEN;
+				code = QUEEN;
 				break;
 			case \"king\":
-				code \u003d KING;
+				code = KING;
 				break;
 		}
 
-		if (color \u003d\u003d \"black\")
-			code \u003d BLACK | code;
+		if (color == \"black\")
+			code = BLACK | code;
 
 		return code;
 	}
 
-	var tmpOriginalClassName \u003d \"\";
+	var tmpOriginalClassName = \"\";
 
 	function highlight(row, col)
 	{
-		if (board[parseInt(row)][parseInt(col)] !\u003d \"\")
+		if (board[parseInt(row)][parseInt(col)] != \"\")
 		{
-			var square \u003d parseInt(row) * 8 + parseInt(col);
-			var element \u003d document.getElementById(\"tsq\" + square);
+			var square = parseInt(row) * 8 + parseInt(col);
+			var element = document.getElementById(\"tsq\" + square);
             if (element) {
-                tmpOriginalClassName \u003d element.className;
-                element.className \u003d \"highlighted\";
+                tmpOriginalClassName = element.className;
+                element.className = \"highlighted\";
             }
 		}
 
@@ -131,15 +131,15 @@ function isInBoard(row, col)
 	function unhighlight(row, col)
 	{
 		if (DEBUG)
-			alert(\"unhighlight -\u003e row \u003d \" + row + \", col \u003d \" + col);
+			alert(\"unhighlight -> row = \" + row + \", col = \" + col);
 
 
-		if (board[parseInt(row)][parseInt(col)] !\u003d \"\")
+		if (board[parseInt(row)][parseInt(col)] != \"\")
 		{
-			var square \u003d parseInt(row) * 8 + parseInt(col);
-			var element \u003d document.getElementById(\"tsq\" + square);
+			var square = parseInt(row) * 8 + parseInt(col);
+			var element = document.getElementById(\"tsq\" + square);
             if (element) {
-                element.className \u003d tmpOriginalClassName;
+                element.className = tmpOriginalClassName;
             }
 		}
 
@@ -148,7 +148,7 @@ function isInBoard(row, col)
 
 	function getOtherColor(color)
 	{
-		if (color \u003d\u003d \"white\")
+		if (color == \"white\")
 			return \"black\";
 		else
 			return \"white\";
@@ -159,199 +159,199 @@ function isInBoard(row, col)
 //
 
 function ExpandFEN(FEN) {
-  var ones \u003d new Array (\u0027\u0027, \u00271\u0027 ,\u002711\u0027, \u0027111\u0027, \u00271111\u0027, \u002711111\u0027, \u0027111111\u0027, \u00271111111\u0027, \u002711111111\u0027);
-  var theFEN \u003d \u0027\u0027;
-  for(var i\u003d0; i \u003c FEN.length; i++) {
-    if(FEN.charAt(i) \u003e \u00271\u0027 \u0026\u0026 FEN.charAt(i) \u003c \u00279\u0027) {
+  var ones = new Array ('', '1' ,'11', '111', '1111', '11111', '111111', '1111111', '11111111');
+  var theFEN = '';
+  for(var i=0; i < FEN.length; i++) {
+    if(FEN.charAt(i) > '1' && FEN.charAt(i) < '9') {
       theFEN += (ones[Number(FEN.charAt(i))]);
     } else {
-      theFEN \u003d theFEN + \u0027\u0027 +  FEN.charAt(i);
+      theFEN = theFEN + '' +  FEN.charAt(i);
     }
   }
   return theFEN.replace(/\\//g, \"\");                     // Leave only pieces and empty squares
 }
 
 function SetSquare(Square, Piece) {
-  var rank \u003d 7 - parseInt(Square / 8);
-  var file \u003d Square % 8;
+  var rank = 7 - parseInt(Square / 8);
+  var file = Square % 8;
   var s;
-  if(Piece \u003d\u003d \u00271\u0027) {
-    s \u003d 0;
+  if(Piece == '1') {
+    s = 0;
   } else {
-    s \u003d getPieceCode(colorLtrToName[pieceColor[Piece]], pieceLtrToName[Piece.toLowerCase()]);
+    s = getPieceCode(colorLtrToName[pieceColor[Piece]], pieceLtrToName[Piece.toLowerCase()]);
   }
   board[rank][file] = s;
 }
 
 function FENToBoard(FEN) {
-  var FENItems \u003d new Array();
-  FENItems \u003d FEN.split(\u0027 \u0027);
-  var ExpFEN \u003d ExpandFEN(FENItems[0]);
+  var FENItems = new Array();
+  FENItems = FEN.split(' ');
+  var ExpFEN = ExpandFEN(FENItems[0]);
   var c;
-  for(var i\u003d0; i \u003c 64; i++) {
-    c \u003d ExpFEN.charAt(i);
+  for(var i=0; i < 64; i++) {
+    c = ExpFEN.charAt(i);
     SetSquare(i, c);
   }
-  curColor \u003d colorLtrToName[FENItems[1]];
+  curColor = colorLtrToName[FENItems[1]];
 };
 
 function PackFEN(piecePlacement, activeColor, castlingAvail, epSquare, halfmoveClock, fullmoveNumber)
 { // Pack all the FEN fields into one string
-	var FEN \u003d \u0027\u0027;
-	var idx \u003d 0;
-	var empty \u003d 0;
-	var c \u003d \u0027\u0027;
-	for(var i\u003d0; i \u003c 64; i++)
+	var FEN = '';
+	var idx = 0;
+	var empty = 0;
+	var c = '';
+	for(var i=0; i < 64; i++)
 	{ // Generate the correct piece placement string
-		if(i \u003e 0 \u0026\u0026 (i % 8 \u003d\u003d 0))
+		if(i > 0 && (i % 8 == 0))
 		{ // New row
-			if(empty \u003e 0)
+			if(empty > 0)
 			{ // Count of empty squares does not continue across rows
 				FEN += empty + \"\";
-				empty \u003d 0;
+				empty = 0;
 				idx++;
 			}
-			FEN += \u0027/\u0027;	// New row
+			FEN += '/';	// New row
 		}
-		c \u003d piecePlacement.charAt(i);
-		if(c \u003d\u003d \u00271\u0027)
+		c = piecePlacement.charAt(i);
+		if(c == '1')
 		{ // Count consecutive empty squares
 			empty++;
 		}
 		else
 		{ // Non-empty square
-			if(empty \u003e 0)
+			if(empty > 0)
 			{ // Add the number of consecutive empty squares to the output string
 				FEN += empty + \"\";
-				empty \u003d 0;
+				empty = 0;
 				idx++;
 			}
 			FEN += c + \"\";
 			idx++;
 		}
 	}
-	if(empty \u003e 0)
+	if(empty > 0)
 	{
 		FEN += empty + \"\";
 	}
-	return FEN + \u0027 \u0027 + activeColor + \u0027 \u0027 + castlingAvail + \u0027 \u0027 + epSquare + \u0027 \u0027 + halfmoveClock + \u0027 \u0027 + fullmoveNumber;
+	return FEN + ' ' + activeColor + ' ' + castlingAvail + ' ' + epSquare + ' ' + halfmoveClock + ' ' + fullmoveNumber;
 }
 
 function getFENStartPos()
 {
-	return \u0027rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\u0027;
+	return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 }
 
 // Returns an array of FEN strings for the current game
 // Note that this function assumes that the game started from the normal initial position
 function historyToFEN()
 {
-	var FEN \u003d new Array();
-	FEN[0] \u003d getFENStartPos();	// The start position
-	var activeColor \u003d \u0027w\u0027;
-	var wKS \u003d \u0027K\u0027;	// Castling availability
-	var wQS \u003d \u0027Q\u0027;
-	var bKS \u003d \u0027k\u0027;
-	var bQS \u003d \u0027q\u0027;
-	var castlingAvail \u003d \u0027KQkq\u0027;
-	var epSquare \u003d \u0027-\u0027;	// The en passant square
-	var halfmoveClock \u003d 0;	// Number of half moves since last capture or pawn move
-	var fullmoveNumber \u003d 1;	// The move number
-	var piece \u003d \u0027\u0027;
-	for (var i \u003d 0; i \u003c\u003d numMoves; i++)
+	var FEN = new Array();
+	FEN[0] = getFENStartPos();	// The start position
+	var activeColor = 'w';
+	var wKS = 'K';	// Castling availability
+	var wQS = 'Q';
+	var bKS = 'k';
+	var bQS = 'q';
+	var castlingAvail = 'KQkq';
+	var epSquare = '-';	// The en passant square
+	var halfmoveClock = 0;	// Number of half moves since last capture or pawn move
+	var fullmoveNumber = 1;	// The move number
+	var piece = '';
+	for (var i = 0; i <= numMoves; i++)
 	{
-		FEN[i+1] \u003d ExpandFEN(FEN[i]).slice(0, 64);	// Get the piece placement from the FEN string
-		if(chessHistory[i][CURCOLOR] \u003d\u003d \u0027white\u0027)
-			activeColor \u003d \u0027b\u0027;
+		FEN[i+1] = ExpandFEN(FEN[i]).slice(0, 64);	// Get the piece placement from the FEN string
+		if(chessHistory[i][CURCOLOR] == 'white')
+			activeColor = 'b';
 		else
 		{
-			activeColor \u003d \u0027w\u0027;
+			activeColor = 'w';
 			fullmoveNumber++;
 		}
-		var fromCol \u003d chessHistory[i][FROMCOL];
-		var fromRow \u003d chessHistory[i][FROMROW];
-		var row \u003d chessHistory[i][TOROW];
-		var col \u003d chessHistory[i][TOCOL];
-		if(FEN[i+1].charAt(col + (7 - row) * 8) !\u003d \u00271\u0027 || chessHistory[i][CURPIECE] \u003d\u003d \u0027pawn\u0027)
-			halfmoveClock \u003d 0;	// Restart the count after pawn move or capture
+		var fromCol = chessHistory[i][FROMCOL];
+		var fromRow = chessHistory[i][FROMROW];
+		var row = chessHistory[i][TOROW];
+		var col = chessHistory[i][TOCOL];
+		if(FEN[i+1].charAt(col + (7 - row) * 8) != '1' || chessHistory[i][CURPIECE] == 'pawn')
+			halfmoveClock = 0;	// Restart the count after pawn move or capture
 		else
 			halfmoveClock++;
-		if(typeof chessHistory[i][PROMOTEDTO] \u003d\u003d \"undefined\")
-			piece \u003d FEN[i+1].charAt((7 - fromRow) * 8 + fromCol);
+		if(typeof chessHistory[i][PROMOTEDTO] == \"undefined\")
+			piece = FEN[i+1].charAt((7 - fromRow) * 8 + fromCol);
 		else
 		{
-			piece \u003d pieceNameToLtr[chessHistory[i][PROMOTEDTO]];
-			if(chessHistory[i][CURCOLOR] \u003d\u003d \u0027white\u0027)
-				piece \u003d piece.toUpperCase();
+			piece = pieceNameToLtr[chessHistory[i][PROMOTEDTO]];
+			if(chessHistory[i][CURCOLOR] == 'white')
+				piece = piece.toUpperCase();
 		}
-		FEN[i+1] \u003d FEN[i+1].slice(0, (7 - fromRow) * 8 + fromCol) + \u00271\u0027 + FEN[i+1].slice((7 - fromRow) * 8 + fromCol + 1);
-		FEN[i+1] \u003d FEN[i+1].slice(0, (7 - row) * 8 + col) + piece + FEN[i+1].slice((7 - row) * 8 + col + 1);
+		FEN[i+1] = FEN[i+1].slice(0, (7 - fromRow) * 8 + fromCol) + '1' + FEN[i+1].slice((7 - fromRow) * 8 + fromCol + 1);
+		FEN[i+1] = FEN[i+1].slice(0, (7 - row) * 8 + col) + piece + FEN[i+1].slice((7 - row) * 8 + col + 1);
 
-		if (chessHistory[i][CURPIECE] \u003d\u003d \u0027king\u0027)
-		{ // Can\u0027t castle after the king has been moved
-			if(chessHistory[i][CURCOLOR] \u003d\u003d \u0027white\u0027)
+		if (chessHistory[i][CURPIECE] == 'king')
+		{ // Can't castle after the king has been moved
+			if(chessHistory[i][CURCOLOR] == 'white')
 			{
-				wKS \u003d \u0027\u0027;
-				wQS \u003d \u0027\u0027;
+				wKS = '';
+				wQS = '';
 			}
 			else
 			{
-				bKS \u003d \u0027\u0027;
-				bQS \u003d \u0027\u0027;
+				bKS = '';
+				bQS = '';
 			}
 			/* if this is a castling move the rook must also be moved */
-			if (Math.abs(col - fromCol) \u003d\u003d 2)
+			if (Math.abs(col - fromCol) == 2)
 			{	// The king only moves two squares when castling
-				var rookCol \u003d 0;
-				var rookToCol \u003d 3
-				if (col - fromCol \u003d\u003d 2)
-				{	// Kingside castling (would be \u003d\u003d -2 if queenside)
-					rookCol \u003d 7;
-					rookToCol \u003d 5;
+				var rookCol = 0;
+				var rookToCol = 3
+				if (col - fromCol == 2)
+				{	// Kingside castling (would be == -2 if queenside)
+					rookCol = 7;
+					rookToCol = 5;
 				}
-				FEN[i+1] \u003d FEN[i+1].slice(0, (7 - row) * 8 + rookToCol) + FEN[i+1].charAt((7 - row) * 8 + rookCol) + FEN[i+1].slice((7 - row) * 8 + rookToCol + 1);
-				FEN[i+1] \u003d FEN[i+1].slice(0, (7 - row) * 8 + rookCol) + \u00271\u0027 + FEN[i+1].slice((7 - row) * 8 + rookCol + 1);
+				FEN[i+1] = FEN[i+1].slice(0, (7 - row) * 8 + rookToCol) + FEN[i+1].charAt((7 - row) * 8 + rookCol) + FEN[i+1].slice((7 - row) * 8 + rookToCol + 1);
+				FEN[i+1] = FEN[i+1].slice(0, (7 - row) * 8 + rookCol) + '1' + FEN[i+1].slice((7 - row) * 8 + rookCol + 1);
 			}
 		}
-		else if (chessHistory[i][CURPIECE] \u003d\u003d \u0027rook\u0027)
+		else if (chessHistory[i][CURPIECE] == 'rook')
 		{
-			if(chessHistory[i][CURCOLOR] \u003d\u003d \u0027white\u0027)
+			if(chessHistory[i][CURCOLOR] == 'white')
 			{
-				if(fromRow \u003d\u003d 0)
+				if(fromRow == 0)
 				{
-					if(fromCol \u003d\u003d 0)
-						wQS \u003d \u0027\u0027;
+					if(fromCol == 0)
+						wQS = '';
 					else
-						wKS \u003d \u0027\u0027;
+						wKS = '';
 				}
 			}
 			else
 			{
-				if(fromRow \u003d\u003d 7)
+				if(fromRow == 7)
 				{
-					if(fromCol \u003d\u003d 0)
-						bQS \u003d \u0027\u0027;
+					if(fromCol == 0)
+						bQS = '';
 					else
-						bKS \u003d \u0027\u0027;
+						bKS = '';
 				}
 			}
 		}
-		else if(chessHistory[i][CURPIECE] \u003d\u003d \u0027pawn\u0027 \u0026\u0026 Math.abs(chessHistory[i][TOROW] - chessHistory[i][FROMROW]) \u003d\u003d 2)
+		else if(chessHistory[i][CURPIECE] == 'pawn' && Math.abs(chessHistory[i][TOROW] - chessHistory[i][FROMROW]) == 2)
 		{ // Pawn double advance, so en passant capture may be possible on the next move
-			if(chessHistory[i][CURCOLOR] \u003d\u003d \u0027white\u0027)
+			if(chessHistory[i][CURCOLOR] == 'white')
 			{
-				epSquare \u003d Files[fromCol] + \u00273\u0027;
+				epSquare = Files[fromCol] + '3';
 			}
 			else
 			{
-				epSquare \u003d Files[fromCol] + \u00276\u0027;
+				epSquare = Files[fromCol] + '6';
 			}
 		}
-		castlingAvail \u003d wKS + wQS + bKS + bQS;
-		if(castlingAvail \u003d\u003d \u0027\u0027)
-			castlingAvail \u003d \u0027-\u0027;
-		FEN[i+1] \u003d PackFEN(FEN[i+1], activeColor, castlingAvail, epSquare, halfmoveClock, fullmoveNumber);
-		epSquare \u003d \u0027-\u0027;
+		castlingAvail = wKS + wQS + bKS + bQS;
+		if(castlingAvail == '')
+			castlingAvail = '-';
+		FEN[i+1] = PackFEN(FEN[i+1], activeColor, castlingAvail, epSquare, halfmoveClock, fullmoveNumber);
+		epSquare = '-';
 	}
 	return FEN;
 }
