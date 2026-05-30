@@ -66,6 +66,9 @@
 			document.gamedata.toRow.value = row;
 			document.gamedata.toCol.value = col;
 
+			// fcw: 2026-05-30: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+			// temporär auf true
+			// if (isValidMove(true))
 			if (isValidMove(fromRow, fromCol, row, col))
 			{
 				if (DEBUG)
@@ -139,6 +142,9 @@
 
 	function squareClicked(squareObj)
 	{
+		// fcw: 2026-05-30: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+		// Test in der Konsole (F12)
+		// console.log("squareClicked: numMoves =", numMoves, "curColor =", curColor);
 		var square = squareObj.id.slice(3);
 		square = parseInt(square);
 		var col = square % 8;
@@ -150,6 +156,10 @@
 		var curColor = "black";
 		if ((numMoves == -1) || (numMoves % 2 == 1))
 			curColor = "white";
+
+		// fcw: 2026-05-30: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+		// Test
+		// console.log("squareClicked: curColor =", curColor);
 
 		if (is1stClick)
 		{ // No piece has been clicked yet

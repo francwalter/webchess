@@ -21,6 +21,10 @@
 
 	session_start();
 
+    error_log("--- chess.php Debug Start ---");
+    error_log("SESSION playerID: " . (isset($_SESSION['playerID']) ? $_SESSION['playerID'] : 'NOT SET'));
+    error_log("SESSION gameID: " . (isset($_SESSION['gameID']) ? $_SESSION['gameID'] : 'NOT SET'));
+
 	/* load settings */
 	if (!isset($_CONFIG))
 		require 'config.php';
@@ -55,10 +59,14 @@
 	/* get White's nick */
 	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = whitePlayer AND gameID = " . (int)$_SESSION['gameID']);
 	$whiteNick = mysqli_fetch_row($tmpNick)[0];
+    error_log("White Nick: " . $whiteNick);
+
 
 	/* get Black's nick */
 	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = blackPlayer AND gameID = " . (int)$_SESSION['gameID']);
 	$blackNick = mysqli_fetch_row($tmpNick)[0];
+    error_log("Black Nick: " . $blackNick);
+
 
 	/* load game */
 	$isInCheck = (isset($_POST['isInCheck']) && $_POST['isInCheck'] == 'true');
@@ -68,6 +76,16 @@
 	loadHistory();
 	loadGame();
 	processMessages();
+
+    // Declare these variables as global to make them accessible in the main script scope
+    global $isPlayersTurn, $currentPlayer, $opponentColor, $playersColor, $numMoves;
+
+    error_log("numMoves after loadHistory(): " . $numMoves);
+    error_log("playersColor after loadGame(): " . $playersColor);
+    error_log("isPlayersTurn after calculation: " . ($isPlayersTurn ? 'true' : 'false'));
+    error_log("currentPlayer after processMessages(): " . $currentPlayer);
+    error_log("opponentColor after processMessages(): " . $opponentColor);
+
 
 	if ($isUndoing)
 	{
@@ -118,6 +136,7 @@
 	}
 
 	mysqli_close($dbh);
+    error_log("--- chess.php Debug End ---");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,27 +144,27 @@
     <meta charset="ISO-8859-1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="pragma" content="no-cache" />
+    <!-- Use inline script to prevent theme flicker on reload -->
+    <script type="text/javascript">
+        (function() {
+            var theme = localStorage.getItem('webchess-theme');
+            if (!theme) {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    theme = 'dark';
+                } else {
+                    theme = 'light';
+                }
+            }
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/chess.css" type="text/css" />
     <?php
         echo("<link rel='stylesheet' href='images/");
         echo($_SESSION['pref_theme'] . "/wctheme.css' type='text/css' />\n");
-    ?>
-    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
-    <script type="text/javascript" src="javascript/theme.js"></script>
-    <style>
-        body { background-color: #f8f9fa; transition: background-color 0.3s ease; }
-        body[data-theme="dark"] { background-color: #1a1a1a; }
-        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        body[data-theme="dark"] .card { background-color: #2d2d2d; color: #e0e0e0; }
-        body[data-theme="dark"] .card-header { background-color: #1a1a1a !important; border-color: #444; }
-        body[data-theme="dark"] .btn-outline-secondary { color: #adb5bd; border-color: #adb5bd; }
-        body[data-theme="dark"] .btn-outline-secondary:hover { background-color: #495057; border-color: #adb5bd; color: #fff; }
-        body[data-theme="dark"] .text-muted { color: #adb5bd !important; }
-        body[data-theme="dark"] .alert { background-color: #3a3a3a; color: #e0e0e0; border-color: #555; }
-    </style>
-    <?php
+
         /* find out if it's the current player's turn */
         if (( (($numMoves == -1) || (($numMoves % 2) == 1)) && ($playersColor == "white"))
                 || ((($numMoves % 2) == 0) && ($playersColor == "black")))
@@ -160,6 +179,8 @@
         else
             echo("<title>WebChess - Opponent's Move</title>\n");
     ?>
+    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
+    <script type="text/javascript" src="javascript/theme.js"></script>
     <script type="text/javascript">
     <?php
         echo("var cfgImageExt = '$CFG_IMAGE_EXT';\n");
@@ -175,7 +196,7 @@
         else
             echo ($CFG_MINAUTORELOAD);
         echo(";\n");
-        writeJShistory();
+        writeJSHistory();
         drawboard();
         echo 'var gameId = ' . (int)$_SESSION['gameID'] . ";\n";
         echo 'var players = "' . $whiteNick . ' - ' . $blackNick . "\";\n";
@@ -220,7 +241,7 @@
     <div class="row g-4">
         <!-- Chess Board Section -->
         <div class="col-lg-7">
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body p-3">
                     <form name="gamedata" method="post" action="chess.php">
                         <?php

@@ -42,7 +42,7 @@
 		$opponentsNick = $_POST['opponentsNick'];
 
 		/* get opponents password from DB */
-		$tmpQuery = "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$opponentsID;
+		$tmpQuery = "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$opponentsID;
 		$tmpPassword = mysqli_query($dbh, $tmpQuery);
 		$dbPassword = mysqli_fetch_row($tmpPassword)[0];
 
@@ -50,24 +50,37 @@
 		if ($dbPassword == $_POST['pwdPassword'])
 		{
 			$_SESSION['isSharedPC'] = true;
-
-			/* load game */
+            error_log("opponentspassword.php: Shared PC mode enabled. Loading chess.php for gameID: " . (isset($_POST['gameID']) ? $_POST['gameID'] : 'NOT SET'));
+            if (isset($_POST['gameID'])) {
+                $_SESSION['gameID'] = $_POST['gameID']; // Ensure gameID is set in session
+            }
 			require 'chess.php';
 			die();
 		}
 		/* else password is invalid */
-		else
-			/* set flag to true */
+		else {
 			$isInvalidPassword = true;
+            error_log("opponentspassword.php: Invalid password for opponentID: " . $opponentsID);
+        }
 
 	}
 	/* else user is arriving here for the first time */
 	else
 	{
+        error_log("opponentspassword.php: First time access. POST gameID: " . (isset($_POST['gameID']) ? $_POST['gameID'] : 'NOT SET'));
+        if (!isset($_POST['gameID'])) {
+            // This should not happen if redirected from mainmenu.php correctly
+            error_log("opponentspassword.php: No gameID in POST. Redirecting to mainmenu.php");
+            header('Location: mainmenu.php');
+            exit();
+        }
+
 		/* get the players associated with this game */
-		$tmpQuery = "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$_POST['gameID'];
+		$tmpQuery = "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_POST['gameID'];
 		$tmpGameData = mysqli_query($dbh, $tmpQuery);
 		$tmpPlayers = mysqli_fetch_assoc($tmpGameData);
+
+        error_log("opponentspassword.php: GameID: " . $_POST['gameID'] . ", WhitePlayer: " . $tmpPlayers['whitePlayer'] . ", BlackPlayer: " . $tmpPlayers['blackPlayer'] . ", SESSION playerID: " . $_SESSION['playerID']);
 
 		/* determine which one is the opponent of the player logged in */
 		if ($tmpPlayers['whitePlayer'] == $_SESSION['playerID'])
@@ -75,10 +88,13 @@
 		else
 			$opponentsID = $tmpPlayers['whitePlayer'];
 
+        error_log("opponentspassword.php: Opponent ID: " . $opponentsID);
+
 		/* get the opponents information */
-		$tmpQuery = "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$opponentsID;
+		$tmpQuery = "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$opponentsID;
 		$tmpNick = mysqli_query($dbh, $tmpQuery);
 		$opponentsNick = mysqli_fetch_row($tmpNick)[0];
+        error_log("opponentspassword.php: Opponent Nick: " . $opponentsNick);
 	}
 
 	mysqli_close($dbh);
@@ -117,9 +133,9 @@ window.onload = function()
 				<div class="form-block">
                                         <div class="inputlabel"><?php echo gettext("Password");?></div>
 					<div><input id="pwdPassword" name="pwdPassword" type="password" class="inputbox" size="15" /></div>
-					<input name="opponentsNick" type="hidden" value="<?php echo($opponentsNick); ?>" />
-					<input name="opponentsID" type="hidden" value="<?php echo($opponentsID); ?>" />
-					<input name="gameID" value="<?php echo ($_POST['gameID']); ?>" type="hidden" />
+					<input name="opponentsNick" type="hidden" value="<?php echo(isset($opponentsNick) ? $opponentsNick : ''); ?>" />
+					<input name="opponentsID" type="hidden" value="<?php echo(isset($opponentsID) ? $opponentsID : ''); ?>" />
+					<input name="gameID" value="<?php echo (isset($_POST['gameID']) ? $_POST['gameID'] : ''); ?>" type="hidden" />
 					<div align="left">
 						<input type="submit" name="login" class="button" value="<?php echo gettext("Login");?>" />
 						<input name="Cancel" class="button" value="<?php echo gettext("Cancel");?>" type="button" onClick="window.open('mainmenu.php', '_self')" /></div>
@@ -128,7 +144,7 @@ window.onload = function()
 		</div>
 		<div class="login-text">
 			<div class="ctr"><img src="images/webchess.jpg" width="65" height="92" alt="security" /></div>
-                        <p><?php echo gettext("Enter password for $opponentsNick");?></p>
+                        <p><?php echo gettext("Enter password for ");?><?php echo (isset($opponentsNick) ? $opponentsNick : 'opponent'); ?></p>
     	</div>
 		<div class="clr"></div>
 	</div>

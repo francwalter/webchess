@@ -58,5 +58,10 @@
 			$board[$_POST['toRow']][0] = 0;
 		}
 
+		/* Update the turn to the opponent */
+		// fcw: 2026-05-30: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+        // sei nicht nötig, weil nicht referenziert
+        // $history[$numMoves]['turn'] = ($history[$numMoves-1]['turn'] == 'white') ? 'black' : 'white';
+
 		return true;
 	}

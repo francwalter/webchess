@@ -21,19 +21,19 @@
 function getObject(obj) {
     if (!obj) return null;
     if (typeof obj == "object") return obj;
-    
+
     if (document.getElementById) {
         var element = document.getElementById(obj);
         if(element) return element;
-        
+
         var elements = document.getElementsByName(obj);
         if (elements && elements.length > 0) return elements[0];
     }
-    
+
     if (document.all) {
         return document.all[obj];
     }
-    
+
     return null;
 }
 
@@ -95,7 +95,10 @@ function displayCaptPieces() {
 			html += '<img src="images/' + CURRENTTHEME + '/' + piece + '.' + cfgImageExt + '" width="';
 			html += parseInt(squareSize * 3 / 5) + '" height="' + parseInt(squareSize * 3 / 5) + '" alt="' + piece + '" />';
 		}
-		html += "</div>\\n<div>";
+		// fcw: 2026-05-30: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+		// zeigt einen Backslash mit n an
+		// html += "</div>\\n<div>";
+		html += "</div><div>";
 		color = 'black';
 	}
 	html += '</div>';
@@ -361,13 +364,13 @@ function initChessBoard()
                 curMoveObj.onclick = function(){highlightCurMove();};
         }
 	}
-	
+
     if (getObject('gameid')) getObject('gameid').innerHTML = 'Game #' + gameId;
 	if (getObject('players')) getObject('players').innerHTML = players;
 	if (getObject('whosmove')) getObject('whosmove').innerHTML = whosMove;
 	if (getObject('checkmsg')) getObject('checkmsg').innerHTML = checkMsg;
 	if (getObject('statusmsg')) getObject('statusmsg').innerHTML = statusMessage;
-	
+
     displayMoves();
 	displayCaptPieces();
 
@@ -408,7 +411,7 @@ function initChessBoard()
 		navButtons += '</span>';
 		navButtons += '</form>';
 		if (getObject('gamenav')) getObject('gamenav').innerHTML = navButtons;
-		
+
         if (getObject("start")) getObject("start").onclick = function(){moveJmp(-10000);};
 		if (getObject("jmpback")) getObject("jmpback").onclick = function(){moveJmp(-5);};
 		if (getObject("prev")) getObject("prev").onclick = function(){moveJmp(-1);};
@@ -438,24 +441,24 @@ function initChessBoard()
 // Initialize on page load - try multiple methods to ensure it runs
 (function() {
     var initialized = false;
-    
+
     function ensureInit() {
         if (!initialized) {
             initialized = true;
             initChessBoard();
         }
     }
-    
+
     // Try DOMContentLoaded
     if (document.addEventListener) {
         document.addEventListener('DOMContentLoaded', ensureInit, false);
     }
-    
+
     // Try window load
     if (window.addEventListener) {
         window.addEventListener('load', ensureInit, false);
     }
-    
+
     // Try immediate if already loaded
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setTimeout(ensureInit, 10);

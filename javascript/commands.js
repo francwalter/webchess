@@ -22,9 +22,13 @@
 // these functions interact with the server
 	function disableButtons()
 	{
-		getObject("btnUndo").disabled = true;
-		getObject("btnDraw").disabled = true;
-		getObject("btnResign").disabled = true;
+        var btnUndo = getObject("btnUndo");
+        var btnDraw = getObject("btnDraw");
+        var btnResign = getObject("btnResign");
+
+        if (btnUndo) btnUndo.disabled = true;
+        if (btnDraw) btnDraw.disabled = true;
+        if (btnResign) btnResign.disabled = true;
 	}
 
 	function undo()
@@ -59,23 +63,24 @@
 
 	function displayMainmenu()
 	{
-		this.disabled = true;
+        var btnMainMenu = getObject("btnMainMenu");
+		if (btnMainMenu) btnMainMenu.disabled = true;
 		disableButtons();
 		window.open('mainmenu.php', '_self');
 	}
 
 	function reloadPage(btnReload)
 	{
-		btnReload.disabled = true;
+		if (btnReload) btnReload.disabled = true;
 		disableButtons();
-		window.open('chess.php', '_self');	
+		window.open('chess.php', '_self');
 	}
 
 	function downloadPGN()
 	{
 		window.open('openpgn.php', '_self')
 	}
-	
+
 	function logout()
 	{
 		document.gamemenu.action = "mainmenu.php";
@@ -90,11 +95,11 @@
 		while (!blackPawnFound && !whitePawnFound && i < 8)
 		{
 			i++;
-			
+
 			/* check for black pawn being promoted */
 			if (board[0][i] == (BLACK | PAWN))
 				blackPawnFound = true;
-			
+
 			/* check for white pawn being promoted */
 			if (board[7][i] == (WHITE | PAWN))
 				whitePawnFound = true;
@@ -114,7 +119,7 @@
 		{
 			ennemyColor = "white";
 			board[0][i] = (BLACK | promotedTo);
-			
+
 			if (DEBUG)
 				alert("Promoting to: (black) " + board[0][i]);
 
@@ -122,13 +127,13 @@
 		else if (whitePawnFound)
 		{
 			board[7][i] = (WHITE | promotedTo);
-			
+
 			if (DEBUG)
 				alert("Promoting to: (white) " + board[7][i]);
 		}
 		else
 			alert("WARNING!: cannot find pawn being promoted!");
-			
+
 		/* verify check and checkmate status */
 		if (isInCheck(ennemyColor))
 		{

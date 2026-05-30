@@ -168,7 +168,7 @@ function ExpandFEN(FEN) {
       theFEN = theFEN + '' +  FEN.charAt(i);
     }
   }
-  return theFEN.replace(/\\//g, "");                     // Leave only pieces and empty squares
+	return theFEN.replace(/\//g, "");    // Leave only pieces and empty squares
 }
 
 function SetSquare(Square, Piece) {
