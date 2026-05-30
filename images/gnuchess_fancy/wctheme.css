@@ -1,0 +1,8 @@
+/* fcw: DeepSeek: https://chat.deepseek.com/a/chat/s/73f4db15-2829-4283-a64f-797faaf099ce
+Die wctheme.css ist eine eigene CSS die man bei Bedarf selbst bestücken kann.
+Im offiziellen Download ist die wctheme.css nicht vorhanden, wird aber in der chess.php eingebunden:
+  
+echo($_SESSION['pref_theme'] . "/wctheme.css' type='text/css' />\n");
+
+Gibt dann einen 404,  daher hier die leeren wctheme.css hier rein,  bei Bedarf bestücken mit CSS
+*/
