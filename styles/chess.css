@@ -23,6 +23,11 @@ html {
 	min-width: 742px;
 	}
 
+/* Responsive design: Fix box-sizing for mobile devices */
+* {
+	box-sizing: border-box;
+	}
+
 
 /* Helpers and base rules */
 img	{
@@ -144,6 +149,18 @@ div#footer p	{
 	background-color:#3C86F6;
 	font-weight: bold;
 	line-height: 1.5;
+	box-sizing: border-box;
+	max-width: 100%;
+	overflow-x: hidden;
+	}
+
+#gamebuttons {
+	width: 95%;
+	padding: 10px;
+	margin: 10px auto;
+	box-sizing: border-box;
+	max-width: 100%;
+	overflow-x: hidden;
 	}
 
 #curmove {
@@ -231,3 +248,48 @@ HR {width: 50%}
 .shortdescription {font-size: 1em; font-family: Arial, sans-serif; font-style: italic}
 .parenthesis {font-size: 10px}
 .goback {font-size: smaller}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+	html {
+		min-width: auto;
+		width: 100%;
+		}
+
+	div#wrapper {
+		width: 100%;
+		max-width: 100%;
+		}
+
+	div#boardsection {
+		width: 100%;
+		margin-left: 0;
+		padding: 0;
+		float: none;
+		}
+
+	div#content {
+		margin: 0;
+		width: 100%;
+		padding: 0;
+		}
+
+	div#footer {
+		width: 100%;
+		margin: 10px 0;
+		padding: 5px 10px;
+		}
+
+	#moveinfo {
+		width: 100%;
+		padding: 10px;
+		margin: 5px 0;
+		}
+
+	#gamebuttons {
+		width: 100%;
+		padding: 10px;
+		margin: 10px 0;
+		}
+	}
+

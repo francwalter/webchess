@@ -403,10 +403,10 @@ function initChessBoard()
 		var navButtons = '<form id="navigation" action="">';
 		navButtons += '<span id="navbuttons">';
 		navButtons += '<input id="start" title="Start of game" type="button" value="Start" />';
-		navButtons += '<input id="jmpback" title="Go back five halfmoves" type="button" value="&nbsp;<lt;<lt;&nbsp;" />';
-		navButtons += '<input id="prev" title="Go back one halfmove" type="button" value="&nbsp;<lt;&nbsp;" />';
-		navButtons += '<input id="next" title="Go forward one halfmove" type="button" value="&nbsp;>gt;&nbsp;" />';
-		navButtons += '<input id="jmpfwd" title="Go forward five halfmoves" type="button" value="&nbsp;>gt;>gt;&nbsp;" />';
+		navButtons += '<input id="jmpback" title="Go back five halfmoves" type="button" value=" << " />';
+		navButtons += '<input id="prev" title="Go back one halfmove" type="button" value=" < " />';
+		navButtons += '<input id="next" title="Go forward one halfmove" type="button" value=" > " />';
+		navButtons += '<input id="jmpfwd" title="Go forward five halfmoves" type="button" value=" >> " />';
 		navButtons += '<input id="end" title="End of game" type="button" value="End" />';
 		navButtons += '</span>';
 		navButtons += '</form>';
