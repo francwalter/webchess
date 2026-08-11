@@ -19,7 +19,7 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-	$mailsubject = "WebChess: ".$opponent." invites you to play a new game";
-	$mailmsg = $opponent." has invited you to play a new game.";
-	$mailmsg .= "\n\nThis message has been automatically been sent by WebChess and should not be replied to.\n";
-	$mailmsg .= "Go to: " . $CFG_MAINPAGE . " to play.\n";
+	$mailsubject = "WebChess: ".$opponent." Einladung zu einem neuen Spiel";
+	$mailmsg = $opponent." hat dich zu einem Schachspiel eingeladen";
+  $mailmsg .= "\n\nDiese Nachricht wurde automatisch versendet und sollte nicht beantwortet werden.\n";
+  $mailmsg .= "Zum Spielen bitte auf: " . $CFG_MAINPAGE . " gehen.\n";

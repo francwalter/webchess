@@ -19,9 +19,10 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-	$mailsubject = "WebChess: ".$opponent." moved ".$move." on board ".$gameID.".";
-	$mailmsg = "Your opponent ".$opponent." has played the following move:";
+	$mailsubject = "WebChess: ".$opponent." hat gespielt ".$move."- Spiel: ".$gameID.".";
+	$mailmsg = "Dein Gegner ".$opponent." hat den folgenden Zug gespielt:";
 	$mailmsg .= "\n".$move."\n\n";
-	$mailmsg .= "It is your turn now\n\n";
-	$mailmsg .= "\n\nThis message has been automatically been sent by WebChess and should not be replied to.\n";
-	$mailmsg .= "Go to: " . $CFG_MAINPAGE . " to play.\n";
+	$mailmsg .= "Du bist jetzt dran mit Ziehen!\n\n";
+	$mailmsg .= "\n\nDiese Nachricht wurde automatisch versendet und sollte nicht beantwortet werden.\n";
+  $mailmsg .= "Zum Spielen bitte auf: " . $CFG_MAINPAGE . " gehen.\n";
+

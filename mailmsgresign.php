@@ -19,7 +19,7 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-	$mailsubject = "WebChess: ".$opponent." resigns on board ".$gameID.".";
-	$mailmsg = "Your opponent ".$opponent." has resigned the game on board ".$gameID.".";
-	$mailmsg .= "\n\nThis message has been automatically been sent by WebChess and should not be replied to.\n";
-	$mailmsg .= "Go to: " . $CFG_MAINPAGE . " to play.\n";
+	$mailsubject = "WebChess: ".$opponent." Aufgabe - Spiel: ".$gameID.".";
+	$mailmsg = "Dein Gegner ".$opponent." hat aufgegeben im Spiel: ".$gameID.".";
+	$mailmsg .= "\n\nDiese Nachricht wurde automatisch versendet und sollte nicht beantwortet werden.\n";
+	$mailmsg .= "Zum Spielen bitte auf: " . $CFG_MAINPAGE . " gehen.\n";
