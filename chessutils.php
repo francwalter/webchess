@@ -267,18 +267,16 @@
 	/* their HTTP_*_VARS equivalent */
 	function createNewHttpVars($type)
 	{
-		global $HTTP_POST_VARS, $HTTP_GET_VARS, $HTTP_SESSION_VARS;
-
-		$temp = array();
-		switch(strtoupper($type))
+		$temp = [];
+		switch (strtoupper($type))
 		{
-			case 'POST':   $temp2 = &$HTTP_POST_VARS;   break;
-			case 'GET':    $temp2 = &$HTTP_GET_VARS;    break;
-			case 'SESSION':    $temp2 = &$HTTP_SESSION_VARS;    break;
+			case 'POST':   $temp2 = &$_POST;   break;
+			case 'GET':    $temp2 = &$_GET;    break;
+			case 'SESSION':    $temp2 = &$_SESSION;    break;
 			default: return 0;
 		}
 
-		while (list($varname, $varvalue) = each($temp2)) {
+		foreach ($temp2 as $varname => $varvalue) {
 			$temp[$varname] = $varvalue;
 		}
 
@@ -300,8 +298,14 @@
 			$_GET = createNewHttpVars("GET");
 			//$_SESSION = createNewHttpVars("SESSION");
 
-			if (!isset($HTTP_SESSION_VARS["_SESSION"]))
-				session_register("_SESSION");
+			if (!isset($HTTP_SESSION_VARS["_SESSION"])) {
+				if (session_status() === PHP_SESSION_NONE) {
+					session_start();
+				}
+				if (!isset($_SESSION["_SESSION"])) {
+					$_SESSION["_SESSION"] = true;
+				}
+			}
 		}
 
 		$_fixOldPHPVersions = true;
