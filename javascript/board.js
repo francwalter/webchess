@@ -37,6 +37,26 @@ function getObject(obj) {
     return null;
 }
 
+var configuredSquareSize = (typeof squareSize !== 'undefined' && squareSize > 0) ? squareSize : 50;
+
+function fitSquareSizeToContainer()
+{
+	var boardContainer = document.getElementById('chessboard');
+	if (!boardContainer)
+		return;
+
+	var availableWidth = boardContainer.clientWidth;
+	if (!availableWidth && window.innerWidth)
+		availableWidth = window.innerWidth;
+
+	if (!availableWidth)
+		return;
+
+	var fittedSquareSize = Math.floor((availableWidth - 4) / 9);
+	if (fittedSquareSize > 0)
+		squareSize = Math.min(configuredSquareSize, fittedSquareSize);
+}
+
 function isGameDrawn()
 {
 	// Stalemate?
@@ -339,6 +359,8 @@ function initChessBoard()
     if (typeof window.initTheme === 'function') {
         window.initTheme();
     }
+
+  fitSquareSizeToContainer();
 
 	var invertBoard = (perspective == 'black');
     var boardContainer = document.getElementById('chessboard');
