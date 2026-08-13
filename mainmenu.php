@@ -1007,7 +1007,7 @@
             </div>
 
              <div class="alert alert-info text-center small mt-5">
-                WebChess Version 2.0.0 &bull; <a href="http://webchess.sourceforge.net/" class="alert-link">SourceForge</a>
+                WebChess Version 2.0.0 &bull; <a href="https://github.com/francwalter/webchess/" class="alert-link">WebChess - Github</a>
             </div>
         </div>
     </div>
