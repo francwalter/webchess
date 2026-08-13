@@ -571,6 +571,19 @@ switch($confirm){
    //Welcome page.
    default:
       //The begining of the installation process.
+
+      /* --- Auto-redirect banner -------------------------------------------- */
+      if (isset($_GET['reason']))
+      {
+         $reasonMessages = array(
+            'no_config'     => '⚠ No <code>config.php</code> found. Please complete the installation below.',
+            'not_installed' => '⚠ WebChess database or required tables are missing. Please complete the installation below.',
+         );
+         $reason = $_GET['reason'];
+         $msg = isset($reasonMessages[$reason]) ? $reasonMessages[$reason] : '⚠ WebChess is not yet installed. Please complete the setup below.';
+         echo '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:12px 16px;margin-bottom:16px;color:#664d03;">' . $msg . '</div>';
+      }
+      /* --------------------------------------------------------------------- */
       ?>
       <p>WebChess is a web application based on PHP and MySQL and released under
              the GPLv3 license. Since it stores all of its information in a

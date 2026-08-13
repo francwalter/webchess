@@ -1,4 +1,57 @@
-1) decompress webchess in a web-accessible directory
-2) create the WebChess MySQL database, a user (similar to the sample user_permissions.txt in the tables folder) and the WebChess tables (using the SQL statements found in the tables folder) and give the WebChess user select, insert, update and delete priviledges
-3) update the database settings in config.php to reflect the newly created MySQL database
-4) update other settings in config.php as desired
+WebChess – Installation Guide
+==============================
+
+Prerequisites
+-------------
+- A web server with PHP 8.5 or later
+- A MySQL / MariaDB server
+- A database and a database user that WebChess can use
+  (SELECT, INSERT, UPDATE, DELETE rights on the WebChess database)
+
+Quick Start (recommended)
+--------------------------
+1. Decompress WebChess into a web-accessible directory.
+
+2. Open WebChess in your browser (e.g. http://yourserver/webchess/).
+   If no working installation is detected, WebChess redirects you to the
+   installer automatically.
+
+3. Follow the 3-step installer (install.php):
+
+   Step 1 – Database setup
+     Enter the server name, admin user credentials, and the database name.
+     The installer will attempt to create the database for you.
+     If your hosting provider does not allow remote database creation, create
+     the database manually first, tick "I've created the database myself", and
+     continue.
+
+   Step 2 – Table creation
+     Enter a user with CREATE TABLE rights (you may reuse the credentials from
+     Step 1). The installer creates all required tables automatically.
+
+   Step 3 – Configuration
+     Enter the DB user that WebChess will use at runtime (ideally a limited
+     user with only SELECT/INSERT/UPDATE/DELETE rights).
+     Fill in the server settings (session timeout, game expiry, etc.).
+     Click "Generate config.php" – this downloads the config file.
+     Upload config.php to your WebChess directory, then click "Finish".
+
+4. After finishing, log in at index.php and create your first user account.
+
+Security note
+-------------
+After a successful installation it is strongly recommended to delete
+install.php and makeConfig.php from the server so they cannot be misused.
+
+Re-running the installer
+------------------------
+If you need to re-run the installer (e.g. after moving to a new database),
+simply navigate to install.php directly. The installer is idempotent – it
+skips tables that already exist.
+
+Upgrading from a manual installation
+--------------------------------------
+If you previously set up WebChess by hand (creating tables from the SQL files
+in docs/tables/ and writing config.php yourself), your existing configuration
+remains valid. The automatic installer redirect only triggers when config.php
+is missing or the DB/tables cannot be reached.

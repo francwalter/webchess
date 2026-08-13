@@ -387,7 +387,11 @@ function initChessBoard()
         }
 	}
 
-    if (getObject('gameid')) getObject('gameid').innerHTML = 'Game #' + gameId;
+    if (getObject('gameid'))
+    {
+        var gamePrefix = (typeof gameLabel !== 'undefined' && gameLabel) ? gameLabel : 'Game';
+        getObject('gameid').innerHTML = gamePrefix + ' #' + gameId;
+    }
 	if (getObject('players')) getObject('players').innerHTML = players;
 	if (getObject('whosmove')) getObject('whosmove').innerHTML = whosMove;
 	if (getObject('checkmsg')) getObject('checkmsg').innerHTML = checkMsg;

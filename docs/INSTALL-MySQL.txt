@@ -1,3 +1,6 @@
+This file is OLD!  It was written for WebChess 1.0 and is no longer relevant to the current version of WebChess.  The current version of WebChess has an automatic installer that will create the
+
+
   I've always wanted to elaborate on the installation instructions a
 little as I myself find they are not very clear.
 

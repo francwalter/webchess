@@ -31,6 +31,7 @@ return array(
 
     /* ── mainmenu.php ───────────────────────────────────────────────── */
     'Main Menu'                      => 'Hauptmenü',
+    'Game'                           => 'Spiel',
     'Active games'                   => 'Laufende Partien',
     'Pending challenges'             => 'Offene Einladungen',
     'Messages'                       => 'Nachrichten',

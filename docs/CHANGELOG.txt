@@ -1,3 +1,14 @@
+2026-08-13
+- refactoring WebChess with Github Copilot for PHP 8.5
+- added language switch for EN/DE
+- added mobile View
+- added auto installer
+- improved accessibility features
+- updated documentation for new features
+- fixed minor UI bugs in mobile view
+- modern bootstrap design with Dark Mode
+
+
 2010-08-14 (CVS)
 - upgraded WebChess license to GPL v3
 
@@ -33,7 +44,7 @@
 2002-09-22 (v0.8.2):
 - BUG FIX: added 'var' keyword to every local javascript variables to actually make them local
 - BUG FIX: allow only one request from a given user A to a given user B (solves problem of mutliplying requests when hiting reload in browser)
-- BUG FIX: modified isSafe() to take into account moving the king into check (ToDo: moving into check in general) 
+- BUG FIX: modified isSafe() to take into account moving the king into check (ToDo: moving into check in general)
 - split list of "current games" into current (ie: active) games and ended games
 - added ability to withdraw a pending invitation to play a game
 - added "Your Move" or "Opponent's Move" to title and status window

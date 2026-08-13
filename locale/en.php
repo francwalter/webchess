@@ -32,6 +32,7 @@ return array(
 
     /* ── mainmenu.php ───────────────────────────────────────────────── */
     'Main Menu'                      => 'Main Menu',
+    'Game'                           => 'Game',
     'Active games'                   => 'Active games',
     'Pending challenges'             => 'Pending challenges',
     'Messages'                       => 'Messages',

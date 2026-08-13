@@ -17,9 +17,46 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-	/* load settings */
-	if (!isset($_CONFIG))
-		require 'config.php';
+  /* On first run, route users to installer automatically. */
+  if (!isset($_CONFIG))
+  {
+		if (!is_file(__DIR__ . '/config.php'))
+		{
+			header('Location: install.php?reason=no_config');
+			exit();
+		}
+
+    require 'config.php';
+
+    /* If DB is not reachable or schema is missing, continue with installer. */
+    $isInstalled = false;
+    if (function_exists('mysqli_connect'))
+    {
+      $tmpDbh = @mysqli_connect($CFG_SERVER, $CFG_USER, $CFG_PASSWORD, $CFG_DATABASE);
+      if ($tmpDbh)
+      {
+        $requiredTables = array('players', 'games', 'history', 'messages', 'pieces', 'preferences', 'communication');
+        $isInstalled = true;
+        foreach ($requiredTables as $tableKey)
+        {
+          $tableName = isset($CFG_TABLE[$tableKey]) ? $CFG_TABLE[$tableKey] : $tableKey;
+          $tableResult = @mysqli_query($tmpDbh, "SHOW TABLES LIKE '" . mysqli_real_escape_string($tmpDbh, $tableName) . "'");
+          if (!$tableResult || mysqli_num_rows($tableResult) === 0)
+          {
+            $isInstalled = false;
+            break;
+          }
+        }
+        mysqli_close($tmpDbh);
+      }
+    }
+
+		if (!$isInstalled)
+		{
+			header('Location: install.php?reason=not_installed');
+			exit();
+		}
+  }
 
     require_once "lang.php";
 ?>

@@ -484,20 +484,20 @@
     <script type="text/javascript" src="javascript/menu.js"></script>
     <script type="text/javascript" src="javascript/messages.js"></script>
      <style>
-        body { 
-            background-color: #f8f9fa; 
+        body {
+            background-color: #f8f9fa;
             transition: background-color 0.3s ease;
         }
-        body[data-theme="dark"] { 
-            background-color: #1a1a1a; 
+        body[data-theme="dark"] {
+            background-color: #1a1a1a;
             color: #e0e0e0;
         }
-        .nav-link { 
-            cursor: pointer; 
+        .nav-link {
+            cursor: pointer;
             font-weight: 500;
         }
-        .card { 
-            margin-bottom: 20px; 
+        .card {
+            margin-bottom: 20px;
             border-radius: 1rem;
             border: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -507,16 +507,16 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
             transform: translateY(-2px);
         }
-        body[data-theme="dark"] .card { 
-            background-color: #2d2d2d; 
+        body[data-theme="dark"] .card {
+            background-color: #2d2d2d;
             color: #e0e0e0;
         }
-        body[data-theme="dark"] .card-header { 
-            background-color: #1a1a1a !important; 
+        body[data-theme="dark"] .card-header {
+            background-color: #1a1a1a !important;
             border-color: #444;
         }
-        #navlist .active { 
-            font-weight: bold; 
+        #navlist .active {
+            font-weight: bold;
             background-color: rgba(255,255,255,0.15);
             border-bottom: 3px solid #0d6efd;
             border-radius: 0;
@@ -531,8 +531,8 @@
             background-color: rgba(255,255,255,0.1);
             border-bottom-color: #0d6efd;
         }
-        .section-content { 
-            display: none; 
+        .section-content {
+            display: none;
         }
         .section-content.active {
             display: block;
@@ -542,7 +542,7 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        .btn { 
+        .btn {
             border-radius: 0.5rem;
             font-weight: 500;
             transition: all 0.2s ease;
@@ -551,7 +551,7 @@
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
-        .table { 
+        .table {
             margin-bottom: 0;
         }
         body[data-theme="dark"] .table {
@@ -1007,7 +1007,7 @@
             </div>
 
              <div class="alert alert-info text-center small mt-5">
-                WebChess Version 1.0.0 &bull; <a href="http://webchess.sourceforge.net/" class="alert-link">SourceForge</a>
+                WebChess Version 2.0.0 &bull; <a href="http://webchess.sourceforge.net/" class="alert-link">SourceForge</a>
             </div>
         </div>
     </div>

@@ -221,12 +221,13 @@
         writeJSHistory();
         drawboard();
         echo 'var gameId = ' . (int)$_SESSION['gameID'] . ";\n";
-        echo 'var players = "' . $whiteNick . ' - ' . $blackNick . "\";\n";
-        echo 'var playersColor = "' . $playersColor . "\";\n";
-        echo 'var isPromoting = "'.$isPromoting. "\";\n";
-        echo 'var isKingInCheck = "'.$isInCheck. "\";\n";
-        echo 'var isGameOver = "'.$isGameOver. "\";\n";
-        echo 'var historyLayout = "'.$_SESSION['pref_historylayout']. "\";\n";
+        echo 'var gameLabel = ' . json_encode(gettext('Game')) . ";\n";
+        echo 'var players = ' . json_encode($whiteNick . ' - ' . $blackNick) . ";\n";
+        echo 'var playersColor = ' . json_encode($playersColor) . ";\n";
+        echo 'var isPromoting = ' . json_encode((string)$isPromoting) . ";\n";
+        echo 'var isKingInCheck = ' . json_encode((string)$isInCheck) . ";\n";
+        echo 'var isGameOver = ' . json_encode((string)$isGameOver) . ";\n";
+        echo 'var historyLayout = ' . json_encode($_SESSION['pref_historylayout']) . ";\n";
 
         writeStatus();
         writeHistory();
