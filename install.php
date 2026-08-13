@@ -307,9 +307,10 @@ function createTables($user,$password,$server,$DBname){
 ################################################################################
 ################################################################################
 ################################################################################
+require_once 'lang.php';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getGuiLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <title>Installing WebChess</title>

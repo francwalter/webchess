@@ -173,7 +173,9 @@
 
 	function writeHistoryPGN()
 	{
-		global $history, $numMoves;
+		global $history, $numMoves, $GUI_LANGUAGE;
+
+		$lang = (isset($GUI_LANGUAGE) && $GUI_LANGUAGE === 'de') ? 'de' : 'en';
 
 		$moves = array();
 		for ($i = 0; $i <= $numMoves; $i++)
@@ -188,7 +190,18 @@
 
 			$tmpCheck = ($history[$i]['isInCheck'] == 1);
 
-			$moves[floor($i/2)][$i & 1] = moveToPGNString($history[$i]['curColor'], $history[$i]['curPiece'], $history[$i]['fromRow'], $history[$i]['fromCol'], $history[$i]['toRow'], $history[$i]['toCol'], $tmpReplaced, $tmpPromotedTo, $tmpCheck);
+			$moves[floor($i/2)][$i & 1] = moveToPGNStringLocalized(
+				$history[$i]['curColor'],
+				$history[$i]['curPiece'],
+				$history[$i]['fromRow'],
+				$history[$i]['fromCol'],
+				$history[$i]['toRow'],
+				$history[$i]['toCol'],
+				$tmpReplaced,
+				$tmpPromotedTo,
+				$tmpCheck,
+				$lang
+			);
 		}
 
 		return $moves;
@@ -238,15 +251,15 @@
 			$curColor = "Black";
 
 		if ($_SESSION['isSharedPC'])
-			echo ("var whosMove = '$curColor\'s Turn';\n");
+			echo ("var whosMove = '" . addslashes(gettext($curColor . "'s Turn")) . "';\n");
 		elseif ($isPlayersTurn)
-			echo ("var whosMove = 'Your Turn';\n");
+			echo ("var whosMove = '" . addslashes(gettext('Your Turn')) . "';\n");
 		else
-			echo("var whosMove = 'Opponent\'s Turn';\n");
+			echo("var whosMove = '" . addslashes(gettext("Opponent's Turn")) . "';\n");
 
 		echo("var checkMsg = '");
 		if (!$isCheckMate && isset($history[$numMoves]) && ($history[$numMoves]['isInCheck'] == 1))
-			echo($curColor." is currently in check!");
+			echo(addslashes(gettext($curColor . ' is currently in check!')));
 		echo("';\n");
 		echo("var statusMessage = '".$statusMessage."';\n");
 	}
@@ -257,13 +270,13 @@
 		<p>
 		<table width="435" border="1">
 		<tr><td>
-			Promote pawn to:
+			<?php echo gettext('Promote pawn to:'); ?>
 			<br>
-			<input type="radio" name="promotion" value="<?php echo (QUEEN); ?>" checked="checked"> Queen
-			<input type="radio" name="promotion" value="<?php echo (ROOK); ?>"> Rook
-			<input type="radio" name="promotion" value="<?php echo (KNIGHT); ?>"> Knight
-			<input type="radio" name="promotion" value="<?php echo (BISHOP); ?>"> Bishop
-			<input type="button" name="btnPromote" value="Promote" onClick="promotepawn()" />
+			<input type="radio" name="promotion" value="<?php echo (QUEEN); ?>" checked="checked"> <?php echo gettext('Queen'); ?>
+			<input type="radio" name="promotion" value="<?php echo (ROOK); ?>"> <?php echo gettext('Rook'); ?>
+			<input type="radio" name="promotion" value="<?php echo (KNIGHT); ?>"> <?php echo gettext('Knight'); ?>
+			<input type="radio" name="promotion" value="<?php echo (BISHOP); ?>"> <?php echo gettext('Bishop'); ?>
+			<input type="button" name="btnPromote" value="<?php echo gettext('Promote'); ?>" onClick="promotepawn()" />
 		</td></tr>
 		</table>
 		</p>
@@ -276,12 +289,12 @@
 		<p>
 		<table width="435" border="1">
 		<tr><td>
-			Your opponent would like to undo their latest move.  Will you allow it?
+			<?php echo gettext('Your opponent would like to undo their latest move. Will you allow it?'); ?>
 			<br>
-			<input type="radio" name="undoResponse" value="yes"> Yes
-			<input type="radio" name="undoResponse" value="no" checked="checked"> No
+			<input type="radio" name="undoResponse" value="yes"> <?php echo gettext('Yes'); ?>
+			<input type="radio" name="undoResponse" value="no" checked="checked"> <?php echo gettext('No'); ?>
 			<input type="hidden" name="isUndoResponseDone" value="no">
-			<input type="button" value="Reply" onClick="this.form.isUndoResponseDone.value = 'yes'; this.form.submit()">
+			<input type="button" value="<?php echo gettext('Reply'); ?>" onClick="this.form.isUndoResponseDone.value = 'yes'; this.form.submit()">
 		</td></tr>
 		</table>
 		</p>
@@ -294,12 +307,12 @@
 		<p>
 		<table width="435" border="1">
 		<tr><td>
-			Your opponent is proposing a draw.  Do you agree?
+			<?php echo gettext('Your opponent is proposing a draw. Do you agree?'); ?>
 			<br>
-			<input type="radio" name="drawResponse" value="yes"> Yes
-			<input type="radio" name="drawResponse" value="no" checked="checked"> No
+			<input type="radio" name="drawResponse" value="yes"> <?php echo gettext('Yes'); ?>
+			<input type="radio" name="drawResponse" value="no" checked="checked"> <?php echo gettext('No'); ?>
 			<input type="hidden" name="isDrawResponseDone" value="no">
-			<input type="button" value="Reply" onClick="this.form.isDrawResponseDone.value = 'yes'; this.form.submit()">
+			<input type="button" value="<?php echo gettext('Reply'); ?>" onClick="this.form.isDrawResponseDone.value = 'yes'; this.form.submit()">
 		</td></tr>
 		</table>
 		</p>

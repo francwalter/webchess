@@ -87,32 +87,72 @@
 	{
 		switch($piecename)
 		{
-			case 'pawn':
-				$pgnCode = "";
-				break;
-			case 'knight':
-				$pgnCode = "N";
-				break;
-			case 'bishop':
-				$pgnCode = "B";
-				break;
-			case 'rook':
-				$pgnCode = "R";
-				break;
-			case 'queen':
-				$pgnCode = "Q";
-				break;
-			case 'king':
-				$pgnCode = "K";
-				break;
-			case '':
-				$pgnCode="";
-				break;
-			default:
-				$pgnCode="";
+			case 'pawn':   $pgnCode = "";  break;
+			case 'knight': $pgnCode = "N"; break;
+			case 'bishop': $pgnCode = "B"; break;
+			case 'rook':   $pgnCode = "R"; break;
+			case 'queen':  $pgnCode = "Q"; break;
+			case 'king':   $pgnCode = "K"; break;
+			default:       $pgnCode = "";
+		}
+		return $pgnCode;
+	}
+
+	/* Returns the piece letter for display, localised to $lang.
+	 * Only used for move-history display; PGN export always uses getPGNCode(). */
+	function getPGNCodeLocalized($piecename, $lang = 'en')
+	{
+		if ($lang === 'de')
+		{
+			/* German descriptive notation:
+			 *   König=K  Dame=D  Turm=T  Läufer=L  Springer=S  Bauer=(empty) */
+			switch($piecename)
+			{
+				case 'pawn':   return "";
+				case 'knight': return "S";
+				case 'bishop': return "L";
+				case 'rook':   return "T";
+				case 'queen':  return "D";
+				case 'king':   return "K";
+				default:       return "";
+			}
+		}
+		return getPGNCode($piecename);
+	}
+
+	/* Localized variant of moveToPGNString() – uses localised piece letters for
+	 * the move-history display.  The PGN export still calls moveToPGNString(). */
+	function moveToPGNStringLocalized($curColor, $piece, $fromRow, $fromCol,
+	                                   $toRow, $toCol, $pieceCaptured,
+	                                   $promotedTo, $isChecking, $lang = 'en')
+	{
+		$pgnString = "";
+
+		/* castling notation is language-independent */
+		if (($piece == "king") && (abs($toCol - $fromCol) == 2))
+		{
+			$pgnString .= (($toCol - $fromCol) == 2) ? "O-O" : "O-O-O";
+		}
+		else
+		{
+			$pgnString .= getPGNCodeLocalized($piece, $lang);
+			$pgnString .= chr($fromCol + 97) . ($fromRow + 1);
+
+			if ($pieceCaptured != "" || ($piece == 'pawn' && $fromCol != $toCol))
+				$pgnString .= "x";
+			else
+				$pgnString .= "-";
+
+			$pgnString .= chr($toCol + 97) . ($toRow + 1);
+
+			if ($promotedTo != "")
+				$pgnString .= "=" . getPGNCodeLocalized($promotedTo, $lang);
 		}
 
-		return $pgnCode;
+		if ($isChecking)
+			$pgnString .= "+";
+
+		return $pgnString;
 	}
 
 	function isBoardDisabled()

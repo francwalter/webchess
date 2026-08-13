@@ -35,6 +35,7 @@
 	/* include outside functions */
 	if (!isset($_CHESSUTILS))
 		require 'chessutils.php';
+  require 'lang.php';
 	require 'gui.php';
 	require 'chessdb.php';
 	require 'move.php';
@@ -137,9 +138,30 @@
 
 	mysqli_close($dbh);
     error_log("--- chess.php Debug End ---");
+
+	/* check whether the current player's king has already moved (castling no longer possible) */
+	/* also check if both rooks have moved — castling is impossible then too */
+	$_kingHasMoved  = false;
+	$_rookMoveCount = 0;
+	if ($numMoves >= 0)
+	{
+		foreach ($history as $_move)
+		{
+			if ($_move['curColor'] !== $playersColor)
+				continue;
+
+			if ($_move['curPiece'] === 'king')
+				$_kingHasMoved = true;
+
+			if ($_move['curPiece'] === 'rook')
+				$_rookMoveCount++;
+		}
+	}
+	/* castling hint is irrelevant once the king moved OR both rooks have moved */
+	$_castlingPossible = !$_kingHasMoved && ($_rookMoveCount < 2);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getGuiLanguage(); ?>">
 <head>
     <meta charset="ISO-8859-1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -175,9 +197,9 @@
         if ($_SESSION['isSharedPC'])
             echo("<title>WebChess</title>\n");
         else if ($isPlayersTurn)
-            echo("<title>WebChess - Your Move</title>\n");
+            echo("<title>WebChess - " . gettext("Your Move") . "</title>\n");
         else
-            echo("<title>WebChess - Opponent's Move</title>\n");
+            echo("<title>WebChess - " . gettext("Opponent's Move") . "</title>\n");
     ?>
     <link rel="stylesheet" href="styles/theme.css" type="text/css" />
     <script type="text/javascript" src="javascript/theme.js"></script>
@@ -232,7 +254,7 @@
             <span id="players"></span>
         </div>
         <div class="ms-auto d-flex gap-2">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="<?php echo gettext('Toggle Dark Mode'); ?>">🌙</button>
         </div>
     </div>
 </nav>
@@ -260,9 +282,9 @@
                         </div>
 
                         <div id="gamebuttons" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
-                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="Request Undo" disabled="disabled" onclick="undo()" />
-                            <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="Request Draw" disabled="disabled" onclick="draw()" />
-                            <input type="button" id="btnResign" class="btn btn-danger btn-sm" value="Resign" disabled="disabled" onclick="resigngame()" />
+                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="<?php echo gettext('Request Undo'); ?>" disabled="disabled" onclick="undo()" />
+                            <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="<?php echo gettext('Request Draw'); ?>" disabled="disabled" onclick="draw()" />
+                            <input type="button" id="btnResign" class="btn btn-danger btn-sm" value="<?php echo gettext('Resign'); ?>" disabled="disabled" onclick="resigngame()" />
                         </div>
 
                         <input type="hidden" name="requestUndo" value="no" />
@@ -276,15 +298,17 @@
                         <input type="hidden" name="isCheckMate" value="false" />
                     </form>
 
+                    <?php if ($_castlingPossible): ?>
                     <div class="text-muted small text-center mb-3">
-                        When castling, just move the king (the rook will move automatically).
+                        <?php echo gettext('When castling, just move the king (the rook will move automatically).'); ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="card shadow-sm mt-4">
                 <div class="card-header bg-dark border-0 text-white">
-                    <h6 class="mb-0">♟ Captured Pieces</h6>
+                    <h6 class="mb-0">♟ <?php echo gettext('Captured Pieces'); ?></h6>
                 </div>
                 <div class="card-body">
                     <div id="captures" class="text-center"></div>
@@ -298,7 +322,7 @@
         <div class="col-lg-5">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary text-white border-0">
-                    <h5 class="mb-0">📋 Game Information</h5>
+                    <h5 class="mb-0">📋 <?php echo gettext('Game Information'); ?></h5>
                 </div>
                 <div class="card-body">
                     <div id="gameid" class="mb-3 small text-muted"></div>
@@ -307,14 +331,14 @@
 
                     <div id="checkmsg" class="alert alert-danger d-none mb-3"></div>
 
-                    <h6 class="border-bottom pb-2 mb-3">Move History</h6>
+                    <h6 class="border-bottom pb-2 mb-3"><?php echo gettext('Move History'); ?></h6>
                     <div id="gamebody" class="overflow-auto" style="max-height: 350px;"></div>
 
                     <div class="mt-4 pt-3 border-top d-grid gap-2">
-                        <input type="button" id="btnMainMenu" class="btn btn-outline-primary" value="Main Menu" disabled="disabled" onclick="displayMainmenu()" />
-                        <input type="button" id="btnReload" class="btn btn-outline-secondary" value="Reload Board" disabled="disabled" onclick="reloadPage(this)" />
-                        <input type="button" id="btnPGN" class="btn btn-outline-success" value="Download PGN" disabled="disabled" onclick="downloadPGN()" />
-                        <input type="button" id="btnLogout" class="btn btn-outline-danger" value="Logout" disabled="disabled" onclick="logout()" />
+                        <input type="button" id="btnMainMenu" class="btn btn-outline-primary" value="<?php echo gettext('Main Menu'); ?>" disabled="disabled" onclick="displayMainmenu()" />
+                        <input type="button" id="btnReload" class="btn btn-outline-secondary" value="<?php echo gettext('Reload Board'); ?>" disabled="disabled" onclick="reloadPage(this)" />
+                        <input type="button" id="btnPGN" class="btn btn-outline-success" value="<?php echo gettext('Download PGN'); ?>" disabled="disabled" onclick="downloadPGN()" />
+                        <input type="button" id="btnLogout" class="btn btn-outline-danger" value="<?php echo gettext('Logout'); ?>" disabled="disabled" onclick="logout()" />
                     </div>
                 </div>
             </div>
@@ -329,7 +353,7 @@
 <noscript>
     <div class="container mt-3">
         <div class="alert alert-danger text-center">
-            ⚠ Warning: JavaScript must be enabled for WebChess to work properly!
+            ⚠ <?php echo gettext('JavaScript must be enabled for WebChess to work properly!'); ?>
         </div>
     </div>
 </noscript>

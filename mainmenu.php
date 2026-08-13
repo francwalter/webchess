@@ -470,7 +470,7 @@
 	$_SESSION['isSharedPC'] = false;
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getGuiLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

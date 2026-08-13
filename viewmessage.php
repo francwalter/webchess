@@ -44,7 +44,7 @@
 	require 'connectdb.php';
 ?>
 <!doctype html>
-<html lang="de">
+<html lang="<?php echo getGuiLanguage(); ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
