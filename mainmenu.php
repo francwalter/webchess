@@ -108,6 +108,11 @@
 			$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'theme', '".$_POST['rdoTheme']."')";
 			mysqli_query($dbh, $tmpQuery);
 
+      /* set GUI language preference */
+      $tmpLanguage = (isset($_POST['rdoLanguage']) && ($_POST['rdoLanguage'] == 'de')) ? 'de' : 'en';
+      $tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'language', '".$tmpLanguage."')";
+      mysqli_query($dbh, $tmpQuery);
+
 			/* set auto-reload preference */
 			if (is_numeric($_POST['txtReload']))
 			{
@@ -156,6 +161,7 @@
 			$isPreferenceFound['history'] = false;
 			$isPreferenceFound['historylayout'] = false;
 			$isPreferenceFound['theme'] = false;
+      $isPreferenceFound['language'] = false;
 			$isPreferenceFound['autoreload'] = false;
 			$isPreferenceFound['emailnotification'] = false;
 
@@ -166,6 +172,7 @@
 					case 'history':
 					case 'historylayout':
 					case 'theme':
+            case 'language':
 						/* setup SESSION var of name pref_PREF, like pref_history */
 						$_SESSION['pref_'.$tmpPreference['preference']] = $tmpPreference['value'];
 						break;
@@ -206,6 +213,9 @@
 					case 'theme':
 						$defaultValue = "beholder";
 						break;
+            case 'language':
+              $defaultValue = "en";
+              break;
 					case 'autoreload':
 						$defaultValue = $CFG_MINAUTORELOAD;
 						break;
@@ -387,6 +397,11 @@
 			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoTheme']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'theme'";
 			mysqli_query($dbh, $tmpQuery);
 
+      /* GUI Language */
+      $tmpLanguage = (isset($_POST['rdoLanguage']) && ($_POST['rdoLanguage'] == 'de')) ? 'de' : 'en';
+      $tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$tmpLanguage."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'language'";
+      mysqli_query($dbh, $tmpQuery);
+
 			/* History format */
 			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoHistory']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'history'";
 			mysqli_query($dbh, $tmpQuery);
@@ -417,6 +432,7 @@
 			$_SESSION['pref_history'] = $_POST['rdoHistory'];
 			$_SESSION['pref_historylayout'] = $_POST['rdoHistorylayout'];
 			$_SESSION['pref_theme'] =  $_POST['rdoTheme'];
+      $_SESSION['pref_language'] = $tmpLanguage;
 
 			if (is_numeric($_POST['txtReload']))
 			{
@@ -855,6 +871,13 @@
                                     <option value="gnuchess_simple" <?php if ($_SESSION['pref_theme'] == 'gnuchess_simple') echo 'selected'; ?>>GNU Chess Simple</option>
                                 </select>
                             </div>
+                              <div class="col-md-4">
+                                  <label class="form-label fw-bold">GUI Language</label>
+                                  <select name="rdoLanguage" class="form-select">
+                                      <option value="en" <?php if (!isset($_SESSION['pref_language']) || $_SESSION['pref_language'] == 'en') echo 'selected'; ?>>EN</option>
+                                      <option value="de" <?php if (isset($_SESSION['pref_language']) && $_SESSION['pref_language'] == 'de') echo 'selected'; ?>>DE</option>
+                                  </select>
+                              </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Auto-reload (sec)</label>
                                 <input type="number" class="form-control" name="txtReload" value="<?php echo ($_SESSION['pref_autoreload']); ?>" min="<?php echo $CFG_MINAUTORELOAD; ?>" />
