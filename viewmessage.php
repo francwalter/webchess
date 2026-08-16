@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /*
     This file is part of WebChess. http://webchess.sourceforge.net
 	Copyright 2010 Jonathan Evraire, Rodrigo Flores
@@ -48,7 +48,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php echo htmlspecialchars(gettext("WebChess") . " :: " . gettext("Message View"));?></title>
+    <title><?php echo htmlspecialchars(webchessTranslate("WebChess") . " :: " . webchessTranslate("Message View"));?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/theme.css" type="text/css" />
     <script type="text/javascript" src="javascript/theme.js"></script>
@@ -63,10 +63,10 @@
 
 <nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="mainmenu.php">♔ WebChess</a>
+        <a class="navbar-brand" href="mainmenu.php">WebChess</a>
         <div class="d-flex gap-2">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()">🌙</button>
-            <a class="btn btn-outline-light btn-sm" href="mainmenu.php"><?php echo htmlspecialchars(gettext("Return to Main Menu"));?></a>
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()">Theme</button>
+            <a class="btn btn-outline-light btn-sm" href="mainmenu.php"><?php echo htmlspecialchars(webchessTranslate("Return to Main Menu"));?></a>
         </div>
     </div>
 </nav>
@@ -82,7 +82,7 @@
                 $tmpGames = mysqli_query($dbh, $SqlQuery);
 
                 if (!$tmpGames || mysqli_num_rows($tmpGames) == 0) {
-                    echo '<div class="alert alert-warning">' . htmlspecialchars(gettext("Message not found!")) . '</div>';
+                    echo '<div class="alert alert-warning">' . htmlspecialchars(webchessTranslate("Message not found!")) . '</div>';
                 } else {
                     while ($tmpGame = mysqli_fetch_assoc($tmpGames)) {
                         if ($tmpGame['fromID'] != 0) {
@@ -91,18 +91,18 @@
                             $tempRes = mysqli_fetch_assoc($innerRes);
                             $FromPlayer = $tempRes['nick'];
                         } else {
-                            $FromPlayer = gettext("Webchess Administrator");
+                            $FromPlayer = webchessTranslate("Webchess Administrator");
                         }
                         ?>
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <h5 class="card-title mb-0"><?php echo htmlspecialchars($tmpGame['title']); ?></h5>
-                                <small class="text-muted"><?php echo htmlspecialchars(gettext("From:") . " " . $FromPlayer . " " . gettext("on") . " " . $tmpGame['postDate']); ?></small>
+                                <small class="text-muted"><?php echo htmlspecialchars(webchessTranslate("From:") . " " . $FromPlayer . " " . webchessTranslate("on") . " " . $tmpGame['postDate']); ?></small>
                             </div>
                             <div class="text-end">
                                 <?php if ($tmpGame['fromID'] != 0) { ?>
-                                    <button class="btn btn-sm btn-outline-primary me-1" type="button" onclick="MessagePlayer(<?php echo (int)$tmpGame['fromID']; ?>)"><?php echo htmlspecialchars(gettext("Reply")); ?></button>
-                                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="HideMessage(<?php echo $messageID; ?>)"><?php echo htmlspecialchars(gettext("Archive")); ?></button>
+                                    <button class="btn btn-sm btn-outline-primary me-1" type="button" onclick="MessagePlayer(<?php echo (int)$tmpGame['fromID']; ?>)"><?php echo htmlspecialchars(webchessTranslate("Reply")); ?></button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="HideMessage(<?php echo $messageID; ?>)"><?php echo htmlspecialchars(webchessTranslate("Archive")); ?></button>
                                 <?php } ?>
                             </div>
                         </div>
@@ -113,8 +113,8 @@
                     }
                 }
             } else {
-                echo '<div class="alert alert-danger">' . htmlspecialchars(gettext("Message Error")) . '</div>';
-                echo '<p>' . htmlspecialchars(gettext("An error ocurred!.")) . '</p>';
+                echo '<div class="alert alert-danger">' . htmlspecialchars(webchessTranslate("Message Error")) . '</div>';
+                echo '<p>' . htmlspecialchars(webchessTranslate("An error ocurred!.")) . '</p>';
             }
             ?>
         </div>
@@ -129,3 +129,4 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

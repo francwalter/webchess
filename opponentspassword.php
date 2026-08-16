@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // $Id: opponentspassword.php,v 1.6 2010/08/15 09:56:12 sandking Exp $
 
 /*
@@ -23,6 +23,8 @@
 
 	if (!isset($_CHESSUTILS))
 		require 'chessutils.php';
+
+	require 'lang.php';
 
 	fixOldPHPVersions();
 
@@ -106,7 +108,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <link rel="stylesheet" href="styles/userlogin.css" type="text/css" />
-<title>WebChess :: <?php echo gettext("Login");?></title>
+<title>WebChess :: <?php echo webchessTranslate("Login");?></title>
 <script language="javascript" type="text/javascript">
 window.onload = function()
 {
@@ -123,7 +125,7 @@ window.onload = function()
 <body>
 
 <div id="header">
-  <div id="heading">WebChess :: <?php echo gettext("Login");?></div>
+  <div id="heading">WebChess :: <?php echo webchessTranslate("Login");?></div>
 </div>
 
 <div id="ctr" align="center">
@@ -131,20 +133,20 @@ window.onload = function()
 		<div class="login-form">
 			<form name="loginForm" id="loginForm" method="post" action="opponentspassword.php">
 				<div class="form-block">
-                                        <div class="inputlabel"><?php echo gettext("Password");?></div>
+                                        <div class="inputlabel"><?php echo webchessTranslate("Password");?></div>
 					<div><input id="pwdPassword" name="pwdPassword" type="password" class="inputbox" size="15" /></div>
 					<input name="opponentsNick" type="hidden" value="<?php echo(isset($opponentsNick) ? $opponentsNick : ''); ?>" />
 					<input name="opponentsID" type="hidden" value="<?php echo(isset($opponentsID) ? $opponentsID : ''); ?>" />
 					<input name="gameID" value="<?php echo (isset($_POST['gameID']) ? $_POST['gameID'] : ''); ?>" type="hidden" />
 					<div align="left">
-						<input type="submit" name="login" class="button" value="<?php echo gettext("Login");?>" />
-						<input name="Cancel" class="button" value="<?php echo gettext("Cancel");?>" type="button" onClick="window.open('mainmenu.php', '_self')" /></div>
+						<input type="submit" name="login" class="button" value="<?php echo webchessTranslate("Login");?>" />
+						<input name="Cancel" class="button" value="<?php echo webchessTranslate("Cancel");?>" type="button" onClick="window.open('mainmenu.php', '_self')" /></div>
 				</div>
 			</form>
 		</div>
 		<div class="login-text">
 			<div class="ctr"><img src="images/webchess.jpg" width="65" height="92" alt="security" /></div>
-                        <p><?php echo gettext("Enter password for ");?><?php echo (isset($opponentsNick) ? $opponentsNick : 'opponent'); ?></p>
+                        <p><?php echo webchessTranslate("Enter password for ");?><?php echo (isset($opponentsNick) ? $opponentsNick : 'opponent'); ?></p>
     	</div>
 		<div class="clr"></div>
 	</div>
@@ -155,8 +157,9 @@ window.onload = function()
 !Warning! Javascript must be enabled for proper operation of WebChess
 </noscript>
 <div class="footer" align="center">
-<div align="center"><?php echo "WebChess " . gettext("Version") . " 1.0.0, " . gettext("last updated") ." ". gettext("August"). " 15, 2010"?></div>
-<div align="center"><a href="http://webchess.sourceforge.net/"><?php echo gettext("WebChess");?></a> <?php echo gettext("is Free Software released under the GNU General Public License (GPL).");?></div>
+<div align="center"><?php echo "WebChess " . webchessTranslate("Version") . " 1.0.0, " . webchessTranslate("last updated") ." ". webchessTranslate("August"). " 15, 2010"?></div>
+<div align="center"><a href="http://webchess.sourceforge.net/"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL).");?></div>
 </div>
 </body>
 </html>
+

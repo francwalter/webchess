@@ -75,6 +75,9 @@ return array(
     'Open Window'                    => 'Fenster öffnen',
     'Current messages'               => 'Aktuelle Nachrichten',
     'No pending messages'            => 'Keine neuen Nachrichten',
+    'Preferences saved.'             => 'Einstellungen gespeichert.',
+    'Preferences saved. Language updated.'
+        => 'Einstellungen gespeichert. Sprache aktualisiert.',
     'Issue a challenge'              => 'Herausforderung senden',
     'Select Opponent'                => 'Gegner auswählen',
     'Your Color'                     => 'Deine Farbe',

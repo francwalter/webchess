@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // $Id: mainmenu.php,v 1.20 2010/08/23 04:40:59 sandking Exp $
 
 /*
@@ -398,6 +398,8 @@
 			break;
 
 		case 'UpdatePrefs':
+      $oldLanguage = $_SESSION['pref_language'] ?? 'en';
+
 			/* Theme */
 			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoTheme']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'theme'";
 			mysqli_query($dbh, $tmpQuery);
@@ -432,7 +434,7 @@
         $tmpEmailNotification = trim((string)($_POST['txtEmailNotification'] ?? ''));
         if ($tmpEmailNotification !== '' && !filter_var($tmpEmailNotification, FILTER_VALIDATE_EMAIL))
         {
-          $_SESSION['flash_msg'] = gettext('Invalid email address. Keeping previous notification address.');
+          $_SESSION['flash_msg'] = webchessTranslate('Invalid email address. Keeping previous notification address.');
           $_SESSION['flash_type'] = 'warning';
         }
         else
@@ -460,6 +462,17 @@
 			} else
 				$_SESSION['pref_autoreload'] = $CFG_MINAUTORELOAD;
 
+      if (!isset($_SESSION['flash_type']))
+      {
+        if ($oldLanguage !== $tmpLanguage)
+          $_SESSION['flash_msg'] = webchessTranslate('Preferences saved. Language updated.');
+        else
+          $_SESSION['flash_msg'] = webchessTranslate('Preferences saved.');
+        $_SESSION['flash_type'] = 'success';
+      }
+
+      $redirectTo = 'mainmenu.php#preferences';
+
 			break;
 
 		case 'TestEmail':
@@ -469,13 +482,13 @@
 
         if ($tmpMailTo === '')
         {
-          $_SESSION['flash_msg'] = gettext('Please enter an email address first.');
+          $_SESSION['flash_msg'] = webchessTranslate('Please enter an email address first.');
           $_SESSION['flash_type'] = 'warning';
         }
         elseif (!filter_var($tmpMailTo, FILTER_VALIDATE_EMAIL))
         {
-          $_SESSION['flash_msg'] = gettext('Please enter a valid email address first.') . ' ' .
-            gettext('Recipient:') . ' ' . $tmpMailTo;
+          $_SESSION['flash_msg'] = webchessTranslate('Please enter a valid email address first.') . ' ' .
+            webchessTranslate('Recipient:') . ' ' . $tmpMailTo;
           $_SESSION['flash_type'] = 'warning';
         }
         else
@@ -483,16 +496,16 @@
           $_SESSION['pref_emailnotification'] = $tmpMailTo;
           if (webchessMail('test', $tmpMailTo, '', '', ''))
           {
-            $_SESSION['flash_msg'] = gettext('Test email has been handed to the mail system.') . ' ' .
-              gettext('Recipient:') . ' ' . $tmpMailTo . '. ' .
-              gettext('Please check inbox/spam and server mail logs.');
+            $_SESSION['flash_msg'] = webchessTranslate('Test email has been handed to the mail system.') . ' ' .
+              webchessTranslate('Recipient:') . ' ' . $tmpMailTo . '. ' .
+              webchessTranslate('Please check inbox/spam and server mail logs.');
             $_SESSION['flash_type'] = 'success';
           }
           else
           {
-            $_SESSION['flash_msg'] = gettext('Sending test email failed in PHP mail().') . ' ' .
-              gettext('Recipient:') . ' ' . $tmpMailTo . '. ' .
-              gettext('Please check server mail configuration and logs.');
+            $_SESSION['flash_msg'] = webchessTranslate('Sending test email failed in PHP mail().') . ' ' .
+              webchessTranslate('Recipient:') . ' ' . $tmpMailTo . '. ' .
+              webchessTranslate('Please check server mail configuration and logs.');
             $_SESSION['flash_type'] = 'danger';
           }
         }
@@ -503,7 +516,7 @@
                         $tmpQuery = "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = " . (int)$_POST['messageID'];
                         mysqli_query($dbh, $tmpQuery);
                         /* set a flash message to be shown after redirect */
-                        $_SESSION['flash_msg'] = gettext('Message archived');
+                        $_SESSION['flash_msg'] = webchessTranslate('Message archived');
                         $_SESSION['flash_type'] = 'success';
                         break;
 
@@ -526,7 +539,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebChess :: <?php echo gettext("Main Menu");?></title>
+    <title>WebChess :: <?php echo webchessTranslate("Main Menu");?></title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/mainmenu.css" type="text/css" />
@@ -754,16 +767,16 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto d-flex align-items-center gap-2" id="navlist">
-                <li class="nav-item"><a class="nav-link px-2" href="#continuegame"><?php echo gettext("Active games"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#invitations"><?php echo gettext("Pending challenges"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#messages"><?php echo gettext("Messages"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#challenge"><?php echo gettext("Challenge others"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#viewgame"><?php echo gettext("Replay"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#preferences"><?php echo gettext("Preferences"); ?></a></li>
-                <li class="nav-item"><a class="nav-link px-2" href="#personalinfo"><?php echo gettext("Personal"); ?></a></li>
-                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button></li>
-                <li class="nav-item"><button class="btn btn-outline-danger btn-sm" type="button" onclick="reload()" title="<?php echo gettext('Reload'); ?>"><?php echo gettext("Reload"); ?></button></li>
-                <li class="nav-item"><button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo gettext("Logout"); ?></button></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#continuegame"><?php echo webchessTranslate("Active games"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#invitations"><?php echo webchessTranslate("Pending challenges"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#messages"><?php echo webchessTranslate("Messages"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#challenge"><?php echo webchessTranslate("Challenge others"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#viewgame"><?php echo webchessTranslate("Replay"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#preferences"><?php echo webchessTranslate("Preferences"); ?></a></li>
+                <li class="nav-item"><a class="nav-link px-2" href="#personalinfo"><?php echo webchessTranslate("Personal"); ?></a></li>
+                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">Theme</button></li>
+                <li class="nav-item"><button class="btn btn-outline-danger btn-sm" type="button" onclick="reload()" title="<?php echo webchessTranslate('Reload'); ?>"><?php echo webchessTranslate("Reload"); ?></button></li>
+                <li class="nav-item"><button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo webchessTranslate("Logout"); ?></button></li>
             </ul>
         </div>
     </div>
@@ -795,26 +808,26 @@ endif;
             <!-- Active Games -->
             <div id="continuegame" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white"><h5 class="mb-0"><?php echo gettext("Games in Progress");?></h5></div>
+                    <div class="card-header bg-primary text-white"><h5 class="mb-0"><?php echo webchessTranslate("Games in Progress");?></h5></div>
                     <div class="card-body">
                         <form name="existingGames" action="chess.php" method="post">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th><?php echo gettext("Id");?></th>
-                                            <th><?php echo gettext("White");?></th>
-                                            <th><?php echo gettext("Black");?></th>
-                                            <th><?php echo gettext("Mvs");?></th>
-                                            <th><?php echo gettext("Current Turn");?></th>
-                                            <th><?php echo gettext("Last Move");?></th>
+                                            <th><?php echo webchessTranslate("Id");?></th>
+                                            <th><?php echo webchessTranslate("White");?></th>
+                                            <th><?php echo webchessTranslate("Black");?></th>
+                                            <th><?php echo webchessTranslate("Mvs");?></th>
+                                            <th><?php echo webchessTranslate("Current Turn");?></th>
+                                            <th><?php echo webchessTranslate("Last Move");?></th>
                                         </tr>
                                     </thead>
                                     <tbody id="inProgrTblBdy">
                                         <?php
                                         $tmpGames = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage IS NULL AND (whitePlayer = ".(int)$_SESSION['playerID']." OR blackPlayer = ".(int)$_SESSION['playerID'].") ORDER BY dateCreated");
                                         if (mysqli_num_rows($tmpGames) == 0): ?>
-                                            <tr><td colspan="6" class="text-center text-muted"><?php echo gettext("You do not currently have any games in progress"); ?></td></tr>
+                                            <tr><td colspan="6" class="text-center text-muted"><?php echo webchessTranslate("You do not currently have any games in progress"); ?></td></tr>
                                         <?php else:
                                             while($tmpGame = mysqli_fetch_assoc($tmpGames)):
                                                 $tmpPlayerW = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['whitePlayer']);
@@ -831,7 +844,7 @@ endif;
                                                 <td><?php echo $whiteNick; ?></td>
                                                 <td><?php echo $blackNick; ?></td>
                                                 <td><?php echo floor($numMoves / 2); ?></td>
-                                                <td><span class="badge <?php echo $isMyTurn ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $isMyTurn ? gettext("Your move") : gettext("Opponent"); ?></span></td>
+                                                <td><span class="badge <?php echo $isMyTurn ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $isMyTurn ? webchessTranslate("Your move") : webchessTranslate("Opponent"); ?></span></td>
                                                 <td><small><?php echo substr($tmpGame['lastMove'], 0, -3); ?></small></td>
                                             </tr>
                                         <?php endwhile; endif; ?>
@@ -839,21 +852,21 @@ endif;
                                 </table>
                             </div>
                             <div class="mt-3 p-3 bg-light rounded border">
-                                <label class="form-label d-block fw-bold"><?php echo gettext("Will both players play from the same computer?");?></label>
+                                <label class="form-label d-block fw-bold"><?php echo webchessTranslate("Will both players play from the same computer?");?></label>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" name="rdoShare" type="radio" value="" id="shareYes" />
-                                    <label class="form-check-label" for="shareYes"><?php echo gettext("Yes");?></label>
+                                    <label class="form-check-label" for="shareYes"><?php echo webchessTranslate("Yes");?></label>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" name="rdoShare" type="radio" value="no" id="shareNo" checked="checked" />
-                                    <label class="form-check-label" for="shareNo"><?php echo gettext("No");?></label>
+                                    <label class="form-check-label" for="shareNo"><?php echo webchessTranslate("No");?></label>
                                 </div>
                             </div>
                             <input type="hidden" name="gameID" value="" />
                             <input type="hidden" name="sharePC" value="no" />
                         </form>
                         <div class="mt-3 alert alert-warning small">
-                            <strong><?php echo gettext("WARNING!");?></strong> <?php echo gettext("Games will expire WITHOUT NOTICE if a move isn't made after") . " " . ($CFG_EXPIREGAME) . " " . gettext("days!");?>
+                            <strong><?php echo webchessTranslate("WARNING!");?></strong> <?php echo webchessTranslate("Games will expire WITHOUT NOTICE if a move isn't made after") . " " . ($CFG_EXPIREGAME) . " " . webchessTranslate("days!");?>
                         </div>
                     </div>
                 </div>
@@ -862,10 +875,10 @@ endif;
             <!-- Invitations -->
             <div id="invitations" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white"><h5 class="mb-0"><?php echo gettext("Challenges");?></h5></div>
+                    <div class="card-header bg-info text-white"><h5 class="mb-0"><?php echo webchessTranslate("Challenges");?></h5></div>
                     <div class="card-body">
                         <form name="responseToInvite" action="mainmenu.php" method="post">
-                            <h6 class="fw-bold"><?php echo gettext("Challenges from other players");?></h6>
+                            <h6 class="fw-bold"><?php echo webchessTranslate("Challenges from other players");?></h6>
                             <div class="table-responsive mb-4">
                                 <table class="table table-sm">
                                     <thead class="table-light"><tr><th>ID</th><th>White</th><th>Black</th><th>Issued</th><th>Action</th></tr></thead>
@@ -874,7 +887,7 @@ endif;
                                         $tmpQuery = "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited' AND ((whitePlayer = ".$_SESSION['playerID']." AND messageFrom = 'black') OR (blackPlayer = ".$_SESSION['playerID']." AND messageFrom = 'white')) ORDER BY dateCreated";
                                         $tmpGames = mysqli_query($dbh, $tmpQuery);
                                         if (mysqli_num_rows($tmpGames) == 0): ?>
-                                            <tr><td colspan="5" class="text-center text-muted"><?php echo gettext("You are not currently invited to any games"); ?></td></tr>
+                                            <tr><td colspan="5" class="text-center text-muted"><?php echo webchessTranslate("You are not currently invited to any games"); ?></td></tr>
                                         <?php else:
                                             while($tmpGame = mysqli_fetch_assoc($tmpGames)):
                                                 $tmpFrom = ($tmpGame['whitePlayer'] == $_SESSION['playerID']) ? 'white' : 'black';
@@ -886,8 +899,8 @@ endif;
                                                 <td><small><?php echo substr($tmpGame['dateCreated'], 0, -3); ?></small></td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
-                                                        <button class="btn btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">✓ <?php echo gettext("Accept"); ?></button>
-                                                        <button class="btn btn-outline-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">✕ <?php echo gettext("Decline"); ?></button>
+                                                        <button class="btn btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">âœ“ <?php echo webchessTranslate("Accept"); ?></button>
+                                                        <button class="btn btn-outline-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">âœ• <?php echo webchessTranslate("Decline"); ?></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -904,15 +917,15 @@ endif;
             <!-- Personal Info -->
             <div id="personalinfo" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-dark text-white"><h5 class="mb-0"><?php echo gettext("Personal information");?></h5></div>
+                    <div class="card-header bg-dark text-white"><h5 class="mb-0"><?php echo webchessTranslate("Personal information");?></h5></div>
                     <div class="card-body">
                         <form name="PersonalInfo" action="mainmenu.php" method="post" class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label"><?php echo gettext("First Name"); ?></label>
+                                <label class="form-label"><?php echo webchessTranslate("First Name"); ?></label>
                                 <input name="txtFirstName" type="text" class="form-control" value="<?php echo($_SESSION['firstName']); ?>" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label"><?php echo gettext("Last Name"); ?></label>
+                                <label class="form-label"><?php echo webchessTranslate("Last Name"); ?></label>
                                 <input name="txtLastName" type="text" class="form-control" value="<?php echo($_SESSION['lastName']); ?>" />
                             </div>
                             <?php if ($CFG_NICKCHANGEALLOWED): ?>
@@ -922,19 +935,19 @@ endif;
                             </div>
                             <?php endif; ?>
                             <div class="col-md-4">
-                                <label class="form-label"><?php echo gettext("Current Password"); ?></label>
+                                <label class="form-label"><?php echo webchessTranslate("Current Password"); ?></label>
                                 <input name="pwdOldPassword" type="password" class="form-control" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label"><?php echo gettext("New Password"); ?></label>
+                                <label class="form-label"><?php echo webchessTranslate("New Password"); ?></label>
                                 <input name="pwdPassword" type="password" class="form-control" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label"><?php echo gettext("Password Confirmation"); ?></label>
+                                <label class="form-label"><?php echo webchessTranslate("Password Confirmation"); ?></label>
                                 <input name="pwdPassword2" type="password" class="form-control" />
                             </div>
                             <div class="col-12">
-                                <button type="button" class="btn btn-primary btn-lg" onclick="validatePersonalInfo()"><i class="bi bi-check-circle"></i> <?php echo gettext("Update");?></button>
+                                <button type="button" class="btn btn-primary btn-lg" onclick="validatePersonalInfo()"><i class="bi bi-check-circle"></i> <?php echo webchessTranslate("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePersonalInfo" />
                             </div>
                         </form>
@@ -945,16 +958,16 @@ endif;
             <!-- Preferences -->
             <div id="preferences" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white"><h5 class="mb-0"><?php echo gettext("Preferences");?></h5></div>
+                    <div class="card-header bg-secondary text-white"><h5 class="mb-0"><?php echo webchessTranslate("Preferences");?></h5></div>
                     <div class="card-body">
                         <form name="userdata" method="post" action="mainmenu.php" class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold"><?php echo gettext("History Format");?></label>
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("History Format");?></label>
                                 <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="pgn" <?php if ($_SESSION['pref_history'] == 'pgn') echo 'checked'; ?> /> PGN</div>
                                 <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="verbous" <?php if ($_SESSION['pref_history'] != 'pgn') echo 'checked'; ?> /> Verbose</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold"><?php echo gettext("History Layout");?></label>
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("History Layout");?></label>
                                 <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="columns" <?php if ($_SESSION['pref_historylayout'] == 'columns') echo 'checked'; ?> /> Columns</div>
                                 <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="paragraph" <?php if ($_SESSION['pref_historylayout'] != 'columns') echo 'checked'; ?> /> Paragraph</div>
                             </div>
@@ -979,20 +992,20 @@ endif;
                             </div>
                             <?php if ($CFG_USEEMAILNOTIFICATION): ?>
                             <div class="col-12">
-                                <label class="form-label fw-bold"><?php echo gettext("Email notification address");?></label>
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("Email notification address");?></label>
                                 <div class="input-group">
                                     <input type="email" class="form-control" name="txtEmailNotification"
                                            value="<?php echo htmlspecialchars($_SESSION['pref_emailnotification'] ?? ''); ?>"
-                                           placeholder="<?php echo gettext("Enter email address for move notifications"); ?>" />
-                                    <button id="btnTestEmail" type="button" class="btn btn-outline-secondary" onclick="testEmail()" title="<?php echo gettext("Send a test email to the address above"); ?>" disabled>
-                                        ✉ <?php echo gettext("Test");?>
+                                           placeholder="<?php echo webchessTranslate("Enter email address for move notifications"); ?>" />
+                                    <button id="btnTestEmail" type="button" class="btn btn-outline-secondary" onclick="testEmail()" title="<?php echo webchessTranslate("Send a test email to the address above"); ?>" disabled>
+                                        âœ‰ <?php echo webchessTranslate("Test");?>
                                     </button>
                                 </div>
-                                <div class="form-text"><?php echo gettext("Leave empty to disable email notifications.");?></div>
+                                <div class="form-text"><?php echo webchessTranslate("Leave empty to disable email notifications.");?></div>
                             </div>
                             <?php endif; ?>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-sliders"></i> <?php echo gettext("Update");?></button>
+                                <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-sliders"></i> <?php echo webchessTranslate("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePrefs" />
                             </div>
                         </form>
@@ -1003,10 +1016,10 @@ endif;
             <!-- Other sections (Messages, Challenge, Replay) -->
             <div id="messages" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><?php echo gettext("Messages");?></h5></div>
+                    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><?php echo webchessTranslate("Messages");?></h5></div>
                     <div class="card-body">
                          <div class="mb-4">
-                            <label class="form-label fw-bold"><?php echo gettext("Send message to player");?></label>
+                            <label class="form-label fw-bold"><?php echo webchessTranslate("Send message to player");?></label>
                             <div class="input-group">
                                 <select id="player_select" class="form-select">
                                     <?php
@@ -1017,11 +1030,11 @@ endif;
                                     }
                                     ?>
                                 </select>
-                                <button class="btn btn-primary" type="button" onclick="MessagePlayer(document.getElementById('player_select').value)"><i class="bi bi-chat-dots"></i> <?php echo gettext("Open Window");?></button>
+                                <button class="btn btn-primary" type="button" onclick="MessagePlayer(document.getElementById('player_select').value)"><i class="bi bi-chat-dots"></i> <?php echo webchessTranslate("Open Window");?></button>
                             </div>
                         </div>
 
-                        <h6 class="fw-bold"><?php echo gettext("Current messages");?></h6>
+                        <h6 class="fw-bold"><?php echo webchessTranslate("Current messages");?></h6>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead class="table-light">
@@ -1032,7 +1045,7 @@ endif;
                                     $SqlQuery="SELECT * FROM " . $CFG_TABLE['communication'] . " left join " . $CFG_TABLE['players'] . " on " . $CFG_TABLE['communication'] . ".fromID=" . $CFG_TABLE['players'] . ".playerID WHERE ((toID is null) or (toID=" . (int)$_SESSION['playerID'] . ")) and ((fromID is null) or (fromID=playerID)) and ack=0 and gameID is null order by " . $CFG_TABLE['communication'] . ".postDate desc;";
                                     $tmpGames = mysqli_query($dbh, $SqlQuery);
                                     if (mysqli_num_rows($tmpGames) == 0): ?>
-                                        <tr><td colspan="3" class="text-center text-muted"><?php echo gettext("No pending messages"); ?></td></tr>
+                                        <tr><td colspan="3" class="text-center text-muted"><?php echo webchessTranslate("No pending messages"); ?></td></tr>
                                     <?php else:
                                         while($tmpGame = mysqli_fetch_assoc($tmpGames)): ?>
                                         <tr>
@@ -1050,11 +1063,11 @@ endif;
 
             <div id="challenge" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-dark text-white"><h5 class="mb-0"><?php echo gettext("Issue a challenge");?></h5></div>
+                    <div class="card-header bg-dark text-white"><h5 class="mb-0"><?php echo webchessTranslate("Issue a challenge");?></h5></div>
                     <div class="card-body">
                         <form name="newchallenge" action="mainmenu.php" method="post" class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label"><?php echo gettext("Select Opponent");?></label>
+                                <label class="form-label"><?php echo webchessTranslate("Select Opponent");?></label>
                                 <select name="opponent" class="form-select">
                                     <?php
                                     $tmpPlayers = mysqli_query($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$_SESSION['playerID']);
@@ -1065,7 +1078,7 @@ endif;
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label"><?php echo gettext("Your Color");?></label>
+                                <label class="form-label"><?php echo webchessTranslate("Your Color");?></label>
                                 <div class="mt-2">
                                     <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="random" checked /> Random</div>
                                     <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="white" /> White</div>
@@ -1073,7 +1086,7 @@ endif;
                                 </div>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-suit-heart"></i> <?php echo gettext("Invite");?></button>
+                                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-suit-heart"></i> <?php echo webchessTranslate("Invite");?></button>
                                 <input type="hidden" name="ToDo" value="InvitePlayer" />
                             </div>
                         </form>
@@ -1083,7 +1096,7 @@ endif;
 
             <div id="viewgame" class="section-content">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white"><h5 class="mb-0"><?php echo gettext("View finished games");?></h5></div>
+                    <div class="card-header bg-success text-white"><h5 class="mb-0"><?php echo webchessTranslate("View finished games");?></h5></div>
                     <div class="card-body">
                          <div class="table-responsive">
                             <table class="table table-sm table-hover">
@@ -1094,7 +1107,7 @@ endif;
                                     <?php
                                     $tmpGames = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE (gameMessage <> '' AND gameMessage <> 'playerInvited' AND gameMessage <> 'inviteDeclined') AND (whitePlayer = ".(int)$_SESSION['playerID']." OR blackPlayer = ".(int)$_SESSION['playerID'].") ORDER BY lastMove DESC");
                                     if (mysqli_num_rows($tmpGames) == 0): ?>
-                                        <tr><td colspan="6" class="text-center text-muted"><?php echo gettext("No finished games found"); ?></td></tr>
+                                        <tr><td colspan="6" class="text-center text-muted"><?php echo webchessTranslate("No finished games found"); ?></td></tr>
                                     <?php else:
                                         while($tmpGame = mysqli_fetch_assoc($tmpGames)):
                                             $tmpNumMoves = mysqli_fetch_row(mysqli_query($dbh, "SELECT COUNT(gameID) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$tmpGame['gameID']))[0];
@@ -1132,3 +1145,4 @@ endif;
 </body>
 </html>
 <?php mysqli_close($dbh); ?>
+
