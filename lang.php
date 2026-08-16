@@ -20,37 +20,53 @@
 
 $GETTEXT_SUPPORT = false;
 
-/* default GUI language; may be overridden by user preference */
-$GUI_LANGUAGE = 'en';
-if (isset($_SESSION) && isset($_SESSION['pref_language']))
-{
-	if ($_SESSION['pref_language'] == 'de')
-		$GUI_LANGUAGE = 'de';
-}
-
 if (!function_exists('getGuiLanguage')) {
 	function getGuiLanguage()
 	{
-		global $GUI_LANGUAGE;
+		if (isset($_SESSION) && isset($_SESSION['pref_language']) && $_SESSION['pref_language'] == 'de')
+			return 'de';
 
-		return ($GUI_LANGUAGE == 'de') ? 'de' : 'en';
+		return 'en';
 	}
 }
 
 /* optional array-based translations for future use */
 $WEBCHESS_TRANSLATIONS = array();
-$translationFile = __DIR__ . '/locale/' . getGuiLanguage() . '.php';
-if (is_file($translationFile))
-{
-	$loadedTranslations = require $translationFile;
-	if (is_array($loadedTranslations))
-		$WEBCHESS_TRANSLATIONS = $loadedTranslations;
+$WEBCHESS_TRANSLATIONS_LANG = null;
+
+if (!function_exists('webchessLoadTranslations')) {
+	function webchessLoadTranslations($lang = null)
+	{
+		global $WEBCHESS_TRANSLATIONS, $WEBCHESS_TRANSLATIONS_LANG;
+
+		if ($lang === null)
+			$lang = getGuiLanguage();
+
+		if ($WEBCHESS_TRANSLATIONS_LANG === $lang)
+			return;
+
+		$WEBCHESS_TRANSLATIONS = array();
+		$translationFile = __DIR__ . '/locale/' . (($lang === 'de') ? 'de' : 'en') . '.php';
+		if (is_file($translationFile))
+		{
+			$loadedTranslations = require $translationFile;
+			if (is_array($loadedTranslations))
+				$WEBCHESS_TRANSLATIONS = $loadedTranslations;
+		}
+
+		$WEBCHESS_TRANSLATIONS_LANG = $lang;
+	}
 }
+
+webchessLoadTranslations();
 
 if (!function_exists('webchessTranslate')) {
 	function webchessTranslate($text)
 	{
 		global $WEBCHESS_TRANSLATIONS;
+
+		/* Re-load if session language changed after this file was included. */
+		webchessLoadTranslations();
 
 		if (isset($WEBCHESS_TRANSLATIONS[$text]))
 			return $WEBCHESS_TRANSLATIONS[$text];
@@ -67,6 +83,8 @@ if ( ! function_exists('gettext')) {
 
 // Must do some testing before releasing it to mainstream
 if($GETTEXT_SUPPORT) {
+	$GUI_LANGUAGE = getGuiLanguage();
+
 	/* map GUI setting to locale */
 	if ($GUI_LANGUAGE == 'de')
 		$LANGUAGE = 'de_DE';

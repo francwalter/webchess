@@ -23,4 +23,4 @@
 	$mailmsg = "Gratulation!!!\n
 	Wenn du diesen Nachricht bekommst, hast du deine Mail-Einstellungen erfolgreich eingerichtet!\n\n
 	Diese Nachricht wurde automatisch versendet und sollte nicht beantwortet werden.\n";
-  $mailmsg .= "Zum Spielen bitte auf: " . $CFG_MAINPAGE . " gehen.\n";\n";
+  $mailmsg .= "Zum Spielen bitte auf: " . $CFG_MAINPAGE . " gehen.\n";

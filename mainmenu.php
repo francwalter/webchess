@@ -70,6 +70,7 @@
 
 	$tmpNewUser = false;
 	$errMsg = "";
+  $redirectTo = '';
 	$toDo = isset($_POST['ToDo']) ? $_POST['ToDo'] : '';
 	switch($toDo)
 	{
@@ -127,7 +128,11 @@
 			/* set email notification preference */
 			if ($CFG_USEEMAILNOTIFICATION)
 			{
-				$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'emailnotification', '".$_POST['txtEmailNotification']."')";
+        $tmpEmailNotification = trim((string)($_POST['txtEmailNotification'] ?? ''));
+        if ($tmpEmailNotification !== '' && !filter_var($tmpEmailNotification, FILTER_VALIDATE_EMAIL))
+          $tmpEmailNotification = '';
+
+        $tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'emailnotification', '".mysqli_real_escape_string($dbh, $tmpEmailNotification)."')";
 				mysqli_query($dbh, $tmpQuery);
 			}
 
@@ -424,8 +429,18 @@
 			/* Email Notification */
 			if ($CFG_USEEMAILNOTIFICATION)
 			{
-				$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['txtEmailNotification']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'emailnotification'";
-				mysqli_query($dbh, $tmpQuery);
+        $tmpEmailNotification = trim((string)($_POST['txtEmailNotification'] ?? ''));
+        if ($tmpEmailNotification !== '' && !filter_var($tmpEmailNotification, FILTER_VALIDATE_EMAIL))
+        {
+          $_SESSION['flash_msg'] = gettext('Invalid email address. Keeping previous notification address.');
+          $_SESSION['flash_type'] = 'warning';
+        }
+        else
+        {
+          $tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".mysqli_real_escape_string($dbh, $tmpEmailNotification)."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'emailnotification'";
+          mysqli_query($dbh, $tmpQuery);
+          $_SESSION['pref_emailnotification'] = $tmpEmailNotification;
+        }
 			}
 
 			/* update current session */
@@ -445,13 +460,44 @@
 			} else
 				$_SESSION['pref_autoreload'] = $CFG_MINAUTORELOAD;
 
-			if ($CFG_USEEMAILNOTIFICATION)
-				$_SESSION['pref_emailnotification'] = $_POST['txtEmailNotification'];
 			break;
 
 		case 'TestEmail':
-			if ($CFG_USEEMAILNOTIFICATION)
-				webchessMail('test', $_SESSION['pref_emailnotification'], '', '', '');
+      if ($CFG_USEEMAILNOTIFICATION)
+      {
+        $tmpMailTo = trim((string)($_POST['txtEmailNotification'] ?? ''));
+
+        if ($tmpMailTo === '')
+        {
+          $_SESSION['flash_msg'] = gettext('Please enter an email address first.');
+          $_SESSION['flash_type'] = 'warning';
+        }
+        elseif (!filter_var($tmpMailTo, FILTER_VALIDATE_EMAIL))
+        {
+          $_SESSION['flash_msg'] = gettext('Please enter a valid email address first.') . ' ' .
+            gettext('Recipient:') . ' ' . $tmpMailTo;
+          $_SESSION['flash_type'] = 'warning';
+        }
+        else
+        {
+          $_SESSION['pref_emailnotification'] = $tmpMailTo;
+          if (webchessMail('test', $tmpMailTo, '', '', ''))
+          {
+            $_SESSION['flash_msg'] = gettext('Test email has been handed to the mail system.') . ' ' .
+              gettext('Recipient:') . ' ' . $tmpMailTo . '. ' .
+              gettext('Please check inbox/spam and server mail logs.');
+            $_SESSION['flash_type'] = 'success';
+          }
+          else
+          {
+            $_SESSION['flash_msg'] = gettext('Sending test email failed in PHP mail().') . ' ' .
+              gettext('Recipient:') . ' ' . $tmpMailTo . '. ' .
+              gettext('Please check server mail configuration and logs.');
+            $_SESSION['flash_type'] = 'danger';
+          }
+        }
+        $redirectTo = 'mainmenu.php#preferences';
+      }
 			break;
                 case 'HideMessage':
                         $tmpQuery = "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = " . (int)$_POST['messageID'];
@@ -462,6 +508,12 @@
                         break;
 
 	}
+
+  if ($redirectTo !== '')
+  {
+    header('Location: ' . $redirectTo);
+    exit;
+  }
 
 	/* check session status */
 	require 'sessioncheck.php';
@@ -641,8 +693,30 @@
 			document.endedGames.submit();
 		}
 <?php if ($CFG_USEEMAILNOTIFICATION) { ?>
+    function isValidEmailAddress(value)
+    {
+      var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(value);
+    }
+
+    function updateTestEmailButtonState()
+    {
+      var emailInput = document.querySelector('input[name="txtEmailNotification"]');
+      var testButton = document.getElementById('btnTestEmail');
+      if (!emailInput || !testButton)
+        return;
+
+      testButton.disabled = !isValidEmailAddress(emailInput.value.trim());
+    }
+
 		function testEmail()
 		{
+      var emailInput = document.querySelector('input[name="txtEmailNotification"]');
+      if (!emailInput || !isValidEmailAddress(emailInput.value.trim()))
+      {
+        alert("Please enter a valid email address first.");
+        return;
+      }
 			document.userdata.ToDo.value = "TestEmail";
 			document.userdata.submit();
 		}
@@ -658,6 +732,15 @@
 	function logout() {
 		document.logOutForm.submit();
 	}
+
+  window.addEventListener('DOMContentLoaded', function() {
+    <?php if ($CFG_USEEMAILNOTIFICATION) { ?>
+    var emailInput = document.querySelector('input[name="txtEmailNotification"]');
+    if (emailInput)
+      emailInput.addEventListener('input', updateTestEmailButtonState);
+    updateTestEmailButtonState();
+    <?php } ?>
+  });
 
 	</script>
 </head>
@@ -685,6 +768,18 @@
         </div>
     </div>
 </nav>
+
+<?php if (isset($_SESSION['flash_msg']) && $_SESSION['flash_msg'] !== ''): ?>
+<div class="container mb-3">
+    <div class="alert alert-<?php echo htmlspecialchars($_SESSION['flash_type'] ?? 'info'); ?> alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($_SESSION['flash_msg']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+<?php
+    unset($_SESSION['flash_msg'], $_SESSION['flash_type']);
+endif;
+?>
 
 <form name="logOutForm" action="mainmenu.php" method="post">
     <input type="hidden" name="ToDo" value="Logout" />
@@ -882,6 +977,20 @@
                                 <label class="form-label fw-bold">Auto-reload (sec)</label>
                                 <input type="number" class="form-control" name="txtReload" value="<?php echo ($_SESSION['pref_autoreload']); ?>" min="<?php echo $CFG_MINAUTORELOAD; ?>" />
                             </div>
+                            <?php if ($CFG_USEEMAILNOTIFICATION): ?>
+                            <div class="col-12">
+                                <label class="form-label fw-bold"><?php echo gettext("Email notification address");?></label>
+                                <div class="input-group">
+                                    <input type="email" class="form-control" name="txtEmailNotification"
+                                           value="<?php echo htmlspecialchars($_SESSION['pref_emailnotification'] ?? ''); ?>"
+                                           placeholder="<?php echo gettext("Enter email address for move notifications"); ?>" />
+                                    <button id="btnTestEmail" type="button" class="btn btn-outline-secondary" onclick="testEmail()" title="<?php echo gettext("Send a test email to the address above"); ?>" disabled>
+                                        ✉ <?php echo gettext("Test");?>
+                                    </button>
+                                </div>
+                                <div class="form-text"><?php echo gettext("Leave empty to disable email notifications.");?></div>
+                            </div>
+                            <?php endif; ?>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-sliders"></i> <?php echo gettext("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePrefs" />
