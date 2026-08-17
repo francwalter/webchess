@@ -78,6 +78,8 @@ return array(
     'Preferences saved.'             => 'Einstellungen gespeichert.',
     'Preferences saved. Language updated.'
         => 'Einstellungen gespeichert. Sprache aktualisiert.',
+    'Your session form token expired. Please reload the page and try again.'
+        => 'Dein Sitzungsformular-Token ist abgelaufen. Bitte lade die Seite neu und versuche es erneut.',
     'Issue a challenge'              => 'Herausforderung senden',
     'Select Opponent'                => 'Gegner auswählen',
     'Your Color'                     => 'Deine Farbe',

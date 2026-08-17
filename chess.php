@@ -36,6 +36,7 @@
 	if (!isset($_CHESSUTILS))
 		require 'chessutils.php';
   require 'lang.php';
+  require 'csrf.php';
 	require 'gui.php';
 	require 'chessdb.php';
 	require 'move.php';
@@ -46,6 +47,14 @@
 
 	/* check session status */
 	require 'sessioncheck.php';
+
+  if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateRequest())
+  {
+    $_SESSION['flash_msg'] = webchessTranslate('Your session form token expired. Please reload the page and try again.');
+    $_SESSION['flash_type'] = 'danger';
+    header('Location: mainmenu.php');
+    exit();
+  }
 
 	/* check if loading game */
 	if (isset($_POST['gameID']))
@@ -185,7 +194,10 @@
     <link rel="stylesheet" href="styles/chess.css" type="text/css" />
     <?php
         echo("<link rel='stylesheet' href='images/");
-        echo($_SESSION['pref_theme'] . "/wctheme.css' type='text/css' />\n");
+        $safeTheme = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($_SESSION['pref_theme'] ?? 'beholder'));
+        if ($safeTheme === '')
+            $safeTheme = 'beholder';
+        echo($safeTheme . "/wctheme.css' type='text/css' />\n");
 
         /* find out if it's the current player's turn */
         if (( (($numMoves == -1) || (($numMoves % 2) == 1)) && ($playersColor == "white"))
@@ -297,6 +309,7 @@
                         <input type="hidden" name="toCol" value="<?php if ($isPromoting) echo ($_POST['toCol']); ?>" />
                         <input type="hidden" name="isInCheck" value="false" />
                         <input type="hidden" name="isCheckMate" value="false" />
+                        <?php echo webchessCsrfField(); ?>
                     </form>
 
                     <?php if ($_castlingPossible): ?>
@@ -349,6 +362,7 @@
 
 <form name="gamemenu" method="post" action="chess.php" style="display:none;">
     <input type="hidden" name="ToDo" value="Logout" />
+    <?php echo webchessCsrfField(); ?>
 </form>
 
 <noscript>

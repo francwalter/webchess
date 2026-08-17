@@ -29,6 +29,7 @@
 	require 'newgame.php';
 	require 'chessdb.php';
         require 'lang.php';
+  require 'csrf.php';
 
 
 
@@ -124,6 +125,7 @@
 <form name="messageHideForm" action="mainmenu.php" method="post" style="display:none;">
     <input type="hidden" name="messageID" />
     <input type="hidden" name="ToDo" value="HideMessage" />
+    <?php echo webchessCsrfField(); ?>
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

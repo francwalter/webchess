@@ -29,6 +29,7 @@
 		require 'chessutils.php';
 
         require "lang.php";
+	require 'csrf.php';
 
 	fixOldPHPVersions();
 	if ($CFG_NEW_USERS_ALLOWED==false)
@@ -78,16 +79,16 @@
 				<div class="form-block">
                                         <h1><?php echo webchessTranslate("Personal information");?></h1>
                                         <div class="inputlabel"><?php echo webchessTranslate("First Name");?></div>
-					<div><input name="txtFirstName" type="text" class="inputbox" value="<?php echo(isset($_POST['txtFirstName']) ? $_POST['txtFirstName'] : ''); ?>" /></div>
+					<div><input name="txtFirstName" type="text" class="inputbox" value="<?php echo htmlspecialchars((string)($_POST['txtFirstName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></div>
                                         <div class="inputlabel"><?php echo webchessTranslate("Last Name");?></div>
-					<div><input name="txtLastName" type="text" class="inputbox" value="<?php echo(isset($_POST['txtLastName']) ? $_POST['txtLastName'] : ''); ?>" /></div>
+					<div><input name="txtLastName" type="text" class="inputbox" value="<?php echo htmlspecialchars((string)($_POST['txtLastName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></div>
                                         <div class="inputlabel"><?php echo webchessTranslate("Nick");?></div>
 					<div>
 						<input name="txtNick" type="text" class="inputbox" />
 						<?php
 							/* this var is set to true in mainmenu.php */
-							if (isset($tmpNewUser) && $tmpNewUser)
-								echo("<div class=\"warning\">Sorry, the nick you've chosen (".(isset($_POST['txtNick']) ? $_POST['txtNick'] : '').") is already in use.  Please try another.</div>");
+										if (isset($tmpNewUser) && $tmpNewUser)
+											echo("<div class=\"warning\">Sorry, the nick you've chosen (" . htmlspecialchars((string)($_POST['txtNick'] ?? ''), ENT_QUOTES, 'UTF-8') . ") is already in use.  Please try another.</div>");
 						?>
 					</div>
                                         <div class="inputlabel"><?php echo webchessTranslate("Password");?></div>
@@ -114,7 +115,7 @@
 					<div><input type="text" class="inputbox" name="txtReload" value="<?php echo ($CFG_MINAUTORELOAD); ?>" /></div>
 					<?php if ($CFG_USEEMAILNOTIFICATION) { ?>
                                                         <div class="inputlabel"><?php echo webchessTranslate("Email notification");?></div>
-							<div><input type="text" class="inputbox" name="txtEmailNotification" value="<?php echo(isset($_POST['txtEmailNotification']) ? $_POST['txtEmailNotification'] : ''); ?>" /></div>
+							<div><input type="text" class="inputbox" name="txtEmailNotification" value="<?php echo htmlspecialchars((string)($_POST['txtEmailNotification'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></div>
                                                         <div class="instruction"><?php echo webchessTranslate("Enter a valid email address if you would like to be notified when your opponent makes a move. Leave blank otherwise.");?></div>
 					<?php } ?>
 
@@ -122,6 +123,7 @@
                                         <input name="btnCancel" type="button" class="button" value="<?php echo webchessTranslate("Cancel");?>" onClick="window.open('index.php', '_self')" />
 
 					<input name="ToDo" value="NewUser" type="hidden" />
+					<?php echo webchessCsrfField(); ?>
 				</div>
 			</form>
 		</div>

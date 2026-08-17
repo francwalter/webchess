@@ -20,6 +20,8 @@
 
 // this is the main function that interacts with the user everytime they click on a square
 
+// ToDo fcw: 2026-08-17: Strings translation
+
 	/* called whenever a square is clicked on */
 	var is1stClick = true;
 

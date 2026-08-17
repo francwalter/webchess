@@ -94,7 +94,7 @@ function createTablePieces($dbh){
 function createTablePlayers($dbh){
 	$SQLCreateTablePlayers = "CREATE TABLE players (
 		playerID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-		password CHAR(16) NOT NULL,
+    password VARCHAR(255) NOT NULL,
 		firstName CHAR(20) NOT NULL,
 		lastName CHAR(20) NOT NULL,
 		nick CHAR(20) NOT NULL UNIQUE,
@@ -119,6 +119,28 @@ function addLastAccessFieldToPlayersTable($dbh) {
 	$SQLUpdateTablePlayers = "ALTER TABLE players ADD lastAccess DATETIME;";
 	$Result = mysqli_query($dbh, $SQLUpdateTablePlayers);
         return $Result;
+}
+
+function tablePlayersPasswordSupportsHashes($dbh) {
+  $SQLDescribePlayers = "SHOW COLUMNS FROM players LIKE 'password'";
+  $Result = mysqli_query($dbh, $SQLDescribePlayers);
+  if (!$Result)
+    return false;
+
+  $Row = mysqli_fetch_assoc($Result);
+  if (!$Row)
+    return false;
+
+  if (preg_match('/^(?:var)?char\((\d+)\)$/i', (string)$Row['Type'], $matches))
+    return ((int)$matches[1] >= 255);
+
+  return false;
+}
+
+function widenPlayersPasswordField($dbh) {
+  $SQLUpdateTablePlayers = "ALTER TABLE players MODIFY password VARCHAR(255) NOT NULL;";
+  $Result = mysqli_query($dbh, $SQLUpdateTablePlayers);
+  return $Result;
 }
 
 function createTablePreferences($dbh) {
@@ -267,6 +289,12 @@ function createTables($user,$password,$server,$DBname){
                 echo "Adding lastAccess field..<br>";
 		addLastAccessFieldToPlayersTable($dbh);
 	} else echo "Field lastAccess exists. Nothing done.<br>";
+
+  echo "Checking if players.password supports password hashes..<br>";
+  if(!tablePlayersPasswordSupportsHashes($dbh)) {
+    echo "Expanding password field to VARCHAR(255)..<br>";
+    showMessage(widenPlayersPasswordField($dbh));
+  } else echo "Password field already supports hashes. Nothing done.<br>";
    }
    //$logMsg .= "Probing for table preferences..\n";
    echo "Probing for table preferences..<br>";

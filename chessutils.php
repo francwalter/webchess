@@ -246,6 +246,29 @@
 		return $verbousString;
 	}
 
+	/* Supports both modern password_hash() values and legacy plaintext values. */
+	function webchessPasswordMatches($plainPassword, $storedPassword)
+	{
+		if (!is_string($storedPassword) || $storedPassword === '')
+			return false;
+
+		$info = password_get_info($storedPassword);
+		if (!empty($info['algo']))
+			return password_verify($plainPassword, $storedPassword);
+
+		/* Legacy fallback: plaintext comparison for old records. */
+		return hash_equals((string)$storedPassword, (string)$plainPassword);
+	}
+
+	function webchessPasswordNeedsRehash($storedPassword)
+	{
+		$info = password_get_info((string)$storedPassword);
+		if (empty($info['algo']))
+			return true;
+
+		return password_needs_rehash((string)$storedPassword, PASSWORD_DEFAULT);
+	}
+
 	function webchessMail($msgType, $msgTo, $move, $opponent, $gameID)
 	{
 		global $CFG_MAILADDRESS, $CFG_MAINPAGE;

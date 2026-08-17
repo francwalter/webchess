@@ -29,3 +29,26 @@
 
 	// Set charset to utf8mb4 for proper character handling
 	mysqli_set_charset($dbh, "utf8mb4");
+
+  /* password_hash() needs more room than the legacy CHAR(16) schema provides. */
+  if (isset($CFG_TABLE['players']))
+  {
+    $playersTable = $CFG_TABLE['players'];
+    $tmpColumnInfo = @mysqli_query($dbh, "SHOW COLUMNS FROM `" . mysqli_real_escape_string($dbh, $playersTable) . "` LIKE 'password'");
+    if ($tmpColumnInfo && ($tmpPasswordColumn = mysqli_fetch_assoc($tmpColumnInfo)))
+    {
+      if (preg_match('/^(?:var)?char\((\d+)\)$/i', (string)$tmpPasswordColumn['Type'], $matches))
+      {
+        $tmpPasswordLength = (int)$matches[1];
+        if ($tmpPasswordLength < 255)
+        {
+          $tmpAlterTable = @mysqli_query($dbh, "ALTER TABLE `" . mysqli_real_escape_string($dbh, $playersTable) . "` MODIFY password VARCHAR(255) NOT NULL");
+          if (!$tmpAlterTable)
+            error_log("WebChess: could not widen players.password column for password hashes: " . mysqli_error($dbh));
+          else
+            error_log("WebChess: upgraded players.password column to VARCHAR(255).");
+        }
+      }
+    }
+  }
+

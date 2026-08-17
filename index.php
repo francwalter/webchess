@@ -1,4 +1,6 @@
 ﻿<?php
+    session_start();
+
 /*
     This file is part of WebChess. http://webchess.sourceforge.net
 	Copyright 2010 Jonathan Evraire, Rodrigo Flores
@@ -59,6 +61,7 @@
   }
 
     require_once "lang.php";
+    require_once "csrf.php";
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getGuiLanguage(); ?>">
@@ -149,6 +152,7 @@
                     </div>
 
                     <input name="ToDo" value="Login" type="hidden" />
+                    <?php echo webchessCsrfField(); ?>
 
                     <div class="d-grid gap-2">
                         <button class="btn btn-primary btn-lg" type="submit"><?php echo webchessTranslate("Login");?></button>

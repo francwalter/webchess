@@ -25,8 +25,17 @@
 		require 'chessutils.php';
 
 	require 'lang.php';
+	require 'csrf.php';
 
 	fixOldPHPVersions();
+
+	if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateRequest())
+	{
+		$_SESSION['flash_msg'] = webchessTranslate('Your session form token expired. Please reload the page and try again.');
+		$_SESSION['flash_type'] = 'danger';
+		header('Location: mainmenu.php');
+		exit();
+	}
 
 	/* check session status */
 	require 'sessioncheck.php';
@@ -40,17 +49,37 @@
 	/* check if submitting opponents login information */
 	if (isset($_POST['opponentsID']))
 	{
-		$opponentsID = $_POST['opponentsID'];
+		$opponentsID = (int)$_POST['opponentsID'];
 		$opponentsNick = $_POST['opponentsNick'];
 
 		/* get opponents password from DB */
-		$tmpQuery = "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$opponentsID;
-		$tmpPassword = mysqli_query($dbh, $tmpQuery);
-		$dbPassword = mysqli_fetch_row($tmpPassword)[0];
+		$dbPassword = null;
+		$stmtOpponentPwd = mysqli_prepare($dbh, "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ?");
+		if ($stmtOpponentPwd)
+		{
+			mysqli_stmt_bind_param($stmtOpponentPwd, "i", $opponentsID);
+			mysqli_stmt_execute($stmtOpponentPwd);
+			$tmpPassword = mysqli_stmt_get_result($stmtOpponentPwd);
+			$tmpRow = $tmpPassword ? mysqli_fetch_row($tmpPassword) : null;
+			$dbPassword = $tmpRow ? $tmpRow[0] : null;
+			mysqli_stmt_close($stmtOpponentPwd);
+		}
 
 		/* check to see if supplied password matched that of the DB */
-		if ($dbPassword == $_POST['pwdPassword'])
+		if (webchessPasswordMatches((string)$_POST['pwdPassword'], (string)$dbPassword))
 		{
+			if (webchessPasswordNeedsRehash((string)$dbPassword))
+			{
+				$newOpponentHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
+				$stmtOpponentRehash = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET password = ? WHERE playerID = ?");
+				if ($stmtOpponentRehash)
+				{
+					mysqli_stmt_bind_param($stmtOpponentRehash, "si", $newOpponentHash, $opponentsID);
+					mysqli_stmt_execute($stmtOpponentRehash);
+					mysqli_stmt_close($stmtOpponentRehash);
+				}
+			}
+
 			$_SESSION['isSharedPC'] = true;
             error_log("opponentspassword.php: Shared PC mode enabled. Loading chess.php for gameID: " . (isset($_POST['gameID']) ? $_POST['gameID'] : 'NOT SET'));
             if (isset($_POST['gameID'])) {
@@ -135,9 +164,10 @@ window.onload = function()
 				<div class="form-block">
                                         <div class="inputlabel"><?php echo webchessTranslate("Password");?></div>
 					<div><input id="pwdPassword" name="pwdPassword" type="password" class="inputbox" size="15" /></div>
-					<input name="opponentsNick" type="hidden" value="<?php echo(isset($opponentsNick) ? $opponentsNick : ''); ?>" />
-					<input name="opponentsID" type="hidden" value="<?php echo(isset($opponentsID) ? $opponentsID : ''); ?>" />
-					<input name="gameID" value="<?php echo (isset($_POST['gameID']) ? $_POST['gameID'] : ''); ?>" type="hidden" />
+					<input name="opponentsNick" type="hidden" value="<?php echo htmlspecialchars((string)($opponentsNick ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+					<input name="opponentsID" type="hidden" value="<?php echo (int)($opponentsID ?? 0); ?>" />
+					<input name="gameID" value="<?php echo (int)($_POST['gameID'] ?? 0); ?>" type="hidden" />
+					<?php echo webchessCsrfField(); ?>
 					<div align="left">
 						<input type="submit" name="login" class="button" value="<?php echo webchessTranslate("Login");?>" />
 						<input name="Cancel" class="button" value="<?php echo webchessTranslate("Cancel");?>" type="button" onClick="window.open('mainmenu.php', '_self')" /></div>
@@ -146,7 +176,7 @@ window.onload = function()
 		</div>
 		<div class="login-text">
 			<div class="ctr"><img src="images/webchess.jpg" width="65" height="92" alt="security" /></div>
-                        <p><?php echo webchessTranslate("Enter password for ");?><?php echo (isset($opponentsNick) ? $opponentsNick : 'opponent'); ?></p>
+						<p><?php echo webchessTranslate("Enter password for ");?><?php echo htmlspecialchars((string)($opponentsNick ?? 'opponent'), ENT_QUOTES, 'UTF-8'); ?></p>
     	</div>
 		<div class="clr"></div>
 	</div>

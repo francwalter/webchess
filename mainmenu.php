@@ -31,6 +31,7 @@
 	require 'newgame.php';
 	require 'chessdb.php';
         require 'lang.php';
+  require 'csrf.php';
 
 
 	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
@@ -40,6 +41,19 @@
 	/* player is logged off by default */
 	if (!isset($_SESSION['playerID']))
 		$_SESSION['playerID'] = -1;
+
+  if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateRequest())
+  {
+    if ($_SESSION['playerID'] > 0)
+    {
+      $_SESSION['flash_msg'] = webchessTranslate('Your session form token expired. Please reload the page and try again.');
+      $_SESSION['flash_type'] = 'danger';
+      header('Location: mainmenu.php');
+      exit();
+    }
+
+    die(webchessTranslate('Your session form token expired. Please reload the page and try again.'));
+  }
 
 	/* connect to database */
 	require 'connectdb.php';
@@ -82,17 +96,29 @@
 			if ($_POST['txtNick'] == "")
 				die("ERROR: must supply a valid nick!");
 
-			/* check for existing user with same nick */
-			$tmpQuery = "SELECT playerID FROM " . $CFG_TABLE['players'] . " WHERE nick = '".$_POST['txtNick']."'";
-			$existingUsers = mysqli_query($dbh, $tmpQuery);
-			if (mysqli_num_rows($existingUsers) > 0)
+      /* check for existing user with same nick */
+      $existingUsers = null;
+      $stmtExisting = mysqli_prepare($dbh, "SELECT playerID FROM " . $CFG_TABLE['players'] . " WHERE nick = ?");
+      if ($stmtExisting)
+      {
+        mysqli_stmt_bind_param($stmtExisting, "s", $_POST['txtNick']);
+        mysqli_stmt_execute($stmtExisting);
+        $existingUsers = mysqli_stmt_get_result($stmtExisting);
+        mysqli_stmt_close($stmtExisting);
+      }
+      if ($existingUsers && mysqli_num_rows($existingUsers) > 0)
 			{
 				require 'newuser.php';
 				die();
 			}
 
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['players'] . " (password, firstName, lastName, nick) VALUES ('".$_POST['pwdPassword']."', '".$_POST['txtFirstName']."', '".$_POST['txtLastName']."', '".$_POST['txtNick']."')";
-			mysqli_query($dbh, $tmpQuery);
+      $newPasswordHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
+      $stmtNewUser = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['players'] . " (password, firstName, lastName, nick) VALUES (?, ?, ?, ?)");
+      if (!$stmtNewUser)
+        die("ERROR: could not create user.");
+      mysqli_stmt_bind_param($stmtNewUser, "ssss", $newPasswordHash, $_POST['txtFirstName'], $_POST['txtLastName'], $_POST['txtNick']);
+      mysqli_stmt_execute($stmtNewUser);
+      mysqli_stmt_close($stmtNewUser);
 
 			/* get ID of new player */
 			$_SESSION['playerID'] = mysqli_insert_id($dbh);
@@ -139,20 +165,43 @@
 			/* no break, login user */
 
 		case 'Login':
-			/* check for a player with supplied nick and password */
-			$tmpQuery = "SELECT * FROM " . $CFG_TABLE['players'] . " WHERE nick = '".$_POST['txtNick']."' AND password = '".$_POST['pwdPassword']."'";
-			$tmpPlayers = mysqli_query($dbh, $tmpQuery);
-			$tmpPlayer = mysqli_fetch_assoc($tmpPlayers);
+      /* check for a player with supplied nick and verify password */
+      $tmpPlayer = null;
+      $stmtLogin = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['players'] . " WHERE nick = ? LIMIT 1");
+      if ($stmtLogin)
+      {
+        mysqli_stmt_bind_param($stmtLogin, "s", $_POST['txtNick']);
+        mysqli_stmt_execute($stmtLogin);
+        $tmpPlayers = mysqli_stmt_get_result($stmtLogin);
+        $tmpPlayer = $tmpPlayers ? mysqli_fetch_assoc($tmpPlayers) : null;
+        mysqli_stmt_close($stmtLogin);
+      }
 
 			/* if such a player exists, log him in... otherwise die */
-			if ($tmpPlayer)
+      if ($tmpPlayer && webchessPasswordMatches((string)$_POST['pwdPassword'], (string)$tmpPlayer['password']))
 			{
+        session_regenerate_id(true);
+        webchessCsrfRegenerateToken();
 				$_SESSION['playerID'] = $tmpPlayer['playerID'];
 				$_SESSION['lastInputTime'] = time();
 				$_SESSION['playerName'] = $tmpPlayer['firstName']." ".$tmpPlayer['lastName'];
 				$_SESSION['firstName'] = $tmpPlayer['firstName'];
 				$_SESSION['lastName'] = $tmpPlayer['lastName'];
 				$_SESSION['nick'] = $tmpPlayer['nick'];
+
+        /* Seamless migration of legacy/plaintext passwords. */
+        if (webchessPasswordNeedsRehash((string)$tmpPlayer['password']))
+        {
+          $newLoginHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
+          $stmtRehash = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET password = ? WHERE playerID = ?");
+          if ($stmtRehash)
+          {
+            $playerIdInt = (int)$tmpPlayer['playerID'];
+            mysqli_stmt_bind_param($stmtRehash, "si", $newLoginHash, $playerIdInt);
+            mysqli_stmt_execute($stmtRehash);
+            mysqli_stmt_close($stmtRehash);
+          }
+        }
 			}
 			else {
 				echo "<script>alert('Invalid Nick or Password. Please try again'); window.location.replace('index.php');</script>\n";
@@ -352,11 +401,20 @@
 			break;
 
 		case 'UpdatePersonalInfo':
-			$tmpQuery = "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$_SESSION['playerID'];
-			$tmpPassword = mysqli_query($dbh, $tmpQuery);
-			$dbPassword = mysqli_fetch_row($tmpPassword)[0];
+      $dbPassword = null;
+      $stmtCurrentPwd = mysqli_prepare($dbh, "SELECT password FROM " . $CFG_TABLE['players'] . " WHERE playerID = ?");
+      if ($stmtCurrentPwd)
+      {
+        $sessionPlayerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtCurrentPwd, "i", $sessionPlayerId);
+        mysqli_stmt_execute($stmtCurrentPwd);
+        $tmpPassword = mysqli_stmt_get_result($stmtCurrentPwd);
+        $tmpPasswordRow = $tmpPassword ? mysqli_fetch_row($tmpPassword) : null;
+        $dbPassword = $tmpPasswordRow ? $tmpPasswordRow[0] : null;
+        mysqli_stmt_close($stmtCurrentPwd);
+      }
 
-			if ($dbPassword != $_POST['pwdOldPassword'])
+      if (!webchessPasswordMatches((string)$_POST['pwdOldPassword'], (string)$dbPassword))
 				$errMsg = "Sorry, incorrect old password!";
 			else
 			{
@@ -364,10 +422,18 @@
 
 				if ($CFG_NICKCHANGEALLOWED)
 				{
-					$tmpQuery = "SELECT playerID FROM " . $CFG_TABLE['players'] . " WHERE nick = '".$_POST['txtNick']."' AND playerID <> ".$_SESSION['playerID'];
-					$existingUsers = mysqli_query($dbh, $tmpQuery);
+          $existingUsers = null;
+          $stmtNickExists = mysqli_prepare($dbh, "SELECT playerID FROM " . $CFG_TABLE['players'] . " WHERE nick = ? AND playerID <> ?");
+          if ($stmtNickExists)
+          {
+            $sessionPlayerId = (int)$_SESSION['playerID'];
+            mysqli_stmt_bind_param($stmtNickExists, "si", $_POST['txtNick'], $sessionPlayerId);
+            mysqli_stmt_execute($stmtNickExists);
+            $existingUsers = mysqli_stmt_get_result($stmtNickExists);
+            mysqli_stmt_close($stmtNickExists);
+          }
 
-					if (mysqli_num_rows($existingUsers) > 0)
+          if ($existingUsers && mysqli_num_rows($existingUsers) > 0)
 					{
 						$errMsg = "Sorry, that nick is already in use.";
 						$tmpDoUpdate = false;
@@ -376,14 +442,29 @@
 
 				if ($tmpDoUpdate)
 				{
-					/* update DB */
-					$tmpQuery = "UPDATE " . $CFG_TABLE['players'] . " SET firstName = '".$_POST['txtFirstName']."', lastName = '".$_POST['txtLastName']."', password = '".$_POST['pwdPassword']."'";
-
-					if ($CFG_NICKCHANGEALLOWED && $_POST['txtNick'] != "")
-						$tmpQuery .= ", nick = '".$_POST['txtNick']."'";
-
-					$tmpQuery .= " WHERE playerID = ".$_SESSION['playerID'];
-					mysqli_query($dbh, $tmpQuery);
+          /* update DB */
+          $newProfileHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
+          $sessionPlayerId = (int)$_SESSION['playerID'];
+          if ($CFG_NICKCHANGEALLOWED && $_POST['txtNick'] != "")
+          {
+            $stmtUpdateProfile = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET firstName = ?, lastName = ?, password = ?, nick = ? WHERE playerID = ?");
+            if ($stmtUpdateProfile)
+            {
+              mysqli_stmt_bind_param($stmtUpdateProfile, "ssssi", $_POST['txtFirstName'], $_POST['txtLastName'], $newProfileHash, $_POST['txtNick'], $sessionPlayerId);
+              mysqli_stmt_execute($stmtUpdateProfile);
+              mysqli_stmt_close($stmtUpdateProfile);
+            }
+          }
+          else
+          {
+            $stmtUpdateProfile = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET firstName = ?, lastName = ?, password = ? WHERE playerID = ?");
+            if ($stmtUpdateProfile)
+            {
+              mysqli_stmt_bind_param($stmtUpdateProfile, "sssi", $_POST['txtFirstName'], $_POST['txtLastName'], $newProfileHash, $sessionPlayerId);
+              mysqli_stmt_execute($stmtUpdateProfile);
+              mysqli_stmt_close($stmtUpdateProfile);
+            }
+          }
 
 					/* update current session */
 					$_SESSION['playerName'] = $_POST['txtFirstName']." ".$_POST['txtLastName'];
@@ -796,6 +877,7 @@ endif;
 
 <form name="logOutForm" action="mainmenu.php" method="post">
     <input type="hidden" name="ToDo" value="Logout" />
+    <?php echo webchessCsrfField(); ?>
 </form>
 
 <div class="container">
@@ -840,9 +922,9 @@ endif;
                                                 $isMyTurn = (($numMoves % 2 == 0) == $isWhite);
                                         ?>
                                             <tr>
-                                                <td><a href="javascript:loadGame(<?php echo $tmpGame['gameID']; ?>)" class="btn btn-sm btn-outline-primary">#<?php echo $tmpGame['gameID']; ?></a></td>
-                                                <td><?php echo $whiteNick; ?></td>
-                                                <td><?php echo $blackNick; ?></td>
+                                                                          <td><a href="javascript:loadGame(<?php echo (int)$tmpGame['gameID']; ?>)" class="btn btn-sm btn-outline-primary">#<?php echo (int)$tmpGame['gameID']; ?></a></td>
+                                                                          <td><?php echo htmlspecialchars((string)$whiteNick, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                          <td><?php echo htmlspecialchars((string)$blackNick, ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td><?php echo floor($numMoves / 2); ?></td>
                                                 <td><span class="badge <?php echo $isMyTurn ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $isMyTurn ? webchessTranslate("Your move") : webchessTranslate("Opponent"); ?></span></td>
                                                 <td><small><?php echo substr($tmpGame['lastMove'], 0, -3); ?></small></td>
@@ -864,6 +946,7 @@ endif;
                             </div>
                             <input type="hidden" name="gameID" value="" />
                             <input type="hidden" name="sharePC" value="no" />
+                            <?php echo webchessCsrfField(); ?>
                         </form>
                         <div class="mt-3 alert alert-warning small">
                             <strong><?php echo webchessTranslate("WARNING!");?></strong> <?php echo webchessTranslate("Games will expire WITHOUT NOTICE if a move isn't made after") . " " . ($CFG_EXPIREGAME) . " " . webchessTranslate("days!");?>
@@ -893,14 +976,14 @@ endif;
                                                 $tmpFrom = ($tmpGame['whitePlayer'] == $_SESSION['playerID']) ? 'white' : 'black';
                                         ?>
                                             <tr>
-                                                <td><?php echo $tmpGame['gameID']; ?></td>
-                                                <td><?php echo mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0]; ?></td>
-                                                <td><?php echo mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0]; ?></td>
+                                                                          <td><?php echo (int)$tmpGame['gameID']; ?></td>
+                                                                          <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                          <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td><small><?php echo substr($tmpGame['dateCreated'], 0, -3); ?></small></td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
-                                                        <button class="btn btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">âœ“ <?php echo webchessTranslate("Accept"); ?></button>
-                                                        <button class="btn btn-outline-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)">âœ• <?php echo webchessTranslate("Decline"); ?></button>
+                                                                                        <button class="btn btn-success" type="button" onclick="sendResponse('accepted', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)"><?php echo webchessTranslate("Accept"); ?></button>
+                                                                                        <button class="btn btn-outline-danger" type="button" onclick="sendResponse('declined', '<?php echo $tmpFrom; ?>', <?php echo $tmpGame['gameID']; ?>)"><?php echo webchessTranslate("Decline"); ?></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -909,6 +992,7 @@ endif;
                                 </table>
                             </div>
                             <input type="hidden" name="response" value="" /><input type="hidden" name="messageFrom" value="" /><input type="hidden" name="gameID" value="" /><input type="hidden" name="ToDo" value="ResponseToInvite" />
+                            <?php echo webchessCsrfField(); ?>
                         </form>
                     </div>
                 </div>
@@ -922,16 +1006,16 @@ endif;
                         <form name="PersonalInfo" action="mainmenu.php" method="post" class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label"><?php echo webchessTranslate("First Name"); ?></label>
-                                <input name="txtFirstName" type="text" class="form-control" value="<?php echo($_SESSION['firstName']); ?>" />
+                                          <input name="txtFirstName" type="text" class="form-control" value="<?php echo htmlspecialchars((string)($_SESSION['firstName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><?php echo webchessTranslate("Last Name"); ?></label>
-                                <input name="txtLastName" type="text" class="form-control" value="<?php echo($_SESSION['lastName']); ?>" />
+                                          <input name="txtLastName" type="text" class="form-control" value="<?php echo htmlspecialchars((string)($_SESSION['lastName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                             </div>
                             <?php if ($CFG_NICKCHANGEALLOWED): ?>
                             <div class="col-12">
                                 <label class="form-label">Nick</label>
-                                <input name="txtNick" type="text" class="form-control" value="<?php echo($_SESSION['nick']); ?>" />
+                                          <input name="txtNick" type="text" class="form-control" value="<?php echo htmlspecialchars((string)($_SESSION['nick'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                             </div>
                             <?php endif; ?>
                             <div class="col-md-4">
@@ -949,6 +1033,7 @@ endif;
                             <div class="col-12">
                                 <button type="button" class="btn btn-primary btn-lg" onclick="validatePersonalInfo()"><i class="bi bi-check-circle"></i> <?php echo webchessTranslate("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePersonalInfo" />
+                                <?php echo webchessCsrfField(); ?>
                             </div>
                         </form>
                     </div>
@@ -997,9 +1082,9 @@ endif;
                                     <input type="email" class="form-control" name="txtEmailNotification"
                                            value="<?php echo htmlspecialchars($_SESSION['pref_emailnotification'] ?? ''); ?>"
                                            placeholder="<?php echo webchessTranslate("Enter email address for move notifications"); ?>" />
-                                    <button id="btnTestEmail" type="button" class="btn btn-outline-secondary" onclick="testEmail()" title="<?php echo webchessTranslate("Send a test email to the address above"); ?>" disabled>
-                                        âœ‰ <?php echo webchessTranslate("Test");?>
-                                    </button>
+                                                  <button id="btnTestEmail" type="button" class="btn btn-outline-secondary" onclick="testEmail()" title="<?php echo webchessTranslate("Send a test email to the address above"); ?>" disabled>
+                                                    <?php echo webchessTranslate("Test");?>
+                                                  </button>
                                 </div>
                                 <div class="form-text"><?php echo webchessTranslate("Leave empty to disable email notifications.");?></div>
                             </div>
@@ -1007,6 +1092,7 @@ endif;
                             <div class="col-12">
                                 <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-sliders"></i> <?php echo webchessTranslate("Update");?></button>
                                 <input type="hidden" name="ToDo" value="UpdatePrefs" />
+                                <?php echo webchessCsrfField(); ?>
                             </div>
                         </form>
                     </div>
@@ -1026,7 +1112,7 @@ endif;
                                     $tmpQuery="SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$_SESSION['playerID'];
                                     $tmpPlayers = mysqli_query($dbh, $tmpQuery);
                                     while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)) {
-                                        echo ('<option value="'.$tmpPlayer['playerID'].'"> '.$tmpPlayer['nick']."</option>\n");
+                                                        echo ('<option value="'.(int)$tmpPlayer['playerID'].'"> '.htmlspecialchars((string)$tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
                                     }
                                     ?>
                                 </select>
@@ -1049,8 +1135,8 @@ endif;
                                     <?php else:
                                         while($tmpGame = mysqli_fetch_assoc($tmpGames)): ?>
                                         <tr>
-                                            <td><a href="javascript:viewMessage(<?php echo $tmpGame['commID']; ?>)"><?php echo ($tmpGame['fromID']!=0?$tmpGame['nick']:"Webchess"); ?></a></td>
-                                            <td><?php echo (strlen($tmpGame['title'])>40? substr($tmpGame['title'],0,37)."..." : $tmpGame['title']); ?></td>
+                                                                  <td><a href="javascript:viewMessage(<?php echo (int)$tmpGame['commID']; ?>)"><?php echo htmlspecialchars((string)($tmpGame['fromID']!=0?$tmpGame['nick']:"Webchess"), ENT_QUOTES, 'UTF-8'); ?></a></td>
+                                                                  <td><?php echo htmlspecialchars((string)(strlen($tmpGame['title'])>40? substr($tmpGame['title'],0,37)."..." : $tmpGame['title']), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><small><?php echo $tmpGame['postDate']; ?></small></td>
                                         </tr>
                                     <?php endwhile; endif; ?>
@@ -1072,7 +1158,7 @@ endif;
                                     <?php
                                     $tmpPlayers = mysqli_query($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$_SESSION['playerID']);
                                     while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)) {
-                                        echo ('<option value="'.$tmpPlayer['playerID'].'"> '.$tmpPlayer['nick']."</option>\n");
+                                                        echo ('<option value="'.(int)$tmpPlayer['playerID'].'"> '.htmlspecialchars((string)$tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
                                     }
                                     ?>
                                 </select>
@@ -1088,6 +1174,7 @@ endif;
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-suit-heart"></i> <?php echo webchessTranslate("Invite");?></button>
                                 <input type="hidden" name="ToDo" value="InvitePlayer" />
+                                <?php echo webchessCsrfField(); ?>
                             </div>
                         </form>
                     </div>
@@ -1113,11 +1200,11 @@ endif;
                                             $tmpNumMoves = mysqli_fetch_row(mysqli_query($dbh, "SELECT COUNT(gameID) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$tmpGame['gameID']))[0];
                                     ?>
                                         <tr>
-                                            <td><a href="javascript:loadGame(<?php echo $tmpGame['gameID']; ?>)" class="btn btn-xs btn-outline-success">#<?php echo $tmpGame['gameID']; ?></a></td>
-                                            <td><?php echo mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0]; ?></td>
-                                            <td><?php echo mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0]; ?></td>
+                                                                  <td><a href="javascript:loadGame(<?php echo (int)$tmpGame['gameID']; ?>)" class="btn btn-xs btn-outline-success">#<?php echo (int)$tmpGame['gameID']; ?></a></td>
+                                                                  <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                  <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo floor($tmpNumMoves / 2); ?></td>
-                                            <td><small><?php echo $tmpGame['gameMessage']; ?></small></td>
+                                                                  <td><small><?php echo htmlspecialchars((string)$tmpGame['gameMessage'], ENT_QUOTES, 'UTF-8'); ?></small></td>
                                             <td><small><?php echo substr($tmpGame['lastMove'], 0, -3); ?></small></td>
                                         </tr>
                                     <?php endwhile; endif; ?>
@@ -1136,9 +1223,9 @@ endif;
 </div>
 
 <!-- Forms for actions -->
-<form name="messageViewForm" method="post" action="viewmessage.php"><input type="hidden" name="messageID" value="" /></form>
-<form name="endedGames" action="chess.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="sharePC" value="no" /></form>
-<form name="withdrawRequestForm" action="mainmenu.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="ToDo" value="WithdrawRequest" /></form>
+<form name="messageViewForm" method="post" action="viewmessage.php"><input type="hidden" name="messageID" value="" /><?php echo webchessCsrfField(); ?></form>
+<form name="endedGames" action="chess.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="sharePC" value="no" /><?php echo webchessCsrfField(); ?></form>
+<form name="withdrawRequestForm" action="mainmenu.php" method="post"><input type="hidden" name="gameID" value="" /><input type="hidden" name="ToDo" value="WithdrawRequest" /><?php echo webchessCsrfField(); ?></form>
 
 <!-- Bootstrap JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
