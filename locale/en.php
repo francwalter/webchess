@@ -144,6 +144,8 @@ return array(
         => 'Your opponent would like to undo their latest move. Will you allow it?',
     'Your opponent is proposing a draw. Do you agree?'
         => 'Your opponent is proposing a draw. Do you agree?',
+    'notYourTurn'                    =>  "Sorry, it's not your turn.",
+    'invalidMove'                    =>  "Invalid move:",
 
     /* ── opponentspassword.php ──────────────────────────────────────── */
     'Enter password for '            => 'Enter password for ',

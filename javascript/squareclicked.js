@@ -37,7 +37,7 @@
 			is1stClick = false;
 		}
 		else
-			alert("I'm sorry, but you play the " + curColor +" pieces.");
+			alert(notYourTurn);
 
 	}
 
@@ -137,7 +137,7 @@
 				document.gamedata.toRow.value = "";
 				document.gamedata.toCol.value = "";
 
-				alert("Invalid move:\n" + errMsg);
+				alert(invalidMove + "\n" + errMsg);
 			}
 		}
 	}

@@ -44,6 +44,8 @@ return array(
     'Id'                             => 'Nr.',
     'White'                          => 'Weiß',
     'Black'                          => 'Schwarz',
+    'white'                          => 'Weiß',
+    'black'                          => 'Schwarz',
     'Mvs'                            => 'Züge',
     'Current Turn'                   => 'Am Zug',
     'Last Move'                      => 'Letzter Zug',
@@ -149,6 +151,8 @@ return array(
         => 'Dein Gegner möchte seinen letzten Zug zurücknehmen. Erlaubst du es?',
     'Your opponent is proposing a draw. Do you agree?'
         => 'Dein Gegner bietet Remis an. Bist du einverstanden?',
+    'notYourTurn'   =>  "Du bist nicht am Zug.",
+    'invalidMove'                    =>  "Ungültiger Zug:",
 
     /* ── opponentspassword.php ──────────────────────────────────────── */
     'Enter password for '            => 'Passwort eingeben für ',

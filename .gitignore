@@ -1,4 +1,6 @@
 /_webchess_backup.zip
 .idea
 /php_errors.log
+*.bak
+*.old
 /config.php

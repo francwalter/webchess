@@ -19,11 +19,18 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+	/* debug flag */
+	define ("DEBUG", 0);
+
 	session_start();
 
-    error_log("--- chess.php Debug Start ---");
-    error_log("SESSION playerID: " . (isset($_SESSION['playerID']) ? $_SESSION['playerID'] : 'NOT SET'));
-    error_log("SESSION gameID: " . (isset($_SESSION['gameID']) ? $_SESSION['gameID'] : 'NOT SET'));
+    /* only on debug */
+    if (DEBUG)
+    {
+        error_log("--- chess.php Debug Start ---");
+        error_log("SESSION playerID: " . (isset($_SESSION['playerID']) ? $_SESSION['playerID'] : 'NOT SET'));
+        error_log("SESSION gameID: " . (isset($_SESSION['gameID']) ? $_SESSION['gameID'] : 'NOT SET'));
+    }
 
 	/* load settings */
 	if (!isset($_CONFIG))
@@ -60,22 +67,19 @@
 	if (isset($_POST['gameID']))
 		$_SESSION['gameID'] = $_POST['gameID'];
 
-	/* debug flag */
-	define ("DEBUG", 0);
-
 	/* connect to database */
 	require 'connectdb.php';
 
 	/* get White's nick */
 	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = whitePlayer AND gameID = " . (int)$_SESSION['gameID']);
 	$whiteNick = mysqli_fetch_row($tmpNick)[0];
-    error_log("White Nick: " . $whiteNick);
+    if (DEBUG) error_log("White Nick: " . $whiteNick);
 
 
 	/* get Black's nick */
 	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = blackPlayer AND gameID = " . (int)$_SESSION['gameID']);
 	$blackNick = mysqli_fetch_row($tmpNick)[0];
-    error_log("Black Nick: " . $blackNick);
+    if (DEBUG) error_log("Black Nick: " . $blackNick);
 
 
 	/* load game */
@@ -90,11 +94,13 @@
     // Declare these variables as global to make them accessible in the main script scope
     global $isPlayersTurn, $currentPlayer, $opponentColor, $playersColor, $numMoves;
 
-    error_log("numMoves after loadHistory(): " . $numMoves);
-    error_log("playersColor after loadGame(): " . $playersColor);
-    error_log("isPlayersTurn after calculation: " . ($isPlayersTurn ? 'true' : 'false'));
-    error_log("currentPlayer after processMessages(): " . $currentPlayer);
-    error_log("opponentColor after processMessages(): " . $opponentColor);
+    if (DEBUG) {
+        error_log("numMoves after loadHistory(): " . $numMoves);
+        error_log("playersColor after loadGame(): " . $playersColor);
+        error_log("isPlayersTurn after calculation: " . ($isPlayersTurn ? 'true' : 'false'));
+        error_log("currentPlayer after processMessages(): " . $currentPlayer);
+        error_log("opponentColor after processMessages(): " . $opponentColor);
+    }
 
 
 	if ($isUndoing)
@@ -146,7 +152,7 @@
 	}
 
 	mysqli_close($dbh);
-    error_log("--- chess.php Debug End ---");
+    if (DEBUG) error_log("--- chess.php Debug End ---");
 
 	/* check whether the current player's king has already moved (castling no longer possible) */
   /* also check if both rooks have moved - castling is impossible then too */
@@ -240,6 +246,8 @@
         echo 'var isKingInCheck = ' . json_encode((string)$isInCheck) . ";\n";
         echo 'var isGameOver = ' . json_encode((string)$isGameOver) . ";\n";
         echo 'var historyLayout = ' . json_encode($_SESSION['pref_historylayout']) . ";\n";
+        echo 'var notYourTurn = ' . json_encode(webchessTranslate('notYourTurn')) . ";\n";
+        echo 'var invalidMove = ' . json_encode(webchessTranslate('invalidMove')) . ";\n";
 
         writeStatus();
         writeHistory();
