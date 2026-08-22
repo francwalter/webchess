@@ -248,6 +248,13 @@
         echo 'var historyLayout = ' . json_encode($_SESSION['pref_historylayout']) . ";\n";
         echo 'var notYourTurn = ' . json_encode(webchessTranslate('notYourTurn')) . ";\n";
         echo 'var invalidMove = ' . json_encode(webchessTranslate('invalidMove')) . ";\n";
+        echo 'var undoWarningText = ' . json_encode(webchessTranslate('At the start of the game, no move can be undone yet.')) . ";\n";
+        echo 'var confirmUndoText = ' . json_encode(webchessTranslate('Are you sure you want to request an undo?')) . ";\n";
+        echo 'var confirmDrawText = ' . json_encode(webchessTranslate('Are you sure you want to offer a draw?')) . ";\n";
+        echo 'var confirmResignText = ' . json_encode(webchessTranslate('Are you sure you want to resign?')) . ";\n";
+        echo 'var confirmTitleText = ' . json_encode(webchessTranslate('Please confirm')) . ";\n";
+        echo 'var confirmYesText = ' . json_encode(webchessTranslate('Yes')) . ";\n";
+        echo 'var confirmNoText = ' . json_encode(webchessTranslate('Cancel')) . ";\n";
 
         writeStatus();
         writeHistory();
@@ -302,8 +309,9 @@
                             <span id="whosmove" class="badge bg-primary"></span>
                         </div>
 
+                        <div id="undoWarning" class="alert alert-danger d-none text-center mb-3"></div>
                         <div id="gamebuttons" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
-                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="<?php echo webchessTranslate('Request Undo'); ?>" disabled="disabled" onclick="undo()" />
+                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="<?php echo webchessTranslate('Request Undo'); ?>" <?php if ($numMoves < 0) echo 'disabled="disabled"'; ?> onclick="undo()" />
                             <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="<?php echo webchessTranslate('Request Draw'); ?>" disabled="disabled" onclick="draw()" />
                             <input type="button" id="btnResign" class="btn btn-danger btn-sm" value="<?php echo webchessTranslate('Resign'); ?>" disabled="disabled" onclick="resigngame()" />
                         </div>
@@ -373,6 +381,24 @@
     <?php echo webchessCsrfField(); ?>
 </form>
 
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="confirmModalNoBtn" class="btn btn-secondary" data-bs-dismiss="modal" onclick="confirmModalNo()">Cancel</button>
+                <button type="button" id="confirmModalYesBtn" class="btn btn-primary" onclick="confirmModalYes()">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <noscript>
     <div class="container mt-3">
         <div class="alert alert-danger text-center">
@@ -400,7 +426,8 @@
             if (btnLogout) btnLogout.disabled = false;
 
             // Enable game buttons if not player's turn
-            if (btnUndo) btnUndo.disabled = false;
+            // Note: the "Request Undo" button is only meaningful once a move has been made
+            if (btnUndo && typeof numMoves !== 'undefined' && numMoves >= 0) btnUndo.disabled = false;
             if (btnDraw) btnDraw.disabled = false;
             if (btnResign) btnResign.disabled = false;
         }, 100);

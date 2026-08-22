@@ -31,37 +31,123 @@
         if (btnResign) btnResign.disabled = true;
 	}
 
-	function undo()
+		function undo()
 	{
-		disableButtons();
-		document.gamedata.requestUndo.value = "yes";
-		if (DEBUG)
-			alert("gamedata.requestUndo = " + document.gamedata.requestUndo.value);
+		/* An undo is only meaningful once at least one move has been played */
+		if (typeof numMoves === 'undefined' || numMoves < 0)
+		{
+			showRedWarning(
+				(typeof window.undoWarningText !== 'undefined')
+					? window.undoWarningText
+					: "No move can be undone yet."
+			);
+			return;
+		}
 
-		document.gamedata.submit();
+		/* Security confirmation to avoid accidental clicks (Bootstrap modal) */
+		var msg = typeof window.confirmUndoText !== 'undefined' ? window.confirmUndoText : "Are you sure you want to request an undo?";
+		showConfirmModal(msg, function() {
+			disableButtons();
+			document.gamedata.requestUndo.value = "yes";
+			if (DEBUG)
+				alert("gamedata.requestUndo = " + document.gamedata.requestUndo.value);
+
+			document.gamedata.submit();
+		});
 	}
 
-	function draw()
+		function draw()
 	{
-		disableButtons();
-		document.gamedata.requestDraw.value = "yes";
-		if (DEBUG)
-			alert("gamedata.requestDraw = " + document.gamedata.requestDraw.value);
+		/* Security confirmation to avoid accidental clicks (Bootstrap modal) */
+		var msg = typeof window.confirmDrawText !== 'undefined' ? window.confirmDrawText : "Are you sure you want to offer a draw?";
+		showConfirmModal(msg, function() {
+			disableButtons();
+			document.gamedata.requestDraw.value = "yes";
+			if (DEBUG)
+				alert("gamedata.requestDraw = " + document.gamedata.requestDraw.value);
 
-		document.gamedata.submit();
+			document.gamedata.submit();
+		});
 	}
 
-	function resigngame()
+		function resigngame()
 	{
-		disableButtons();
-		document.gamedata.resign.value = "yes";
-		if (DEBUG)
-			alert("gamedata.resign = " + document.gamedata.resign.value);
+		/* Security confirmation to avoid accidental clicks (Bootstrap modal) */
+		var msg = typeof window.confirmResignText !== 'undefined' ? window.confirmResignText : "Are you sure you want to resign?";
+		showConfirmModal(msg, function() {
+			disableButtons();
+			document.gamedata.resign.value = "yes";
+			if (DEBUG)
+				alert("gamedata.resign = " + document.gamedata.resign.value);
 
-		document.gamedata.submit();
+			document.gamedata.submit();
+		});
 	}
 
-	function displayMainmenu()
+		function showRedWarning(message)
+	{
+		var el = document.getElementById('undoWarning');
+		if (el)
+		{
+			el.textContent = message || '';
+			el.classList.remove('d-none');
+			el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			/* Automatically hide after a few seconds */
+			setTimeout(function(){ el.classList.add('d-none'); }, 6000);
+		}
+		else
+		{
+			alert(message);
+		}
+	}
+		function showConfirmModal(message, onConfirm)
+	{
+		window.__pendingConfirm = onConfirm;
+		var textEl = document.getElementById('confirmModalText');
+		if (textEl) textEl.textContent = message || '';
+		var titleEl = document.getElementById('confirmModalLabel');
+		if (titleEl && typeof window.confirmTitleText !== 'undefined')
+			titleEl.textContent = window.confirmTitleText;
+		var yesBtn = document.getElementById('confirmModalYesBtn');
+		if (yesBtn && typeof window.confirmYesText !== 'undefined')
+			yesBtn.textContent = window.confirmYesText;
+		var noBtn = document.getElementById('confirmModalNoBtn');
+		if (noBtn && typeof window.confirmNoText !== 'undefined')
+			noBtn.textContent = window.confirmNoText;
+
+		var el = document.getElementById('confirmModal');
+		if (el && window.bootstrap && bootstrap.Modal)
+		{
+			var modal = bootstrap.Modal.getOrCreateInstance(el);
+			modal.show();
+		}
+		else if (window.__pendingConfirm)
+		{
+			/* Fallback if Bootstrap is unavailable */
+			var cb = window.__pendingConfirm;
+			window.__pendingConfirm = null;
+			cb();
+		}
+	}
+
+	function confirmModalYes()
+	{
+		var cb = window.__pendingConfirm;
+		window.__pendingConfirm = null;
+		var el = document.getElementById('confirmModal');
+		if (el && window.bootstrap && bootstrap.Modal)
+			bootstrap.Modal.getOrCreateInstance(el).hide();
+		if (cb) cb();
+	}
+
+	function confirmModalNo()
+	{
+		window.__pendingConfirm = null;
+		var el = document.getElementById('confirmModal');
+		if (el && window.bootstrap && bootstrap.Modal)
+			bootstrap.Modal.getOrCreateInstance(el).hide();
+	}
+function displayMainmenu()
 	{
         var btnMainMenu = getObject("btnMainMenu");
 		if (btnMainMenu) btnMainMenu.disabled = true;

@@ -168,4 +168,9 @@ return array(
     'Archive'                        => 'Archivieren',
     'Message Error'                  => 'Nachrichtenfehler',
     'An error ocurred!.'             => 'Es ist ein Fehler aufgetreten.',
+    'Please confirm' => 'Bitte bestätigen',
+    'Are you sure you want to request an undo?' => 'Möchtest du wirklich einen Zug zurücknehmen lassen?',
+    'Are you sure you want to offer a draw?' => 'Möchtest du wirklich Remis anbieten?',
+    'Are you sure you want to resign?' => 'Möchtest du wirklich aufgeben?',
+    'At the start of the game, no move can be undone yet.' => 'Am Beginn der Partie kann noch kein Zug zurück genommen werden. Abbruch.',
 );

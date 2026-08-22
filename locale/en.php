@@ -161,4 +161,9 @@ return array(
     'Archive'                        => 'Archive',
     'Message Error'                  => 'Message Error',
     'An error ocurred!.'             => 'An error ocurred!.',
+    'Please confirm' => 'Please confirm',
+    'Are you sure you want to request an undo?' => 'Are you sure you want to request an undo?',
+    'Are you sure you want to offer a draw?' => 'Are you sure you want to offer a draw?',
+    'Are you sure you want to resign?' => 'Are you sure you want to resign?',
+    'At the start of the game, no move can be undone yet.' => 'At the start of the game, no move can be undone yet.',
 );

@@ -418,7 +418,8 @@ function initChessBoard()
 
 	if(isBoardDisabled != '1')
 	{
-		if (getObject("btnUndo")) getObject("btnUndo").disabled = false;
+		// Only enable the Undo button once at least one move has been made
+		if (getObject("btnUndo") && typeof numMoves !== 'undefined' && numMoves >= 0) getObject("btnUndo").disabled = false;
 		if (getObject("btnDraw")) getObject("btnDraw").disabled = false;
 		if (getObject("btnResign")) getObject("btnResign").disabled = false;
 	}

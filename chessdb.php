@@ -354,7 +354,8 @@
 			echo("Processing user generated (ie: form) messages...<br>\n");
 
 		/* queue a request for an undo */
-		if (isset($_POST['requestUndo']) && $_POST['requestUndo'] == "yes")
+		/* NOTE: only meaningful once at least one move has been made */
+		if (isset($_POST['requestUndo']) && $_POST['requestUndo'] == "yes" && $numMoves >= 0)
 		{
 			/* if the two players are on the same system, execute undo immediately */
 			/* NOTE: assumes the two players discussed it live before undoing */
@@ -362,8 +363,14 @@
 				$isUndoing = true;
 			else
 			{
-				$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'undo', 'request', '".$opponentColor."')";
-				mysqli_query($dbh, $tmpQuery);
+				/* Prevent duplicate undo requests: only queue one if none is already pending */
+				$escOpponentColor = mysqli_real_escape_string($dbh, $opponentColor);
+				$tmpCheck = mysqli_query($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'request' AND destination = '".$escOpponentColor."'");
+				$tmpRow = mysqli_fetch_assoc($tmpCheck);
+				if (!$tmpRow || (int)$tmpRow['cnt'] === 0) {
+					$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'undo', 'request', '".$escOpponentColor."')";
+					mysqli_query($dbh, $tmpQuery);
+				}
                                 // ToDo: Mail an undo request notice to other player??
 			}
 
@@ -382,8 +389,14 @@
 			}
 			else
 			{
-				$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'draw', 'request', '".$opponentColor."')";
-				mysqli_query($dbh, $tmpQuery);
+				/* Prevent duplicate draw requests: only queue one if none is already pending */
+				$escOpponentColor = mysqli_real_escape_string($dbh, $opponentColor);
+				$tmpCheck = mysqli_query($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'request' AND destination = '".$escOpponentColor."'");
+				$tmpRow = mysqli_fetch_assoc($tmpCheck);
+				if (!$tmpRow || (int)$tmpRow['cnt'] === 0) {
+					$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'draw', 'request', '".$escOpponentColor."')";
+					mysqli_query($dbh, $tmpQuery);
+				}
 			}
 
 			updateTimestamp();

@@ -258,11 +258,13 @@
 		else
 			echo("var whosMove = '" . addslashes(webchessTranslate("Opponent's Turn")) . "';\n");
 
-		echo("var checkMsg = '");
+		echo("var checkMsg = ");
 		if (!$isCheckMate && isset($history[$numMoves]) && ($history[$numMoves]['isInCheck'] == 1))
-			echo(addslashes(webchessTranslate($curColor . ' is currently in check!')));
-		echo("';\n");
-		echo("var statusMessage = '".$statusMessage."';\n");
+			echo(json_encode(webchessTranslate($curColor . ' is currently in check!')));
+		else
+			echo('""');
+		echo(";\n");
+		echo("var statusMessage = ".json_encode((string)$statusMessage).";\n");
 	}
 
 	function writePromotion()
