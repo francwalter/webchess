@@ -299,8 +299,10 @@
 		}
 
 		$headers = "From: WebChess <".$CFG_MAILADDRESS.">\r\n";
-		/* Some MTAs may require for you to uncomment the following line. Do so if mail notification doesn't work */
-		$headers .= "To: ".$msgTo."\r\n";
+		/* Do NOT add a "To:" header here!  The recipient is already passed
+		 * as the first argument of mail() below, which PHP inserts as the
+		 * single "To:" header.  Adding it here too would create a duplicate
+		 * "To:" field, which GMX/web.de reject (RFC 5322 §3.6). */
 		$headers .= "Reply-To: WebChess <".$CFG_MAILADDRESS.">\r\n";
 
 		$mailSent = mail($msgTo, $mailsubject, $mailmsg, $headers);
