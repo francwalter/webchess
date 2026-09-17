@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // $Id: opponentspassword.php,v 1.6 2010/08/15 09:56:12 sandking Exp $
 
 /*

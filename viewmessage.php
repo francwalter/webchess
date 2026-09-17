@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /*
     This file is part of WebChess. http://webchess.sourceforge.net
 	Copyright 2010 Jonathan Evraire, Rodrigo Flores
