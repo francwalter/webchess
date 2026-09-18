@@ -28,15 +28,27 @@
 //but coding the installer has yeld to the conclusion that it is easier to put it
 //right here.
 function createUser($new_user,$new_password,$user,$password,$server,$DBname){
+   if (!webchessIsSafeSqlIdentifier($DBname) || !webchessIsSafeSqlIdentifier($new_user))
+      return false;
+
    $dbh=mysqli_connect ($server, $user, $password)
            or die ('WebChess cannot connect to the database.
               Please check the database settings you provided.<br>');
    mysqli_select_db ($dbh, $DBname);
 
-   $query="GRANT SELECT, INSERT, UPDATE, DELETE ON ".$DBname.".* TO ".$new_user." IDENTIFIED BY '".$new_password."';";
+	$escapedPassword = mysqli_real_escape_string($dbh, (string)$new_password);
+	$query="GRANT SELECT, INSERT, UPDATE, DELETE ON `".$DBname."`.* TO '".$new_user."'@'%' IDENTIFIED BY '".$escapedPassword."'";
    $result= mysqli_query($dbh, $query);
    mysqli_close($dbh);
    return $result;
+}
+
+function webchessIsSafeSqlIdentifier($value) {
+   return (is_string($value) && preg_match('/^[A-Za-z0-9_]+$/', $value) === 1);
+}
+
+function webchessPhpStringLiteral($value) {
+   return var_export((string)$value, true);
 }
 
 /* debug flag */
@@ -84,15 +96,22 @@ if (isset($_POST['reuse']) && $_POST['reuse']=='true')
    }
 }
 
+$server = isset($_POST['server']) ? (string)$_POST['server'] : '';
+$dbName = isset($_POST['DBname']) ? (string)$_POST['DBname'] : '';
+if (!webchessIsSafeSqlIdentifier($dbName) || !webchessIsSafeSqlIdentifier((string)$new_user))
+{
+   echo "/* Invalid database or username format supplied to installer. */\n";
+}
+
 //Here we start the second part. We start to generate config.php.
 echo "<?php\n";
 echo "\$_CONFIG=true;\n\n";
 
 echo "/* database settings */\n";
-echo "\$CFG_SERVER = '".$_POST['server']."';\n";
-echo "\$CFG_USER = '".$new_user."';\n";
-echo "\$CFG_PASSWORD = '".$new_pass."';\n";
-echo "\$CFG_DATABASE = '".$_POST['DBname']."';\n";
+echo "\$CFG_SERVER = " . webchessPhpStringLiteral($server) . ";\n";
+echo "\$CFG_USER = " . webchessPhpStringLiteral($new_user) . ";\n";
+echo "\$CFG_PASSWORD = " . webchessPhpStringLiteral($new_pass) . ";\n";
+echo "\$CFG_DATABASE = " . webchessPhpStringLiteral($dbName) . ";\n";
 echo "\n/* server settings */\n";
 
 echo "\$CFG_SESSIONTIMEOUT = ".(int)$_POST['timeout'].";\n";
@@ -105,9 +124,9 @@ if (isset($_POST['mail_not']) && $_POST['mail_not']=='1')
    echo "TRUE;\n";
 else echo "FALSE;\n";
 
-echo "\$CFG_MAILADRESS = '".$_POST['mail_adr']."';\n";
+echo "\$CFG_MAILADRESS = " . webchessPhpStringLiteral(isset($_POST['mail_adr']) ? $_POST['mail_adr'] : '') . ";\n";
 
-echo "\$CFG_MAINPAGE = '".$_POST['url']."';\n";
+echo "\$CFG_MAINPAGE = " . webchessPhpStringLiteral(isset($_POST['url']) ? $_POST['url'] : '') . ";\n";
 echo "\$CFG_MAXUSERS = ".(int)$_POST['maxUsers'].";\n";
 echo "\$CFG_MAXACTIVEGAMES = ".(int)$_POST['maxGames'].";\n";
 echo "\$CFG_NICKCHANGEALLOWED = ";
@@ -133,5 +152,6 @@ $CFG_TABLE['players'] = "players";
 $CFG_TABLE['preferences'] = "preferences";
 
 <?php
-echo "\$CFG_IMAGE_EXT = '".$_POST['imageExtension']."';\n";
+$imageExt = (isset($_POST['imageExtension']) && in_array($_POST['imageExtension'], array('gif', 'png'), true)) ? $_POST['imageExtension'] : 'png';
+echo "\$CFG_IMAGE_EXT = " . webchessPhpStringLiteral($imageExt) . ";\n";
 echo "?>";

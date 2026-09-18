@@ -28,7 +28,17 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
-		mysqli_query($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET lastMove = NOW() WHERE gameID = ".(int)$_SESSION['gameID']);
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtTimestamp = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET lastMove = NOW() WHERE gameID = ?");
+		if ($stmtTimestamp)
+		{
+			mysqli_stmt_bind_param($stmtTimestamp, "i", $gameID);
+			mysqli_stmt_execute($stmtTimestamp);
+			mysqli_stmt_close($stmtTimestamp);
+		}
 	}
 
 	function loadHistory()
@@ -40,7 +50,19 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
-		$allMoves = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".(int)$_SESSION['gameID']." ORDER BY timeOfMove");
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
+		$allMoves = false;
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtHistory = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE gameID = ? ORDER BY timeOfMove");
+		if ($stmtHistory)
+		{
+			mysqli_stmt_bind_param($stmtHistory, "i", $gameID);
+			mysqli_stmt_execute($stmtHistory);
+			$allMoves = mysqli_stmt_get_result($stmtHistory);
+			mysqli_stmt_close($stmtHistory);
+		}
 
 		$numMoves = -1;
 		while ($thisMove = mysqli_fetch_assoc($allMoves))
@@ -59,6 +81,9 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
 		if ($isInCheck)
 		{
 			$tmpIsInCheck = 1;
@@ -69,8 +94,16 @@
 
 		$history[$numMoves]['promotedTo'] = getPieceName($_POST['promotion']);
 
-		$tmpQuery = "UPDATE " . $CFG_TABLE['history'] . " SET promotedTo = '".mysqli_real_escape_string($dbh, getPieceName($_POST['promotion']))."', isInCheck = ".$tmpIsInCheck." WHERE gameID = ".(int)$_SESSION['gameID']." AND timeOfMove = '".mysqli_real_escape_string($dbh, $history[$numMoves]['timeOfMove'])."'";
-		mysqli_query($dbh, $tmpQuery);
+		$promotedTo = getPieceName($_POST['promotion']);
+		$timeOfMove = (string)$history[$numMoves]['timeOfMove'];
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtPromotion = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['history'] . " SET promotedTo = ?, isInCheck = ? WHERE gameID = ? AND timeOfMove = ?");
+		if ($stmtPromotion)
+		{
+			mysqli_stmt_bind_param($stmtPromotion, "siis", $promotedTo, $tmpIsInCheck, $gameID, $timeOfMove);
+			mysqli_stmt_execute($stmtPromotion);
+			mysqli_stmt_close($stmtPromotion);
+		}
 
 		updateTimestamp();
 
@@ -89,26 +122,59 @@
 				$oppColor = "white";
 
 			/* get opponent's player ID */
+			$opponentID = 0;
+			$gameID = (int)$_SESSION['gameID'];
 			if ($oppColor == 'white')
-				$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+				$stmtOpponentID = mysqli_prepare($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
 			else
-				$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
-
-			$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
+				$stmtOpponentID = mysqli_prepare($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+			if (isset($stmtOpponentID) && $stmtOpponentID)
+			{
+				mysqli_stmt_bind_param($stmtOpponentID, "i", $gameID);
+				mysqli_stmt_execute($stmtOpponentID);
+				$tmpOpponentID = mysqli_stmt_get_result($stmtOpponentID);
+				$opponentID = ($tmpOpponentID && ($rowOpponent = mysqli_fetch_row($tmpOpponentID))) ? (int)$rowOpponent[0] : 0;
+				mysqli_stmt_close($stmtOpponentID);
+			}
 
 			/* if opponent is using email notification... */
-			$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
-			if (mysqli_num_rows($tmpOpponentEmail) > 0)
+			$stmtOpponentEmail = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'emailNotification'");
+			$tmpOpponentEmail = false;
+			if ($stmtOpponentEmail)
+			{
+				mysqli_stmt_bind_param($stmtOpponentEmail, "i", $opponentID);
+				mysqli_stmt_execute($stmtOpponentEmail);
+				$tmpOpponentEmail = mysqli_stmt_get_result($stmtOpponentEmail);
+				mysqli_stmt_close($stmtOpponentEmail);
+			}
+			if ($tmpOpponentEmail && mysqli_num_rows($tmpOpponentEmail) > 0)
 			{
 				$opponentEmail = mysqli_fetch_row($tmpOpponentEmail)[0];
 				if ($opponentEmail != '')
 				{
 					/* get opponent's nick */
-					$tmpOpponentNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$_SESSION['playerID']);
-					$opponentNick = mysqli_fetch_row($tmpOpponentNick)[0];
+					$opponentNick = '';
+					$stmtOpponentNick = mysqli_prepare($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ?");
+					if ($stmtOpponentNick)
+					{
+						$playerID = (int)$_SESSION['playerID'];
+						mysqli_stmt_bind_param($stmtOpponentNick, "i", $playerID);
+						mysqli_stmt_execute($stmtOpponentNick);
+						$tmpOpponentNick = mysqli_stmt_get_result($stmtOpponentNick);
+						$opponentNick = ($tmpOpponentNick && ($rowNick = mysqli_fetch_row($tmpOpponentNick))) ? (string)$rowNick[0] : '';
+						mysqli_stmt_close($stmtOpponentNick);
+					}
 
 					/* get opponent's prefered history type */
-					$tmpOpponentHistory = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'history'");
+					$stmtOpponentHistory = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'history'");
+					$tmpOpponentHistory = false;
+					if ($stmtOpponentHistory)
+					{
+						mysqli_stmt_bind_param($stmtOpponentHistory, "i", $opponentID);
+						mysqli_stmt_execute($stmtOpponentHistory);
+						$tmpOpponentHistory = mysqli_stmt_get_result($stmtOpponentHistory);
+						mysqli_stmt_close($stmtOpponentHistory);
+					}
 
 					/* default to PGN */
 					if (mysqli_num_rows($tmpOpponentHistory) > 0)
@@ -134,6 +200,9 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
+
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
 
 		/* set destination row for pawn promotion */
 		if ($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK)
@@ -181,47 +250,100 @@
 				echo ("WARNING!!!  missing piece at ".$_POST['fromRow'].", ".$_POST['fromCol'].": ".$board[$_POST['fromRow']][$_POST['fromCol']]."<p>\n");
 		}
 
-		if ($board[$_POST['toRow']][$_POST['toCol']] == 0)
+		$historyGameID = (int)$_SESSION['gameID'];
+		$fromRow = (int)$_POST['fromRow'];
+		$fromCol = (int)$_POST['fromCol'];
+		$toRow = (int)$_POST['toRow'];
+		$toCol = (int)$_POST['toCol'];
+		$isInCheckInt = (int)$history[$numMoves]['isInCheck'];
+		$curPieceName = getPieceName($board[$fromRow][$fromCol]);
+
+		if ($board[$toRow][$toCol] == 0)
 		{
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", null, null, ".$history[$numMoves]['isInCheck'].")";
+			$stmtHistory = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)");
+			if ($stmtHistory)
+			{
+				mysqli_stmt_bind_param($stmtHistory, "issiiiii", $historyGameID, $curPieceName, $curColor, $fromRow, $fromCol, $toRow, $toCol, $isInCheckInt);
+				mysqli_stmt_execute($stmtHistory);
+				mysqli_stmt_close($stmtHistory);
+			}
 			$history[$numMoves]['replaced'] = null;
 			$tmpReplaced = "";
 		}
 		else
 		{
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ".(int)$_SESSION['gameID'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['fromRow']][$_POST['fromCol']]))."', '$curColor', ".(int)$_POST['fromRow'].", ".(int)$_POST['fromCol'].", ".(int)$_POST['toRow'].", ".(int)$_POST['toCol'].", '".mysqli_real_escape_string($dbh, getPieceName($board[$_POST['toRow']][$_POST['toCol']]))."', null, ".$history[$numMoves]['isInCheck'].")";
+			$replacedPieceName = getPieceName($board[$toRow][$toCol]);
+			$stmtHistory = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['history'] . " (timeOfMove, gameID, curPiece, curColor, fromRow, fromCol, toRow, toCol, replaced, promotedTo, isInCheck) VALUES (Now(), ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)");
+			if ($stmtHistory)
+			{
+				mysqli_stmt_bind_param($stmtHistory, "issiiiisi", $historyGameID, $curPieceName, $curColor, $fromRow, $fromCol, $toRow, $toCol, $replacedPieceName, $isInCheckInt);
+				mysqli_stmt_execute($stmtHistory);
+				mysqli_stmt_close($stmtHistory);
+			}
 
-			$history[$numMoves]['replaced'] = getPieceName($board[$_POST['toRow']][$_POST['toCol']]);
+			$history[$numMoves]['replaced'] = $replacedPieceName;
 			$tmpReplaced = $history[$numMoves]['replaced'];
 		}
 
-		mysqli_query($dbh, $tmpQuery);
 
 		/* if email notification is activated and move does not result in a pawn's promotion... */
 		/* NOTE: moves resulting in pawn promotion are handled by savePromotion() above */
 		if ($CFG_USEEMAILNOTIFICATION && !$isPromoting && ! $_SESSION['isSharedPC'])
 		{
 			/* get opponent's player ID */
+			$opponentID = 0;
+			$gameID = (int)$_SESSION['gameID'];
 			if ($oppColor == 'white')
-				$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+				$stmtOpponentID = mysqli_prepare($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
 			else
-				$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
-
-			$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
+				$stmtOpponentID = mysqli_prepare($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+			if (isset($stmtOpponentID) && $stmtOpponentID)
+			{
+				mysqli_stmt_bind_param($stmtOpponentID, "i", $gameID);
+				mysqli_stmt_execute($stmtOpponentID);
+				$tmpOpponentID = mysqli_stmt_get_result($stmtOpponentID);
+				$opponentID = ($tmpOpponentID && ($rowOpponent = mysqli_fetch_row($tmpOpponentID))) ? (int)$rowOpponent[0] : 0;
+				mysqli_stmt_close($stmtOpponentID);
+			}
 
 			/* if opponent is using email notification... */
-			$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
-			if (mysqli_num_rows($tmpOpponentEmail) > 0)
+			$stmtOpponentEmail = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'emailNotification'");
+			$tmpOpponentEmail = false;
+			if ($stmtOpponentEmail)
+			{
+				mysqli_stmt_bind_param($stmtOpponentEmail, "i", $opponentID);
+				mysqli_stmt_execute($stmtOpponentEmail);
+				$tmpOpponentEmail = mysqli_stmt_get_result($stmtOpponentEmail);
+				mysqli_stmt_close($stmtOpponentEmail);
+			}
+			if ($tmpOpponentEmail && mysqli_num_rows($tmpOpponentEmail) > 0)
 			{
 				$opponentEmail = mysqli_fetch_row($tmpOpponentEmail)[0];
 				if ($opponentEmail != '')
 				{
 					/* get opponent's nick */
-					$tmpOpponentNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$_SESSION['playerID']);
-					$opponentNick = mysqli_fetch_row($tmpOpponentNick)[0];
+					$opponentNick = '';
+					$stmtOpponentNick = mysqli_prepare($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ?");
+					if ($stmtOpponentNick)
+					{
+						$playerID = (int)$_SESSION['playerID'];
+						mysqli_stmt_bind_param($stmtOpponentNick, "i", $playerID);
+						mysqli_stmt_execute($stmtOpponentNick);
+						$tmpOpponentNick = mysqli_stmt_get_result($stmtOpponentNick);
+						$opponentNick = ($tmpOpponentNick && ($rowNick = mysqli_fetch_row($tmpOpponentNick))) ? (string)$rowNick[0] : '';
+						mysqli_stmt_close($stmtOpponentNick);
+					}
 
 					/* get opponent's prefered history type */
-					$tmpOpponentHistory = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'history'");
+					$stmtOpponentHistory = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'history'");
+					$tmpOpponentHistory = false;
+					if ($stmtOpponentHistory)
+					{
+						mysqli_stmt_bind_param($stmtOpponentHistory, "i", $opponentID);
+						mysqli_stmt_execute($stmtOpponentHistory);
+						$tmpOpponentHistory = mysqli_stmt_get_result($stmtOpponentHistory);
+						mysqli_stmt_close($stmtOpponentHistory);
+					}
 
 					/* default to PGN */
 					if (mysqli_num_rows($tmpOpponentHistory) > 0)
@@ -248,13 +370,25 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
 		/* clear board data */
 		for ($i = 0; $i < 8; $i++)
 			for ($j = 0; $j < 8; $j++)
 				$board[$i][$j] = 0;
 
 		/* get data from database */
-		$pieces = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+		$pieces = false;
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtPieces = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ?");
+		if ($stmtPieces)
+		{
+			mysqli_stmt_bind_param($stmtPieces, "i", $gameID);
+			mysqli_stmt_execute($stmtPieces);
+			$pieces = mysqli_stmt_get_result($stmtPieces);
+			mysqli_stmt_close($stmtPieces);
+		}
 
 		/* setup board */
 		while ($thisPiece = mysqli_fetch_assoc($pieces))
@@ -263,9 +397,18 @@
 		}
 
 		/* get current player's color */
-		$tmpQuery = "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID'];
-		$tmpTurns = mysqli_query($dbh, $tmpQuery);
-		$tmpTurn = mysqli_fetch_assoc($tmpTurns);
+		$tmpTurn = null;
+		$stmtTurns = mysqli_prepare($dbh, "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+		if ($stmtTurns)
+		{
+			mysqli_stmt_bind_param($stmtTurns, "i", $gameID);
+			mysqli_stmt_execute($stmtTurns);
+			$tmpTurns = mysqli_stmt_get_result($stmtTurns);
+			$tmpTurn = $tmpTurns ? mysqli_fetch_assoc($tmpTurns) : null;
+			mysqli_stmt_close($stmtTurns);
+		}
+		if (!$tmpTurn)
+			return;
 
 		if ($tmpTurn['whitePlayer'] == $_SESSION['playerID'])
 			$playersColor = "white";
@@ -282,10 +425,26 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
 		/* clear old data */
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+		$saveGameID = (int)$_SESSION['gameID'];
+		$stmtDeletePieces = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ?");
+		if ($stmtDeletePieces)
+		{
+			mysqli_stmt_bind_param($stmtDeletePieces, "i", $saveGameID);
+			mysqli_stmt_execute($stmtDeletePieces);
+			mysqli_stmt_close($stmtDeletePieces);
+		}
 
 		/* save new game data */
+		$insertPieceStmt = mysqli_prepare(
+			$dbh,
+			"INSERT INTO " . $CFG_TABLE['pieces'] . " (gameID, color, piece, row, col) VALUES (?, ?, ?, ?, ?)"
+		);
+		$saveGameID = (int)$_SESSION['gameID'];
+
 		/* for each row... */
 		for ($i = 0; $i < 8; $i++)
 		{
@@ -302,10 +461,17 @@
 						$tmpColor = "white";
 
 					$tmpPiece = getPieceName($board[$i][$j]);
-					mysqli_query($dbh, "INSERT INTO " . $CFG_TABLE['pieces'] . " (gameID, color, piece, row, col) VALUES (".(int)$_SESSION['gameID'].", '$tmpColor', '$tmpPiece', $i, $j)");
+					if ($insertPieceStmt)
+					{
+						mysqli_stmt_bind_param($insertPieceStmt, "issii", $saveGameID, $tmpColor, $tmpPiece, $i, $j);
+						mysqli_stmt_execute($insertPieceStmt);
+					}
 				}
 			}
 		}
+
+		if ($insertPieceStmt)
+			mysqli_stmt_close($insertPieceStmt);
 
 		/* update lastMove timestamp */
 		updateTimestamp();
@@ -319,6 +485,9 @@
 		/* old PHP versions don't have _POST, _GET and _SESSION as auto_globals */
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
+
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
 
 		if (DEBUG)
 			echo("Entering processMessages()<br>\n");
@@ -347,6 +516,11 @@
 		else
 			$opponentColor = "white";
 
+		if (($currentPlayer !== 'white' && $currentPlayer !== 'black') || ($opponentColor !== 'white' && $opponentColor !== 'black'))
+			return;
+
+		$gameId = (int)$_SESSION['gameID'];
+
 		/* *********************************************** */
 		/* queue user generated (ie: using forms) messages */
 		/* *********************************************** */
@@ -364,12 +538,24 @@
 			else
 			{
 				/* Prevent duplicate undo requests: only queue one if none is already pending */
-				$escOpponentColor = mysqli_real_escape_string($dbh, $opponentColor);
-				$tmpCheck = mysqli_query($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'request' AND destination = '".$escOpponentColor."'");
-				$tmpRow = mysqli_fetch_assoc($tmpCheck);
+				$tmpRow = null;
+				$stmtUndoCheck = mysqli_prepare($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'undo' AND msgStatus = 'request' AND destination = ?");
+				if ($stmtUndoCheck)
+				{
+					mysqli_stmt_bind_param($stmtUndoCheck, "is", $gameId, $opponentColor);
+					mysqli_stmt_execute($stmtUndoCheck);
+					$tmpCheck = mysqli_stmt_get_result($stmtUndoCheck);
+					$tmpRow = $tmpCheck ? mysqli_fetch_assoc($tmpCheck) : null;
+					mysqli_stmt_close($stmtUndoCheck);
+				}
 				if (!$tmpRow || (int)$tmpRow['cnt'] === 0) {
-					$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'undo', 'request', '".$escOpponentColor."')";
-					mysqli_query($dbh, $tmpQuery);
+					$stmtUndoInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (?, 'undo', 'request', ?)");
+					if ($stmtUndoInsert)
+					{
+						mysqli_stmt_bind_param($stmtUndoInsert, "is", $gameId, $opponentColor);
+						mysqli_stmt_execute($stmtUndoInsert);
+						mysqli_stmt_close($stmtUndoInsert);
+					}
 				}
                                 // ToDo: Mail an undo request notice to other player??
 			}
@@ -384,18 +570,35 @@
 			/* NOTE: assumes the two players discussed it live before declaring the game a draw */
 			if ($_SESSION['isSharedPC'])
 			{
-				$tmpQuery = "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'draw', messageFrom = '".$currentPlayer."' WHERE gameID = ".(int)$_SESSION['gameID'];
-				mysqli_query($dbh, $tmpQuery);
+				$stmtDrawShared = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'draw', messageFrom = ? WHERE gameID = ?");
+				if ($stmtDrawShared)
+				{
+					mysqli_stmt_bind_param($stmtDrawShared, "si", $currentPlayer, $gameId);
+					mysqli_stmt_execute($stmtDrawShared);
+					mysqli_stmt_close($stmtDrawShared);
+				}
 			}
 			else
 			{
 				/* Prevent duplicate draw requests: only queue one if none is already pending */
-				$escOpponentColor = mysqli_real_escape_string($dbh, $opponentColor);
-				$tmpCheck = mysqli_query($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'request' AND destination = '".$escOpponentColor."'");
-				$tmpRow = mysqli_fetch_assoc($tmpCheck);
+				$tmpRow = null;
+				$stmtDrawCheck = mysqli_prepare($dbh, "SELECT COUNT(*) AS cnt FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'draw' AND msgStatus = 'request' AND destination = ?");
+				if ($stmtDrawCheck)
+				{
+					mysqli_stmt_bind_param($stmtDrawCheck, "is", $gameId, $opponentColor);
+					mysqli_stmt_execute($stmtDrawCheck);
+					$tmpCheck = mysqli_stmt_get_result($stmtDrawCheck);
+					$tmpRow = $tmpCheck ? mysqli_fetch_assoc($tmpCheck) : null;
+					mysqli_stmt_close($stmtDrawCheck);
+				}
 				if (!$tmpRow || (int)$tmpRow['cnt'] === 0) {
-					$tmpQuery = "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (".(int)$_SESSION['gameID'].", 'draw', 'request', '".$escOpponentColor."')";
-					mysqli_query($dbh, $tmpQuery);
+					$stmtDrawInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['messages'] . " (gameID, msgType, msgStatus, destination) VALUES (?, 'draw', 'request', ?)");
+					if ($stmtDrawInsert)
+					{
+						mysqli_stmt_bind_param($stmtDrawInsert, "is", $gameId, $opponentColor);
+						mysqli_stmt_execute($stmtDrawInsert);
+						mysqli_stmt_close($stmtDrawInsert);
+					}
 				}
 			}
 
@@ -415,8 +618,13 @@
 				else
 					$tmpStatus = "denied";
 
-				$tmpQuery = "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = '".$tmpStatus."', destination = '".$opponentColor."' WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'request' AND destination = '".$currentPlayer."'";
-				mysqli_query($dbh, $tmpQuery);
+				$stmtUndoResponse = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = ?, destination = ? WHERE gameID = ? AND msgType = 'undo' AND msgStatus = 'request' AND destination = ?");
+				if ($stmtUndoResponse)
+				{
+					mysqli_stmt_bind_param($stmtUndoResponse, "ssis", $tmpStatus, $opponentColor, $gameId, $currentPlayer);
+					mysqli_stmt_execute($stmtUndoResponse);
+					mysqli_stmt_close($stmtUndoResponse);
+				}
 
 				updateTimestamp();
 			}
@@ -430,14 +638,24 @@
 				if ($_POST['drawResponse'] == "yes")
 				{
 					$tmpStatus = "approved";
-					$tmpQuery = "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'draw', messageFrom = '".$currentPlayer."' WHERE gameID = ".(int)$_SESSION['gameID'];
-					mysqli_query($dbh, $tmpQuery);
+					$stmtDrawApprove = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'draw', messageFrom = ? WHERE gameID = ?");
+					if ($stmtDrawApprove)
+					{
+						mysqli_stmt_bind_param($stmtDrawApprove, "si", $currentPlayer, $gameId);
+						mysqli_stmt_execute($stmtDrawApprove);
+						mysqli_stmt_close($stmtDrawApprove);
+					}
 				}
 				else
 					$tmpStatus = "denied";
 
-				$tmpQuery = "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = '".$tmpStatus."', destination = '".$opponentColor."' WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'request' AND destination = '".$currentPlayer."'";
-				mysqli_query($dbh, $tmpQuery);
+				$stmtDrawResponse = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['messages'] . " SET msgStatus = ?, destination = ? WHERE gameID = ? AND msgType = 'draw' AND msgStatus = 'request' AND destination = ?");
+				if ($stmtDrawResponse)
+				{
+					mysqli_stmt_bind_param($stmtDrawResponse, "ssis", $tmpStatus, $opponentColor, $gameId, $currentPlayer);
+					mysqli_stmt_execute($stmtDrawResponse);
+					mysqli_stmt_close($stmtDrawResponse);
+				}
 
 				updateTimestamp();
 			}
@@ -446,8 +664,13 @@
 		/* resign the game */
 		if (isset($_POST['resign']) && $_POST['resign'] == "yes")
 		{
-			$tmpQuery = "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'playerResigned', messageFrom = '".$currentPlayer."' WHERE gameID = ".(int)$_SESSION['gameID'];
-			mysqli_query($dbh, $tmpQuery);
+			$stmtResign = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'playerResigned', messageFrom = ? WHERE gameID = ?");
+			if ($stmtResign)
+			{
+				mysqli_stmt_bind_param($stmtResign, "si", $currentPlayer, $gameId);
+				mysqli_stmt_execute($stmtResign);
+				mysqli_stmt_close($stmtResign);
+			}
 
 			updateTimestamp();
 
@@ -455,14 +678,29 @@
 			if ($CFG_USEEMAILNOTIFICATION && ! $_SESSION['isSharedPC'])
 			{
 				/* get opponent's player ID */
+				$opponentID = 0;
 				if ($currentPlayer == 'white')
-					$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+					$stmtOpponentID = mysqli_prepare($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
 				else
-					$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID']);
+					$stmtOpponentID = mysqli_prepare($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+				if (isset($stmtOpponentID) && $stmtOpponentID)
+				{
+					mysqli_stmt_bind_param($stmtOpponentID, "i", $gameId);
+					mysqli_stmt_execute($stmtOpponentID);
+					$tmpOpponentID = mysqli_stmt_get_result($stmtOpponentID);
+					$opponentID = ($tmpOpponentID && ($rowOpponent = mysqli_fetch_row($tmpOpponentID))) ? (int)$rowOpponent[0] : 0;
+					mysqli_stmt_close($stmtOpponentID);
+				}
 
-				$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
-
-				$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".(int)$opponentID." AND preference = 'emailNotification'");
+				$stmtOpponentEmail = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'emailNotification'");
+				$tmpOpponentEmail = false;
+				if ($stmtOpponentEmail)
+				{
+					mysqli_stmt_bind_param($stmtOpponentEmail, "i", $opponentID);
+					mysqli_stmt_execute($stmtOpponentEmail);
+					$tmpOpponentEmail = mysqli_stmt_get_result($stmtOpponentEmail);
+					mysqli_stmt_close($stmtOpponentEmail);
+				}
 
 				/* if opponent is using email notification... */
 				if (mysqli_num_rows($tmpOpponentEmail) > 0)
@@ -481,8 +719,15 @@
 		/* ******************************************* */
 		/* process queued messages (ie: from database) */
 		/* ******************************************* */
-		$tmpQuery = "SELECT * FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND destination = '".$currentPlayer."'";
-		$tmpMessages = mysqli_query($dbh, $tmpQuery);
+		$tmpMessages = false;
+		$stmtQueuedMessages = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND destination = ?");
+		if ($stmtQueuedMessages)
+		{
+			mysqli_stmt_bind_param($stmtQueuedMessages, "is", $gameId, $currentPlayer);
+			mysqli_stmt_execute($stmtQueuedMessages);
+			$tmpMessages = mysqli_stmt_get_result($stmtQueuedMessages);
+			mysqli_stmt_close($stmtQueuedMessages);
+		}
 
 		while($tmpMessage = mysqli_fetch_assoc($tmpMessages))
 		{
@@ -495,14 +740,24 @@
 							$isUndoRequested = true;
 							break;
 						case 'approved':
-							$tmpQuery = "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'approved' AND destination = '".$currentPlayer."'";
-							mysqli_query($dbh, $tmpQuery);
+										$stmtDeleteUndoApproved = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'undo' AND msgStatus = 'approved' AND destination = ?");
+										if ($stmtDeleteUndoApproved)
+										{
+											mysqli_stmt_bind_param($stmtDeleteUndoApproved, "is", $gameId, $currentPlayer);
+											mysqli_stmt_execute($stmtDeleteUndoApproved);
+											mysqli_stmt_close($stmtDeleteUndoApproved);
+										}
 							$statusMessage .= "Undo approved";
 							break;
 						case 'denied':
 							$isUndoing = false;
-							$tmpQuery = "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'undo' AND msgStatus = 'denied' AND destination = '".$currentPlayer."'";
-							mysqli_query($dbh, $tmpQuery);
+										$stmtDeleteUndoDenied = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'undo' AND msgStatus = 'denied' AND destination = ?");
+										if ($stmtDeleteUndoDenied)
+										{
+											mysqli_stmt_bind_param($stmtDeleteUndoDenied, "is", $gameId, $currentPlayer);
+											mysqli_stmt_execute($stmtDeleteUndoDenied);
+											mysqli_stmt_close($stmtDeleteUndoDenied);
+										}
 							$statusMessage .= "Undo denied";
 							break;
 					}
@@ -515,13 +770,23 @@
 							$isDrawRequested = true;
 							break;
 						case 'approved':
-							$tmpQuery = "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'approved' AND destination = '".$currentPlayer."'";
-							mysqli_query($dbh, $tmpQuery);
+										$stmtDeleteDrawApproved = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'draw' AND msgStatus = 'approved' AND destination = ?");
+										if ($stmtDeleteDrawApproved)
+										{
+											mysqli_stmt_bind_param($stmtDeleteDrawApproved, "is", $gameId, $currentPlayer);
+											mysqli_stmt_execute($stmtDeleteDrawApproved);
+											mysqli_stmt_close($stmtDeleteDrawApproved);
+										}
 							$statusMessage .= "Draw approved";
 							break;
 						case 'denied':
-							$tmpQuery = "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgType = 'draw' AND msgStatus = 'denied' AND destination = '".$currentPlayer."'";
-							mysqli_query($dbh, $tmpQuery);
+										$stmtDeleteDrawDenied = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'draw' AND msgStatus = 'denied' AND destination = ?");
+										if ($stmtDeleteDrawDenied)
+										{
+											mysqli_stmt_bind_param($stmtDeleteDrawDenied, "is", $gameId, $currentPlayer);
+											mysqli_stmt_execute($stmtDeleteDrawDenied);
+											mysqli_stmt_close($stmtDeleteDrawDenied);
+										}
 							$statusMessage .= "Draw denied";
 							break;
 					}
@@ -530,8 +795,15 @@
 		}
 
 		/* requests pending */
-		$tmpQuery = "SELECT * FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".(int)$_SESSION['gameID']." AND msgStatus = 'request' AND destination = '".$opponentColor."'";
-		$tmpMessages = mysqli_query($dbh, $tmpQuery);
+		$tmpMessages = false;
+		$stmtPendingMessages = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgStatus = 'request' AND destination = ?");
+		if ($stmtPendingMessages)
+		{
+			mysqli_stmt_bind_param($stmtPendingMessages, "is", $gameId, $opponentColor);
+			mysqli_stmt_execute($stmtPendingMessages);
+			$tmpMessages = mysqli_stmt_get_result($stmtPendingMessages);
+			mysqli_stmt_close($stmtPendingMessages);
+		}
 
 		while($tmpMessage = mysqli_fetch_assoc($tmpMessages))
 		{
@@ -549,12 +821,30 @@
 		/* game level status: draws, resignations and checkmate */
 		/* if checkmate, update games table */
 		if (isset($_POST['isCheckMate']) && $_POST['isCheckMate'] == 'true')
-			mysqli_query($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'checkMate', messageFrom = '".$currentPlayer."' WHERE gameID = ".(int)$_SESSION['gameID']);
+		{
+			$stmtCheckmate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'checkMate', messageFrom = ? WHERE gameID = ?");
+			if ($stmtCheckmate)
+			{
+				mysqli_stmt_bind_param($stmtCheckmate, "si", $currentPlayer, $gameId);
+				mysqli_stmt_execute($stmtCheckmate);
+				mysqli_stmt_close($stmtCheckmate);
+			}
+		}
                         // ToDo: Mail checkmate notification to opponent
 
-		$tmpQuery = "SELECT gameMessage, messageFrom FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_SESSION['gameID'];
-		$tmpMessages = mysqli_query($dbh, $tmpQuery);
-		$tmpMessage = mysqli_fetch_assoc($tmpMessages);
+		$tmpMessage = null;
+		$stmtGameStatus = mysqli_prepare($dbh, "SELECT gameMessage, messageFrom FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+		if ($stmtGameStatus)
+		{
+			mysqli_stmt_bind_param($stmtGameStatus, "i", $gameId);
+			mysqli_stmt_execute($stmtGameStatus);
+			$tmpMessages = mysqli_stmt_get_result($stmtGameStatus);
+			$tmpMessage = $tmpMessages ? mysqli_fetch_assoc($tmpMessages) : null;
+			mysqli_stmt_close($stmtGameStatus);
+		}
+
+		if (!$tmpMessage)
+			return;
 
 		if ($tmpMessage['gameMessage'] == "draw")
 		{

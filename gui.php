@@ -418,11 +418,19 @@
 			$result="1/2-1/2";
 		};
 
-		$tmpQuery = "SELECT gameMessage, messageFrom FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$_SESSION['gameID'];
-		$tmpMessages = mysqli_query($dbh, $tmpQuery);
-		$tmpMessage = mysqli_fetch_assoc($tmpMessages);
+		$tmpMessage = null;
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtGameStatus = mysqli_prepare($dbh, "SELECT gameMessage, messageFrom FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+		if ($stmtGameStatus)
+		{
+			mysqli_stmt_bind_param($stmtGameStatus, "i", $gameID);
+			mysqli_stmt_execute($stmtGameStatus);
+			$tmpMessages = mysqli_stmt_get_result($stmtGameStatus);
+			$tmpMessage = $tmpMessages ? mysqli_fetch_assoc($tmpMessages) : null;
+			mysqli_stmt_close($stmtGameStatus);
+		}
 
-		if ($tmpMessage['gameMessage'] == "playerResigned")
+		if ($tmpMessage && $tmpMessage['gameMessage'] == "playerResigned")
 		{
 			if ( $tmpMessage['messageFrom'] == "white" )
 			{

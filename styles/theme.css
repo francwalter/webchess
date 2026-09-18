@@ -22,6 +22,29 @@ body.dark-theme .nav-link {
     color: #b0b0b0 !important;
 }
 
+/* Main menu tab list: override legacy light backgrounds in dark mode. */
+body.dark-theme #navlist li a,
+body.dark-theme #navlist li a:link,
+body.dark-theme #navlist li a:visited {
+    background: #1f1f1f !important;
+    color: #e6e6e6 !important;
+    border-color: #3a3a3a !important;
+}
+
+body.dark-theme #navlist li#active a,
+body.dark-theme #navlist li a.active {
+    background: #333 !important;
+    color: #fff !important;
+    border-color: #555 !important;
+}
+
+body.dark-theme #navlist li a:hover,
+body.dark-theme #navlist li#active a:hover {
+    background: #2a2a2a !important;
+    color: #fff !important;
+    border-color: #666 !important;
+}
+
 body.dark-theme .nav-link:hover {
     color: #fff !important;
 }
@@ -74,6 +97,14 @@ body.dark-theme .form-label {
 body.dark-theme .table {
     color: #e0e0e0 !important;
     border-color: #444 !important;
+    --bs-table-bg: #2a2a2a;
+    --bs-table-color: #e0e0e0;
+    --bs-table-striped-bg: #303030;
+    --bs-table-striped-color: #e0e0e0;
+    --bs-table-active-bg: #3a3a3a;
+    --bs-table-active-color: #ffffff;
+    --bs-table-hover-bg: #383838;
+    --bs-table-hover-color: #ffffff;
 }
 
 body.dark-theme .table-light {
@@ -116,6 +147,23 @@ body.dark-theme .btn-outline-primary:hover {
     background-color: #007bff !important;
     border-color: #007bff !important;
     color: #fff !important;
+}
+
+body.dark-theme .btn-outline-success {
+    color: #9be7b1 !important;
+    border-color: #4ea56b !important;
+    background-color: #1f2a24 !important;
+}
+
+body.dark-theme .btn-outline-success:hover {
+    color: #ffffff !important;
+    border-color: #28a745 !important;
+    background-color: #28a745 !important;
+}
+
+body.dark-theme #inProgrTblBdy .btn-outline-primary,
+body.dark-theme #viewgame .btn-outline-success {
+    font-weight: 600 !important;
 }
 
 body.dark-theme .btn-outline-secondary {

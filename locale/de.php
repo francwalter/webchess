@@ -173,4 +173,12 @@ return array(
     'Are you sure you want to offer a draw?' => 'Möchtest du wirklich Remis anbieten?',
     'Are you sure you want to resign?' => 'Möchtest du wirklich aufgeben?',
     'At the start of the game, no move can be undone yet.' => 'Am Beginn der Partie kann noch kein Zug zurück genommen werden. Abbruch.',
+    'Invalid form token. Please reload and try again.' => 'Ungueltiges Formular-Token. Bitte Seite neu laden und erneut versuchen.',
+    'Stalemate - You should offer your opponent a draw' => 'Patt - Du solltest deinem Gegner Remis anbieten.',
+    'Insufficient material to checkmate - You should offer your opponent a draw' => 'Unzureichendes Material fuer ein Matt - Du solltest deinem Gegner Remis anbieten.',
+    'Draw (this position has occurred three times) - You should offer your opponent a draw' => 'Remis (diese Stellung ist dreimal aufgetreten) - Du solltest deinem Gegner Remis anbieten.',
+    'Draw (50 move rule) - You should offer your opponent a draw' => 'Remis (50-Zuege-Regel) - Du solltest deinem Gegner Remis anbieten.',
+    'Too many failed login attempts. Please try again in %d seconds.' => 'Zu viele fehlgeschlagene Login-Versuche. Bitte versuche es in %d Sekunden erneut.',
+    'Switch to Dark Mode' => 'In den Dunkelmodus wechseln',
+    'Switch to Light Mode' => 'In den Hellmodus wechseln',
 );

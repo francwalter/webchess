@@ -24,6 +24,20 @@ A:link:hover, :visited:hover {text-decoration: none}
 A:visited {color: navy}
 A:link:active, :visited:active {color: green}
 
+/* Keep brand link readable on dark navbar in all themes. */
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-brand:link,
+.navbar-dark .navbar-brand:visited {
+	color: #fff !important;
+	text-decoration: none;
+}
+
+.navbar-dark .navbar-brand:hover,
+.navbar-dark .navbar-brand:focus {
+	color: #e0e0e0 !important;
+	text-decoration: none;
+}
+
 body {
 	margin: 0px;
 	padding: 0px;

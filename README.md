@@ -14,6 +14,19 @@ WebChess is a browser-based chess application without chess engine.
 
 Please refer to the installation instructions in [docs/INSTALL.txt](docs/INSTALL.txt).
 
+## Admin Helper (Login Throttle)
+
+WebChess includes a CLI-only helper to inspect or clear the server-side login throttle store.
+
+```powershell
+php .\admin_login_throttle.php status
+php .\admin_login_throttle.php clear
+```
+
+- `status` shows whether the throttle file exists and how many entries it contains.
+- `clear` deletes the throttle file and resets all current login lockouts.
+- This script is CLI-only and returns `403 Forbidden` if accessed via web.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See [docs/COPYING.txt](docs/COPYING.txt) for details.

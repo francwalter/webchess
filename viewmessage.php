@@ -17,11 +17,14 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+  require_once 'security.php';
+
 	session_start();
 
 	/* load settings */
 	if (!isset($_CONFIG))
 		require 'config.php';
+  require 'sessioncheck.php';
 
 	/* load external functions for setting up new game */
 	require 'chessutils.php';
@@ -66,7 +69,7 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="mainmenu.php">WebChess</a>
         <div class="d-flex gap-2">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()">Theme</button>
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
             <a class="btn btn-outline-light btn-sm" href="mainmenu.php"><?php echo htmlspecialchars(webchessTranslate("Return to Main Menu"));?></a>
         </div>
     </div>
@@ -77,20 +80,39 @@
         <div class="card-body">
             <?php
             if (isset($_POST['messageID'])) {
+            				if (!webchessCsrfValidateRequest()) {
+            					echo '<div class="alert alert-danger">' . htmlspecialchars(webchessTranslate("Invalid form token. Please reload and try again."), ENT_QUOTES, 'UTF-8') . '</div>';
+            				} else {
                 $messageID = (int) $_POST['messageID'];
+                            $playerID = (int) $_SESSION['playerID'];
 
-                $SqlQuery = "SELECT * FROM " . $CFG_TABLE['communication'] . " WHERE commID = " . $messageID;
-                $tmpGames = mysqli_query($dbh, $SqlQuery);
+                            $stmtMessage = mysqli_prepare(
+                                $dbh,
+                                "SELECT * FROM " . $CFG_TABLE['communication'] . " WHERE commID = ? AND (toID IS NULL OR toID = ? OR fromID = ?)"
+                            );
+                            $tmpGames = false;
+                            if ($stmtMessage) {
+                                mysqli_stmt_bind_param($stmtMessage, "iii", $messageID, $playerID, $playerID);
+                                mysqli_stmt_execute($stmtMessage);
+                                $tmpGames = mysqli_stmt_get_result($stmtMessage);
+                            }
 
                 if (!$tmpGames || mysqli_num_rows($tmpGames) == 0) {
                     echo '<div class="alert alert-warning">' . htmlspecialchars(webchessTranslate("Message not found!")) . '</div>';
                 } else {
                     while ($tmpGame = mysqli_fetch_assoc($tmpGames)) {
                         if ($tmpGame['fromID'] != 0) {
-                            $innerSQL = "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = " . (int)$tmpGame['fromID'];
-                            $innerRes = mysqli_query($dbh, $innerSQL);
-                            $tempRes = mysqli_fetch_assoc($innerRes);
-                            $FromPlayer = $tempRes['nick'];
+                                        $fromPlayerID = (int)$tmpGame['fromID'];
+                                        $stmtNick = mysqli_prepare($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ? LIMIT 1");
+                                        $FromPlayer = '';
+                                        if ($stmtNick) {
+                                            mysqli_stmt_bind_param($stmtNick, "i", $fromPlayerID);
+                                            mysqli_stmt_execute($stmtNick);
+                                            $innerRes = mysqli_stmt_get_result($stmtNick);
+                                            $tempRes = $innerRes ? mysqli_fetch_assoc($innerRes) : null;
+                                            $FromPlayer = $tempRes ? $tempRes['nick'] : '';
+                                            mysqli_stmt_close($stmtNick);
+                                        }
                         } else {
                             $FromPlayer = webchessTranslate("Webchess Administrator");
                         }
@@ -113,6 +135,11 @@
                         <?php
                     }
                 }
+
+                if ($stmtMessage) {
+                    mysqli_stmt_close($stmtMessage);
+                }
+				}
             } else {
                 echo '<div class="alert alert-danger">' . htmlspecialchars(webchessTranslate("Message Error")) . '</div>';
                 echo '<p>' . htmlspecialchars(webchessTranslate("An error ocurred!.")) . '</p>';

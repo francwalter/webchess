@@ -1,4 +1,5 @@
 ﻿<?php
+    require_once 'security.php';
     session_start();
 
 /*
@@ -42,8 +43,21 @@
         foreach ($requiredTables as $tableKey)
         {
           $tableName = isset($CFG_TABLE[$tableKey]) ? $CFG_TABLE[$tableKey] : $tableKey;
-          $tableResult = @mysqli_query($tmpDbh, "SHOW TABLES LIKE '" . mysqli_real_escape_string($tmpDbh, $tableName) . "'");
-          if (!$tableResult || mysqli_num_rows($tableResult) === 0)
+          $tableExists = false;
+          $stmtTableExists = @mysqli_prepare(
+            $tmpDbh,
+            "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? LIMIT 1"
+          );
+          if ($stmtTableExists)
+          {
+            mysqli_stmt_bind_param($stmtTableExists, "ss", $CFG_DATABASE, $tableName);
+            mysqli_stmt_execute($stmtTableExists);
+            $tableResult = mysqli_stmt_get_result($stmtTableExists);
+            $tableExists = ($tableResult && mysqli_num_rows($tableResult) > 0);
+            mysqli_stmt_close($stmtTableExists);
+          }
+
+          if (!$tableExists)
           {
             $isInstalled = false;
             break;
@@ -90,8 +104,13 @@
         if(document.loginForm.remember.checked)
         {
             visitordata.nick = document.loginForm.txtNick.value;
-            visitordata.pwd = document.loginForm.pwdPassword.value;
+            if (typeof visitordata.pwd !== 'undefined')
+                delete visitordata.pwd;
             visitordata.store();
+        }
+        else if (visitordata)
+        {
+            visitordata.remove();
         }
     }
     window.onload = function()
@@ -110,9 +129,12 @@
         {
             if(visitordata.nick)
                 document.loginForm.txtNick.value = visitordata.nick;
-            if(visitordata.pwd)
-                document.loginForm.pwdPassword.value = visitordata.pwd;
-            document.loginForm.remember.checked = true;
+            if (typeof visitordata.pwd !== 'undefined')
+            {
+                delete visitordata.pwd;
+                visitordata.store();
+            }
+            document.loginForm.remember.checked = !!visitordata.nick;
         }
         document.loginForm.txtNick.focus();
     }
@@ -123,7 +145,7 @@
 <div class="container d-flex justify-content-center">
     <div class="login-container w-100">
         <div style="text-align: right; margin-bottom: 20px;">
-            <button id="theme-toggle-btn" class="btn btn-link" onclick="toggleTheme()" title="Toggle Dark Mode" style="text-decoration:none;">Theme</button>
+            <button id="theme-toggle-btn" class="btn btn-link" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" style="text-decoration:none;">&#9790;</button>
         </div>
         <div class="card shadow-lg">
             <div class="card-body p-5 text-center">

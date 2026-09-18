@@ -29,14 +29,34 @@
 		if (!minimum_version("4.1.0"))
 			global $_POST, $_GET, $_SESSION;
 
+		if (!webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+			return;
+
 		/* get the last move from the history */
 		/* NOTE: MySQL currently has no support for subqueries */
-		$tmpMaxTime = mysqli_query($dbh, "SELECT Max(timeOfMove) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$_SESSION['gameID']);
-		$maxTime = mysqli_fetch_row($tmpMaxTime)[0];
-		$moves = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$_SESSION['gameID']." AND timeOfMove = '$maxTime'");
+		$gameID = (int)$_SESSION['gameID'];
+		$stmtMaxTime = mysqli_prepare($dbh, "SELECT MAX(timeOfMove) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ?");
+		if (!$stmtMaxTime)
+			return;
+		mysqli_stmt_bind_param($stmtMaxTime, "i", $gameID);
+		mysqli_stmt_execute($stmtMaxTime);
+		$tmpMaxTime = mysqli_stmt_get_result($stmtMaxTime);
+		$maxTimeRow = $tmpMaxTime ? mysqli_fetch_row($tmpMaxTime) : null;
+		$maxTime = $maxTimeRow ? $maxTimeRow[0] : null;
+		mysqli_stmt_close($stmtMaxTime);
+
+		if ($maxTime === null)
+			return;
+
+		$stmtLastMove = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE gameID = ? AND timeOfMove = ? LIMIT 1");
+		if (!$stmtLastMove)
+			return;
+		mysqli_stmt_bind_param($stmtLastMove, "is", $gameID, $maxTime);
+		mysqli_stmt_execute($stmtLastMove);
+		$moves = mysqli_stmt_get_result($stmtLastMove);
 
 		/* if there actually is a move... */
-		if ($lastMove = mysqli_fetch_assoc($moves))
+		if ($moves && ($lastMove = mysqli_fetch_assoc($moves)))
 		{
 			/* if the last move was played by this player */
 
@@ -86,9 +106,17 @@
 
 				/* remove last move from history */
 				$numMoves--;
-				mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$_SESSION['gameID']." AND timeOfMove = '$maxTime'");
+				$stmtDeleteMove = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ? AND timeOfMove = ?");
+				if ($stmtDeleteMove)
+				{
+					mysqli_stmt_bind_param($stmtDeleteMove, "is", $gameID, $maxTime);
+					mysqli_stmt_execute($stmtDeleteMove);
+					mysqli_stmt_close($stmtDeleteMove);
+				}
 
 			/* else */
 				/* output error message */
 		}
+
+		mysqli_stmt_close($stmtLastMove);
 	}

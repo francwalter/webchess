@@ -19,6 +19,8 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+	require_once 'security.php';
+
 	session_start();
 
 	/* load settings */
@@ -59,7 +61,28 @@
 				}
 
 				$gid = (int)$_SESSION['gameID'];
-				$chk = mysqli_query($dbh, "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE gameID = " . $gid);
+
+				if (!webchessPlayerOwnsGame($dbh, $gid, (int)$_SESSION['playerID'])) {
+					header('Content-Type: text/html; charset=utf-8');
+					echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>PGN Download</title>';
+					echo '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>';
+					echo '<div style="max-width:800px;margin:3rem auto;font-family:Arial,Helvetica,sans-serif;">';
+					echo '<h2>Zugriff nicht erlaubt</h2>';
+					echo '<p>Du darfst dieses Spiel nicht herunterladen.</p>';
+					echo '<p><a href="mainmenu.php">Zurück zum Hauptmenü</a></p>';
+					echo '</div></body></html>';
+					exit;
+				}
+
+				$chk = false;
+				$stmtGameExists = mysqli_prepare($dbh, "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? LIMIT 1");
+				if ($stmtGameExists)
+				{
+					mysqli_stmt_bind_param($stmtGameExists, "i", $gid);
+					mysqli_stmt_execute($stmtGameExists);
+					$chk = mysqli_stmt_get_result($stmtGameExists);
+					mysqli_stmt_close($stmtGameExists);
+				}
 				if (!$chk || mysqli_num_rows($chk) == 0) {
 					header('Content-Type: text/html; charset=utf-8');
 					echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>PGN Download</title>';

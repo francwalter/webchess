@@ -269,6 +269,36 @@
 		return password_needs_rehash((string)$storedPassword, PASSWORD_DEFAULT);
 	}
 
+	/* Checks if a player belongs to a game (white or black). */
+	function webchessPlayerOwnsGame($dbh, $gameID, $playerID)
+	{
+		global $CFG_TABLE;
+		static $ownershipCache = array();
+
+		$gameID = (int)$gameID;
+		$playerID = (int)$playerID;
+
+		if ($gameID <= 0 || $playerID <= 0)
+			return false;
+
+		$cacheKey = $playerID . ':' . $gameID;
+		if (array_key_exists($cacheKey, $ownershipCache))
+			return $ownershipCache[$cacheKey];
+
+		$stmt = mysqli_prepare($dbh, "SELECT 1 FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? AND (whitePlayer = ? OR blackPlayer = ?) LIMIT 1");
+		if (!$stmt)
+			return false;
+
+		mysqli_stmt_bind_param($stmt, "iii", $gameID, $playerID, $playerID);
+		mysqli_stmt_execute($stmt);
+		$result = mysqli_stmt_get_result($stmt);
+		$ownsGame = ($result && mysqli_fetch_row($result));
+		mysqli_stmt_close($stmt);
+
+		$ownershipCache[$cacheKey] = (bool)$ownsGame;
+		return $ownershipCache[$cacheKey];
+	}
+
 	function webchessMail($msgType, $msgTo, $move, $opponent, $gameID)
 	{
 		global $CFG_MAILADDRESS, $CFG_MAINPAGE;
@@ -477,33 +507,75 @@
 		global $CFG_TABLE, $dbh;
 		global $pWhite,$pWhiteF,$pWhiteL,$pBlack,$pBlackF,$pBlackL,$gStart,$MyColor,$isDraw;
 
-		$tmpGameQ = mysqli_query($dbh, "SELECT whitePlayer,blackPlayer,dateCreated,gameMessage FROM " . $CFG_TABLE['games'] . " WHERE gameID = " . $GameID) or die(mysqli_error($dbh));
-		$tmpGame = mysqli_fetch_assoc($tmpGameQ);
+						$gameId = (int)$GameID;
+						$tmpGame = null;
+						$stmtGame = mysqli_prepare($dbh, "SELECT whitePlayer,blackPlayer,dateCreated,gameMessage FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? LIMIT 1");
+						if ($stmtGame)
+						{
+							mysqli_stmt_bind_param($stmtGame, "i", $gameId);
+							mysqli_stmt_execute($stmtGame);
+							$tmpGameQ = mysqli_stmt_get_result($stmtGame);
+							$tmpGame = $tmpGameQ ? mysqli_fetch_assoc($tmpGameQ) : null;
+							mysqli_stmt_close($stmtGame);
+						}
+
+						if (!$tmpGame)
+						{
+							$gStart = '';
+							$isDraw = '';
+							$pBlack = '';
+							$pBlackF = '';
+							$pBlackL = '';
+							$pWhite = '';
+							$pWhiteF = '';
+							$pWhiteL = '';
+							$MyColor = 'none';
+							return;
+						}
 
 		$gStart = $tmpGame['dateCreated'];
 		$isDraw="";
 		if($tmpGame['gameMessage']=="draw"){$isDraw=true;}else{$isDraw="";}
 
-		$tmpBlackQ = mysqli_query($dbh, "SELECT nick,firstName,lastName FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['blackPlayer']);
-                $xBlack = mysqli_fetch_assoc($tmpBlackQ);
+		$stmtPlayerInfo = mysqli_prepare($dbh, "SELECT nick,firstName,lastName FROM " . $CFG_TABLE['players'] . " WHERE playerID = ? LIMIT 1");
+
+		$xBlack = array('nick' => '', 'firstName' => '', 'lastName' => '');
+		if ($stmtPlayerInfo)
+		{
+			$blackPlayerId = (int)$tmpGame['blackPlayer'];
+			mysqli_stmt_bind_param($stmtPlayerInfo, "i", $blackPlayerId);
+			mysqli_stmt_execute($stmtPlayerInfo);
+			$tmpBlackQ = mysqli_stmt_get_result($stmtPlayerInfo);
+			$tmpBlack = $tmpBlackQ ? mysqli_fetch_assoc($tmpBlackQ) : null;
+			if ($tmpBlack)
+				$xBlack = $tmpBlack;
+		}
                 $pBlack = $xBlack['nick'];
 		$pBlackF = $xBlack['firstName'];
 		$pBlackL = $xBlack['lastName'];
 
-	        $tmpWhiteQ = mysqli_query($dbh, "SELECT nick,firstName,lastName FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['whitePlayer']);
-                $xWhite = mysqli_fetch_assoc($tmpWhiteQ);
+	        $xWhite = array('nick' => '', 'firstName' => '', 'lastName' => '');
+		if ($stmtPlayerInfo)
+		{
+			$whitePlayerId = (int)$tmpGame['whitePlayer'];
+			mysqli_stmt_bind_param($stmtPlayerInfo, "i", $whitePlayerId);
+			mysqli_stmt_execute($stmtPlayerInfo);
+			$tmpWhiteQ = mysqli_stmt_get_result($stmtPlayerInfo);
+			$tmpWhite = $tmpWhiteQ ? mysqli_fetch_assoc($tmpWhiteQ) : null;
+			if ($tmpWhite)
+				$xWhite = $tmpWhite;
+			mysqli_stmt_close($stmtPlayerInfo);
+		}
                 $pWhite = $xWhite['nick'];
 		$pWhiteF = $xWhite['firstName'];
 		$pWhiteL = $xWhite['lastName'];
 
                 if ($tmpGame['whitePlayer'] == $_SESSION['playerID'])
                 {
-		        $tmpOpponent = $tmpBlackQ;
 			$MyColor="white";
 		}
                 elseif ($tmpGame['blackPlayer'] == $_SESSION['playerID'])
 		{
-                        $tmpOpponent = $tmpWhiteQ;
 			$MyColor="black";
 		}
 		else

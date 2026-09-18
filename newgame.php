@@ -72,7 +72,14 @@
 			global $_POST, $_GET, $_SESSION;
 
 		$numMoves = -1;
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$_SESSION['gameID']);
+		$sessionGameID = isset($_SESSION['gameID']) ? (int)$_SESSION['gameID'] : (int)$gameID;
+		$stmt = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ?");
+		if ($stmt)
+		{
+			mysqli_stmt_bind_param($stmt, "i", $sessionGameID);
+			mysqli_stmt_execute($stmt);
+			mysqli_stmt_close($stmt);
+		}
 
 		initBoard();
 	}

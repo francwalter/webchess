@@ -24,14 +24,31 @@
  ******************************************************************************/
 //ToDo: The probing algoritm must check inside tables to see if it has all its fields.
 function tableExists($dbh, $tablename) {
-	$SQLQuery = "SHOW TABLES";
-	$Result = mysqli_query($dbh, $SQLQuery);
-	while($Row=mysqli_fetch_row($Result)){
-		if($Row[0]==$tablename){
-			return true;
-		}
-	}
-	return false;
+  $tableExists = false;
+  $currentDbRes = mysqli_query($dbh, "SELECT DATABASE()");
+  $currentDbRow = $currentDbRes ? mysqli_fetch_row($currentDbRes) : null;
+  $currentDb = $currentDbRow ? (string)$currentDbRow[0] : '';
+  if ($currentDb === '')
+    return false;
+
+  $stmt = mysqli_prepare(
+    $dbh,
+    "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? LIMIT 1"
+  );
+  if ($stmt)
+  {
+    mysqli_stmt_bind_param($stmt, "ss", $currentDb, $tablename);
+    mysqli_stmt_execute($stmt);
+    $Result = mysqli_stmt_get_result($stmt);
+    $tableExists = ($Result && mysqli_num_rows($Result) > 0);
+    mysqli_stmt_close($stmt);
+  }
+
+  return $tableExists;
+}
+
+function webchessIsSafeSqlIdentifier($value) {
+  return (is_string($value) && preg_match('/^[A-Za-z0-9_]+$/', $value) === 1);
 }
 
 function createTableGames($dbh){
@@ -219,10 +236,13 @@ function showProbingMessage($message){
 //user does not have direct access to the MySQL server, as will happen in most of the
 //free web hosting providers.
 function createDB($user,$password,$server,$DBname){
+	if (!webchessIsSafeSqlIdentifier($DBname))
+		return false;
+
    $dbh=mysqli_connect($server, $user, $password)
            or die ('WebChess cannot connect to the database.
               Please check the database settings you provided.<br>');
-   $query="create database ".$DBname;
+	$query="CREATE DATABASE `".$DBname."`";
    $result=mysqli_query($dbh, $query);
    mysqli_close($dbh);
    return $result;
@@ -232,6 +252,9 @@ function createDB($user,$password,$server,$DBname){
 //ToDo: be able to write the install.log file.
 //Until this is done, the $logMsg .= ... lines are commented.
 function createTables($user,$password,$server,$DBname){
+	if (!webchessIsSafeSqlIdentifier($DBname))
+		die('Invalid database name supplied.');
+
    $dbh=mysqli_connect($server, $user, $password)
            or die ('WebChess cannot connect to the database.
               Please check the database settings you provided.<br>');

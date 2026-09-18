@@ -19,6 +19,8 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+  require_once 'security.php';
+
 	session_start();
 
 	/* load settings */
@@ -62,30 +64,297 @@
 	/* determine threshold for oldest game permitted */
 	$targetDate = date("Y-m-d", mktime(0,0,0, date('m'), date('d') - $CFG_EXPIREGAME, date('Y')));
 
-	/* find out which games are older */
-	$tmpQuery = "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE lastMove < '".$targetDate."'";
-	$tmpOldGames = mysqli_query($dbh, $tmpQuery);
+  /* find out which games are older */
+  $tmpOldGames = false;
+  $stmtOldGames = mysqli_prepare($dbh, "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE lastMove < ?");
+  if ($stmtOldGames)
+  {
+    mysqli_stmt_bind_param($stmtOldGames, "s", $targetDate);
+    mysqli_stmt_execute($stmtOldGames);
+    $tmpOldGames = mysqli_stmt_get_result($stmtOldGames);
+    mysqli_stmt_close($stmtOldGames);
+  }
+
+  $stmtDeleteHistory = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ?");
+  $stmtDeletePieces = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ?");
+  $stmtDeleteMessages = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ?");
+  $stmtDeleteGame = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
 
 	/* for each older game... */
-	while($tmpOldGame = mysqli_fetch_assoc($tmpOldGames))
+  while($tmpOldGames && ($tmpOldGame = mysqli_fetch_assoc($tmpOldGames)))
 	{
+    $oldGameId = (int)$tmpOldGame['gameID'];
 		/* ... clear the history... */
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$tmpOldGame['gameID']);
+    if ($stmtDeleteHistory)
+    {
+      mysqli_stmt_bind_param($stmtDeleteHistory, "i", $oldGameId);
+      mysqli_stmt_execute($stmtDeleteHistory);
+    }
 
 		/* ... and the board... */
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['pieces'] . " WHERE gameID = ".$tmpOldGame['gameID']);
+    if ($stmtDeletePieces)
+    {
+      mysqli_stmt_bind_param($stmtDeletePieces, "i", $oldGameId);
+      mysqli_stmt_execute($stmtDeletePieces);
+    }
 
 		/* ... and the messages... */
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ".$tmpOldGame['gameID']);
+    if ($stmtDeleteMessages)
+    {
+      mysqli_stmt_bind_param($stmtDeleteMessages, "i", $oldGameId);
+      mysqli_stmt_execute($stmtDeleteMessages);
+    }
 
 		/* ... and finally the game itself from the database */
-		mysqli_query($dbh, "DELETE FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$tmpOldGame['gameID']);
+    if ($stmtDeleteGame)
+    {
+      mysqli_stmt_bind_param($stmtDeleteGame, "i", $oldGameId);
+      mysqli_stmt_execute($stmtDeleteGame);
+    }
 	}
+
+  if ($stmtDeleteHistory)
+    mysqli_stmt_close($stmtDeleteHistory);
+  if ($stmtDeletePieces)
+    mysqli_stmt_close($stmtDeletePieces);
+  if ($stmtDeleteMessages)
+    mysqli_stmt_close($stmtDeleteMessages);
+  if ($stmtDeleteGame)
+    mysqli_stmt_close($stmtDeleteGame);
 
 	$tmpNewUser = false;
 	$errMsg = "";
   $redirectTo = '';
 	$toDo = isset($_POST['ToDo']) ? $_POST['ToDo'] : '';
+
+  function webchessGetNickByPlayerId($dbh, $tablePlayers, $playerId)
+  {
+    $nick = '';
+    $stmt = mysqli_prepare($dbh, "SELECT nick FROM " . $tablePlayers . " WHERE playerID = ? LIMIT 1");
+    if ($stmt)
+    {
+      $playerId = (int)$playerId;
+      mysqli_stmt_bind_param($stmt, "i", $playerId);
+      mysqli_stmt_execute($stmt);
+      $res = mysqli_stmt_get_result($stmt);
+      $row = $res ? mysqli_fetch_row($res) : null;
+      if ($row)
+        $nick = (string)$row[0];
+      mysqli_stmt_close($stmt);
+    }
+    return $nick;
+  }
+
+  function webchessCountMovesByGameId($dbh, $tableHistory, $gameId)
+  {
+    $count = 0;
+    $stmt = mysqli_prepare($dbh, "SELECT COUNT(gameID) FROM " . $tableHistory . " WHERE gameID = ?");
+    if ($stmt)
+    {
+      $gameId = (int)$gameId;
+      mysqli_stmt_bind_param($stmt, "i", $gameId);
+      mysqli_stmt_execute($stmt);
+      $res = mysqli_stmt_get_result($stmt);
+      $row = $res ? mysqli_fetch_row($res) : null;
+      if ($row)
+        $count = (int)$row[0];
+      mysqli_stmt_close($stmt);
+    }
+    return $count;
+  }
+
+  function webchessLoginThrottleKey($nick)
+  {
+    $remoteAddr = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : 'unknown';
+    $nick = strtolower(trim((string)$nick));
+    return hash('sha256', $remoteAddr . '|' . $nick);
+  }
+
+  function webchessLoginThrottleFilePath()
+  {
+    $baseDir = sys_get_temp_dir();
+    if (!is_string($baseDir) || $baseDir === '')
+      $baseDir = __DIR__;
+
+    $throttleDir = rtrim($baseDir, "\\/") . DIRECTORY_SEPARATOR . 'webchess';
+    if (!is_dir($throttleDir))
+      @mkdir($throttleDir, 0700, true);
+
+    return $throttleDir . DIRECTORY_SEPARATOR . 'login_throttle.json';
+  }
+
+  function webchessLoginThrottleReadData($fp)
+  {
+    rewind($fp);
+    $json = stream_get_contents($fp);
+    if (!is_string($json) || $json === '')
+      return array();
+
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : array();
+  }
+
+  function webchessLoginThrottleWriteData($fp, $data)
+  {
+    if (!is_array($data))
+      $data = array();
+
+    $json = json_encode($data);
+    if (!is_string($json))
+      $json = '{}';
+
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, $json);
+    fflush($fp);
+  }
+
+  function webchessLoginThrottleGc(&$data, $now, $windowSeconds, $lockSeconds)
+  {
+    if (!is_array($data))
+      $data = array();
+
+    foreach ($data as $key => $entry)
+    {
+      $firstAttempt = isset($entry['firstAttempt']) ? (int)$entry['firstAttempt'] : 0;
+      $blockedUntil = isset($entry['blockedUntil']) ? (int)$entry['blockedUntil'] : 0;
+      $lastRelevantTs = max($firstAttempt, $blockedUntil);
+      if (($now - $lastRelevantTs) > ($windowSeconds + $lockSeconds))
+        unset($data[$key]);
+    }
+  }
+
+  function webchessIsLoginBlocked($nick, &$retryAfterSeconds = 0)
+  {
+    $maxAttempts = 5;
+    $windowSeconds = 15 * 60;
+    $lockSeconds = 15 * 60;
+    $key = webchessLoginThrottleKey($nick);
+    $now = time();
+    $retryAfterSeconds = 0;
+
+    $fp = @fopen(webchessLoginThrottleFilePath(), 'c+');
+    if (!$fp)
+      return false;
+    if (!flock($fp, LOCK_EX))
+    {
+      fclose($fp);
+      return false;
+    }
+
+    $data = webchessLoginThrottleReadData($fp);
+    webchessLoginThrottleGc($data, $now, $windowSeconds, $lockSeconds);
+
+    if (!isset($data[$key]))
+    {
+      webchessLoginThrottleWriteData($fp, $data);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return false;
+    }
+
+    $entry = $data[$key];
+    $firstAttempt = isset($entry['firstAttempt']) ? (int)$entry['firstAttempt'] : 0;
+    $failedCount = isset($entry['failedCount']) ? (int)$entry['failedCount'] : 0;
+    $blockedUntil = isset($entry['blockedUntil']) ? (int)$entry['blockedUntil'] : 0;
+
+    if ($blockedUntil > $now)
+    {
+      $retryAfterSeconds = $blockedUntil - $now;
+      webchessLoginThrottleWriteData($fp, $data);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return true;
+    }
+
+    if (($now - $firstAttempt) > $windowSeconds)
+    {
+      unset($data[$key]);
+      webchessLoginThrottleWriteData($fp, $data);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return false;
+    }
+
+    if ($failedCount >= $maxAttempts)
+    {
+      $data[$key]['blockedUntil'] = $now + $lockSeconds;
+      $retryAfterSeconds = $lockSeconds;
+      webchessLoginThrottleWriteData($fp, $data);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return true;
+    }
+
+    webchessLoginThrottleWriteData($fp, $data);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return false;
+  }
+
+  function webchessRecordLoginFailure($nick)
+  {
+    $key = webchessLoginThrottleKey($nick);
+    $now = time();
+    $maxAttempts = 5;
+    $windowSeconds = 15 * 60;
+
+    $fp = @fopen(webchessLoginThrottleFilePath(), 'c+');
+    if (!$fp)
+      return;
+    if (!flock($fp, LOCK_EX))
+    {
+      fclose($fp);
+      return;
+    }
+
+    $data = webchessLoginThrottleReadData($fp);
+    webchessLoginThrottleGc($data, $now, $windowSeconds, 15 * 60);
+
+    if (!isset($data[$key]) || ($now - (int)$data[$key]['firstAttempt']) > $windowSeconds)
+    {
+      $data[$key] = array(
+        'firstAttempt' => $now,
+        'failedCount' => 1,
+        'blockedUntil' => 0,
+      );
+      webchessLoginThrottleWriteData($fp, $data);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return;
+    }
+
+    $data[$key]['failedCount'] = (int)$data[$key]['failedCount'] + 1;
+    if ((int)$data[$key]['failedCount'] >= $maxAttempts)
+      $data[$key]['blockedUntil'] = $now + (15 * 60);
+
+    webchessLoginThrottleWriteData($fp, $data);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+  }
+
+  function webchessClearLoginThrottle($nick)
+  {
+    $key = webchessLoginThrottleKey($nick);
+
+    $fp = @fopen(webchessLoginThrottleFilePath(), 'c+');
+    if (!$fp)
+      return;
+    if (!flock($fp, LOCK_EX))
+    {
+      fclose($fp);
+      return;
+    }
+
+    $data = webchessLoginThrottleReadData($fp);
+    if (isset($data[$key]))
+      unset($data[$key]);
+
+    webchessLoginThrottleWriteData($fp, $data);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+  }
+
 	switch($toDo)
 	{
 		case 'NewUser':
@@ -123,33 +392,66 @@
 			/* get ID of new player */
 			$_SESSION['playerID'] = mysqli_insert_id($dbh);
 
-			/* set History format preference */
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'history', '".$_POST['rdoHistory']."')";
-			mysqli_query($dbh, $tmpQuery);
+      $prefHistory = (isset($_POST['rdoHistory']) && $_POST['rdoHistory'] === 'verbous') ? 'verbous' : 'pgn';
+      $prefHistoryLayout = (isset($_POST['rdoHistorylayout']) && $_POST['rdoHistorylayout'] === 'paragraph') ? 'paragraph' : 'columns';
+      $allowedThemes = array('beholder', 'gnuchess_simple', 'gnuchess_fancy', 'plain');
+      $prefTheme = isset($_POST['rdoTheme']) && in_array($_POST['rdoTheme'], $allowedThemes, true) ? $_POST['rdoTheme'] : 'beholder';
 
-			/* set History layout preference */
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'historylayout', '".$_POST['rdoHistorylayout']."')";
-			mysqli_query($dbh, $tmpQuery);
+      /* set History format preference */
+      $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'history', ?)");
+      if ($stmtPrefInsert)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $prefHistory);
+        mysqli_stmt_execute($stmtPrefInsert);
+        mysqli_stmt_close($stmtPrefInsert);
+      }
 
-			/* set Theme preference */
-			$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'theme', '".$_POST['rdoTheme']."')";
-			mysqli_query($dbh, $tmpQuery);
+      /* set History layout preference */
+      $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'historylayout', ?)");
+      if ($stmtPrefInsert)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $prefHistoryLayout);
+        mysqli_stmt_execute($stmtPrefInsert);
+        mysqli_stmt_close($stmtPrefInsert);
+      }
+
+      /* set Theme preference */
+      $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'theme', ?)");
+      if ($stmtPrefInsert)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $prefTheme);
+        mysqli_stmt_execute($stmtPrefInsert);
+        mysqli_stmt_close($stmtPrefInsert);
+      }
 
       /* set GUI language preference */
       $tmpLanguage = (isset($_POST['rdoLanguage']) && ($_POST['rdoLanguage'] == 'de')) ? 'de' : 'en';
-      $tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'language', '".$tmpLanguage."')";
-      mysqli_query($dbh, $tmpQuery);
+      $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'language', ?)");
+      if ($stmtPrefInsert)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $tmpLanguage);
+        mysqli_stmt_execute($stmtPrefInsert);
+        mysqli_stmt_close($stmtPrefInsert);
+      }
 
-			/* set auto-reload preference */
-			if (is_numeric($_POST['txtReload']))
-			{
-				if (intval($_POST['txtReload']) >= $CFG_MINAUTORELOAD)
-					$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'autoreload', ".$_POST['txtReload'].")";
-				else
-					$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'autoreload', ".$CFG_MINAUTORELOAD.")";
+      /* set auto-reload preference */
+      $reloadValue = $CFG_MINAUTORELOAD;
+      if (isset($_POST['txtReload']) && is_numeric($_POST['txtReload']) && intval($_POST['txtReload']) >= $CFG_MINAUTORELOAD)
+        $reloadValue = intval($_POST['txtReload']);
 
-				mysqli_query($dbh, $tmpQuery);
-			}
+      $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'autoreload', ?)");
+      if ($stmtPrefInsert)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        $reloadValueStr = (string)$reloadValue;
+        mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $reloadValueStr);
+        mysqli_stmt_execute($stmtPrefInsert);
+        mysqli_stmt_close($stmtPrefInsert);
+      }
 
 			/* set email notification preference */
 			if ($CFG_USEEMAILNOTIFICATION)
@@ -158,59 +460,86 @@
         if ($tmpEmailNotification !== '' && !filter_var($tmpEmailNotification, FILTER_VALIDATE_EMAIL))
           $tmpEmailNotification = '';
 
-        $tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", 'emailnotification', '".mysqli_real_escape_string($dbh, $tmpEmailNotification)."')";
-				mysqli_query($dbh, $tmpQuery);
+        $stmtPrefInsert = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, 'emailnotification', ?)");
+        if ($stmtPrefInsert)
+        {
+          $playerId = (int)$_SESSION['playerID'];
+          mysqli_stmt_bind_param($stmtPrefInsert, "is", $playerId, $tmpEmailNotification);
+          mysqli_stmt_execute($stmtPrefInsert);
+          mysqli_stmt_close($stmtPrefInsert);
+        }
 			}
 
 			/* no break, login user */
+      webchessClearLoginThrottle(isset($_POST['txtNick']) ? (string)$_POST['txtNick'] : '');
 
 		case 'Login':
-      /* check for a player with supplied nick and verify password */
-      $tmpPlayer = null;
-      $stmtLogin = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['players'] . " WHERE nick = ? LIMIT 1");
-      if ($stmtLogin)
+        $loginNick = isset($_POST['txtNick']) ? (string)$_POST['txtNick'] : '';
+        $retryAfterSeconds = 0;
+        if (webchessIsLoginBlocked($loginNick, $retryAfterSeconds))
+        {
+          $retryAfterSeconds = max(1, (int)$retryAfterSeconds);
+          $lockoutMessage = sprintf(webchessTranslate('Too many failed login attempts. Please try again in %d seconds.'), $retryAfterSeconds);
+          echo "<script>alert('" . addslashes($lockoutMessage) . "'); window.location.replace('index.php');</script>\n";
+          exit();
+        }
+
+        /* check for a player with supplied nick and verify password */
+        $tmpPlayer = null;
+        $stmtLogin = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['players'] . " WHERE nick = ? LIMIT 1");
+        if ($stmtLogin)
+        {
+          mysqli_stmt_bind_param($stmtLogin, "s", $loginNick);
+          mysqli_stmt_execute($stmtLogin);
+          $tmpPlayers = mysqli_stmt_get_result($stmtLogin);
+          $tmpPlayer = $tmpPlayers ? mysqli_fetch_assoc($tmpPlayers) : null;
+          mysqli_stmt_close($stmtLogin);
+        }
+
+      /* if such a player exists, log him in... otherwise die */
+        if ($tmpPlayer && webchessPasswordMatches((string)$_POST['pwdPassword'], (string)$tmpPlayer['password']))
       {
-        mysqli_stmt_bind_param($stmtLogin, "s", $_POST['txtNick']);
-        mysqli_stmt_execute($stmtLogin);
-        $tmpPlayers = mysqli_stmt_get_result($stmtLogin);
-        $tmpPlayer = $tmpPlayers ? mysqli_fetch_assoc($tmpPlayers) : null;
-        mysqli_stmt_close($stmtLogin);
+              webchessClearLoginThrottle($loginNick);
+          session_regenerate_id(true);
+          webchessCsrfRegenerateToken();
+        $_SESSION['playerID'] = $tmpPlayer['playerID'];
+        $_SESSION['lastInputTime'] = time();
+        $_SESSION['playerName'] = $tmpPlayer['firstName']." ".$tmpPlayer['lastName'];
+        $_SESSION['firstName'] = $tmpPlayer['firstName'];
+        $_SESSION['lastName'] = $tmpPlayer['lastName'];
+        $_SESSION['nick'] = $tmpPlayer['nick'];
+
+          /* Seamless migration of legacy/plaintext passwords. */
+          if (webchessPasswordNeedsRehash((string)$tmpPlayer['password']))
+          {
+            $newLoginHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
+            $stmtRehash = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET password = ? WHERE playerID = ?");
+            if ($stmtRehash)
+            {
+              $playerIdInt = (int)$tmpPlayer['playerID'];
+              mysqli_stmt_bind_param($stmtRehash, "si", $newLoginHash, $playerIdInt);
+              mysqli_stmt_execute($stmtRehash);
+              mysqli_stmt_close($stmtRehash);
+            }
+          }
+      }
+      else {
+        webchessRecordLoginFailure($loginNick);
+        echo "<script>alert('Invalid Nick or Password. Please try again'); window.location.replace('index.php');</script>\n";
+        exit();
       }
 
-			/* if such a player exists, log him in... otherwise die */
-      if ($tmpPlayer && webchessPasswordMatches((string)$_POST['pwdPassword'], (string)$tmpPlayer['password']))
-			{
-        session_regenerate_id(true);
-        webchessCsrfRegenerateToken();
-				$_SESSION['playerID'] = $tmpPlayer['playerID'];
-				$_SESSION['lastInputTime'] = time();
-				$_SESSION['playerName'] = $tmpPlayer['firstName']." ".$tmpPlayer['lastName'];
-				$_SESSION['firstName'] = $tmpPlayer['firstName'];
-				$_SESSION['lastName'] = $tmpPlayer['lastName'];
-				$_SESSION['nick'] = $tmpPlayer['nick'];
-
-        /* Seamless migration of legacy/plaintext passwords. */
-        if (webchessPasswordNeedsRehash((string)$tmpPlayer['password']))
-        {
-          $newLoginHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
-          $stmtRehash = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['players'] . " SET password = ? WHERE playerID = ?");
-          if ($stmtRehash)
-          {
-            $playerIdInt = (int)$tmpPlayer['playerID'];
-            mysqli_stmt_bind_param($stmtRehash, "si", $newLoginHash, $playerIdInt);
-            mysqli_stmt_execute($stmtRehash);
-            mysqli_stmt_close($stmtRehash);
-          }
-        }
-			}
-			else {
-				echo "<script>alert('Invalid Nick or Password. Please try again'); window.location.replace('index.php');</script>\n";
-				exit();
-			}
-
-			/* load user preferences */
-			$tmpQuery = "SELECT * FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".$_SESSION['playerID'];
-			$tmpPreferences = mysqli_query($dbh, $tmpQuery);
+      /* load user preferences */
+      $tmpPreferences = false;
+      $stmtPrefs = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ?");
+      if ($stmtPrefs)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtPrefs, "i", $playerId);
+        mysqli_stmt_execute($stmtPrefs);
+        $tmpPreferences = mysqli_stmt_get_result($stmtPrefs);
+        mysqli_stmt_close($stmtPrefs);
+      }
 
 			$isPreferenceFound['history'] = false;
 			$isPreferenceFound['historylayout'] = false;
@@ -277,8 +606,15 @@
 						$defaultValue = "";
 						break;
 				}
-				$tmpQuery = "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (".$_SESSION['playerID'].", '".$missingPref."', '".$defaultValue."')";
-				mysqli_query($dbh, $tmpQuery);
+        $stmtMissingPref = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['preferences'] . " (playerID, preference, value) VALUES (?, ?, ?)");
+        if ($stmtMissingPref)
+        {
+          $playerId = (int)$_SESSION['playerID'];
+          $defaultValue = (string)$defaultValue;
+          mysqli_stmt_bind_param($stmtMissingPref, "iss", $playerId, $missingPref, $defaultValue);
+          mysqli_stmt_execute($stmtMissingPref);
+          mysqli_stmt_close($stmtMissingPref);
+        }
 
 				/* setup SESSION var of name pref_PREF, like pref_history */
 				if ($CFG_USEEMAILNOTIFICATION || ($missingPref != 'emailnotification'))
@@ -301,37 +637,61 @@
 			exit();
 
 		case 'InvitePlayer':
-			/* prevent multiple pending requests between two players with the same originator */
-			$tmpQuery = "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited'";
-			$tmpQuery .= " AND ((messageFrom = 'white' AND whitePlayer = ".$_SESSION['playerID']." AND blackPlayer = ".$_POST['opponent'].")";
-			$tmpQuery .= " OR (messageFrom = 'black' AND whitePlayer = ".$_POST['opponent']." AND blackPlayer = ".$_SESSION['playerID']."))";
-			$tmpExistingRequests = mysqli_query($dbh, $tmpQuery);
+      $opponentId = isset($_POST['opponent']) ? (int)$_POST['opponent'] : 0;
+      if ($opponentId <= 0 || $opponentId === (int)$_SESSION['playerID'])
+        break;
 
-			if (mysqli_num_rows($tmpExistingRequests) == 0)
+      $requestedColor = isset($_POST['color']) ? (string)$_POST['color'] : 'random';
+      if (!in_array($requestedColor, array('random', 'white', 'black'), true))
+        $requestedColor = 'random';
+
+			/* prevent multiple pending requests between two players with the same originator */
+      $stmtExistingRequests = mysqli_prepare($dbh, "SELECT gameID FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited' AND ((messageFrom = 'white' AND whitePlayer = ? AND blackPlayer = ?) OR (messageFrom = 'black' AND whitePlayer = ? AND blackPlayer = ?))");
+      $tmpExistingRequests = false;
+      if ($stmtExistingRequests)
+      {
+        $playerId = (int)$_SESSION['playerID'];
+        mysqli_stmt_bind_param($stmtExistingRequests, "iiii", $playerId, $opponentId, $opponentId, $playerId);
+        mysqli_stmt_execute($stmtExistingRequests);
+        $tmpExistingRequests = mysqli_stmt_get_result($stmtExistingRequests);
+        mysqli_stmt_close($stmtExistingRequests);
+      }
+
+      if (!$tmpExistingRequests || mysqli_num_rows($tmpExistingRequests) == 0)
 			{
 				if (!minimum_version("4.2.0"))
 					init_srand();
 
-				if ($_POST['color'] == 'random')
+        if ($requestedColor == 'random')
 					$tmpColor = (mt_rand(0,1) == 1) ? "white" : "black";
 				else
-					$tmpColor = $_POST['color'];
+          $tmpColor = $requestedColor;
 
-				$tmpQuery = "INSERT INTO " . $CFG_TABLE['games'] . " (whitePlayer, blackPlayer, gameMessage, messageFrom, dateCreated, lastMove) VALUES (";
-				if ($tmpColor == 'white')
-					$tmpQuery .= $_SESSION['playerID'].", ".$_POST['opponent'];
-				else
-					$tmpQuery .= $_POST['opponent'].", ".$_SESSION['playerID'];
+        $whitePlayerId = ($tmpColor === 'white') ? (int)$_SESSION['playerID'] : $opponentId;
+        $blackPlayerId = ($tmpColor === 'white') ? $opponentId : (int)$_SESSION['playerID'];
 
-				$tmpQuery .= ", 'playerInvited', '".$tmpColor."', NOW(), NOW())";
-				mysqli_query($dbh, $tmpQuery);
+        $stmtInvite = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['games'] . " (whitePlayer, blackPlayer, gameMessage, messageFrom, dateCreated, lastMove) VALUES (?, ?, 'playerInvited', ?, NOW(), NOW())");
+        if ($stmtInvite)
+        {
+          mysqli_stmt_bind_param($stmtInvite, "iis", $whitePlayerId, $blackPlayerId, $tmpColor);
+          mysqli_stmt_execute($stmtInvite);
+          mysqli_stmt_close($stmtInvite);
+        }
 
 				/* if email notification is activated... */
 				if ($CFG_USEEMAILNOTIFICATION)
 				{
 					/* if opponent is using email notification... */
-					$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".$_POST['opponent']." AND preference = 'emailNotification'");
-					if (mysqli_num_rows($tmpOpponentEmail) > 0)
+          $stmtOpponentEmail = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'emailNotification'");
+          $tmpOpponentEmail = false;
+          if ($stmtOpponentEmail)
+          {
+            mysqli_stmt_bind_param($stmtOpponentEmail, "i", $opponentId);
+            mysqli_stmt_execute($stmtOpponentEmail);
+            $tmpOpponentEmail = mysqli_stmt_get_result($stmtOpponentEmail);
+            mysqli_stmt_close($stmtOpponentEmail);
+          }
+          if ($tmpOpponentEmail && mysqli_num_rows($tmpOpponentEmail) > 0)
 					{
 						$opponentEmail = mysqli_fetch_row($tmpOpponentEmail)[0];
 						if ($opponentEmail != '')
@@ -345,55 +705,107 @@
 			break;
 
 		case 'ResponseToInvite':
-			if ($_POST['response'] == 'accepted')
+      $gameId = isset($_POST['gameID']) ? (int)$_POST['gameID'] : 0;
+      $response = isset($_POST['response']) ? (string)$_POST['response'] : '';
+      if ($gameId <= 0 || !in_array($response, array('accepted', 'declined'), true))
+        break;
+
+      $stmtInviteGame = mysqli_prepare($dbh, "SELECT whitePlayer, blackPlayer, messageFrom, gameMessage FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? LIMIT 1");
+      if (!$stmtInviteGame)
+        break;
+      mysqli_stmt_bind_param($stmtInviteGame, "i", $gameId);
+      mysqli_stmt_execute($stmtInviteGame);
+      $inviteGameRes = mysqli_stmt_get_result($stmtInviteGame);
+      $inviteGame = $inviteGameRes ? mysqli_fetch_assoc($inviteGameRes) : null;
+      mysqli_stmt_close($stmtInviteGame);
+      if (!$inviteGame || $inviteGame['gameMessage'] !== 'playerInvited')
+        break;
+
+      $invitedPlayerId = ($inviteGame['messageFrom'] === 'white') ? (int)$inviteGame['blackPlayer'] : (int)$inviteGame['whitePlayer'];
+      if ($invitedPlayerId !== (int)$_SESSION['playerID'])
+        break;
+
+      if ($response == 'accepted')
 			{
 				/* update game data */
-				$tmpQuery = "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = NULL, messageFrom = NULL WHERE gameID = ".$_POST['gameID'];
-				mysqli_query($dbh, $tmpQuery);
+        $stmtAcceptInvite = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = NULL, messageFrom = NULL WHERE gameID = ?");
+        if ($stmtAcceptInvite)
+        {
+          mysqli_stmt_bind_param($stmtAcceptInvite, "i", $gameId);
+          mysqli_stmt_execute($stmtAcceptInvite);
+          mysqli_stmt_close($stmtAcceptInvite);
+        }
 
 				/* setup new board */
-				$_SESSION['gameID'] = $_POST['gameID'];
-				createNewGame($_POST['gameID']);
+        $_SESSION['gameID'] = $gameId;
+        createNewGame($gameId);
 				saveGame();
 			}
 			else
 			{
 
-				$tmpQuery = "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'inviteDeclined', messageFrom = '".$_POST['messageFrom']."' WHERE gameID = ".$_POST['gameID'];
-				mysqli_query($dbh, $tmpQuery);
+        $stmtDeclineInvite = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['games'] . " SET gameMessage = 'inviteDeclined', messageFrom = ? WHERE gameID = ?");
+        if ($stmtDeclineInvite)
+        {
+          $inviterColor = (string)$inviteGame['messageFrom'];
+          mysqli_stmt_bind_param($stmtDeclineInvite, "si", $inviterColor, $gameId);
+          mysqli_stmt_execute($stmtDeclineInvite);
+          mysqli_stmt_close($stmtDeclineInvite);
+        }
 			}
 
 			break;
 
 		case 'WithdrawRequest':
+      $gameId = isset($_POST['gameID']) ? (int)$_POST['gameID'] : 0;
+      if ($gameId <= 0)
+        break;
 
-			/* get opponent's player ID */
-			$tmpOpponentID = mysqli_query($dbh, "SELECT whitePlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$_POST['gameID']);
-			if (mysqli_num_rows($tmpOpponentID) > 0)
+      /* get game and ensure current user is the inviter of a pending invite */
+      $stmtGame = mysqli_prepare($dbh, "SELECT whitePlayer, blackPlayer, messageFrom, gameMessage FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? LIMIT 1");
+      if (!$stmtGame)
+        break;
+      mysqli_stmt_bind_param($stmtGame, "i", $gameId);
+      mysqli_stmt_execute($stmtGame);
+      $tmpGameRes = mysqli_stmt_get_result($stmtGame);
+      $tmpGame = $tmpGameRes ? mysqli_fetch_assoc($tmpGameRes) : null;
+      mysqli_stmt_close($stmtGame);
+
+      if ($tmpGame && $tmpGame['gameMessage'] === 'playerInvited')
 			{
-				$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
+        $inviterId = ($tmpGame['messageFrom'] === 'white') ? (int)$tmpGame['whitePlayer'] : (int)$tmpGame['blackPlayer'];
+        if ($inviterId !== (int)$_SESSION['playerID'])
+          break;
+        $opponentID = ($inviterId === (int)$tmpGame['whitePlayer']) ? (int)$tmpGame['blackPlayer'] : (int)$tmpGame['whitePlayer'];
 
-				if ($opponentID == $_SESSION['playerID'])
+        $stmtDeleteInvite = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['games'] . " WHERE gameID = ?");
+        if ($stmtDeleteInvite)
 				{
-					$tmpOpponentID = mysqli_query($dbh, "SELECT blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$_POST['gameID']);
-					$opponentID = mysqli_fetch_row($tmpOpponentID)[0];
+          mysqli_stmt_bind_param($stmtDeleteInvite, "i", $gameId);
+          mysqli_stmt_execute($stmtDeleteInvite);
+          mysqli_stmt_close($stmtDeleteInvite);
 				}
-
-				$tmpQuery = "DELETE FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".$_POST['gameID'];
-				mysqli_query($dbh, $tmpQuery);
 
 				/* if email notification is activated... */
 				if ($CFG_USEEMAILNOTIFICATION)
 				{
 					/* if opponent is using email notification... */
-					$tmpOpponentEmail = mysqli_query($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ".$opponentID." AND preference = 'emailNotification'");
-					if (mysqli_num_rows($tmpOpponentEmail) > 0)
+          $stmtOpponentEmail = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'emailNotification'");
+          $tmpOpponentEmail = false;
+          if ($stmtOpponentEmail)
+          {
+            mysqli_stmt_bind_param($stmtOpponentEmail, "i", $opponentID);
+            mysqli_stmt_execute($stmtOpponentEmail);
+            $tmpOpponentEmail = mysqli_stmt_get_result($stmtOpponentEmail);
+            mysqli_stmt_close($stmtOpponentEmail);
+          }
+          if ($tmpOpponentEmail && mysqli_num_rows($tmpOpponentEmail) > 0)
 					{
 						$opponentEmail = mysqli_fetch_row($tmpOpponentEmail)[0];
 						if ($opponentEmail != '')
 						{
 							/* notify opponent of invitation via email */
-							webchessMail('withdrawal', $opponentEmail, '', $_SESSION['nick'], $_POST['gameID']);
+              webchessMail('withdrawal', $opponentEmail, '', $_SESSION['nick'], $gameId);
 						}
 					}
 				}
@@ -481,33 +893,61 @@
 		case 'UpdatePrefs':
       $oldLanguage = $_SESSION['pref_language'] ?? 'en';
 
-			/* Theme */
-			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoTheme']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'theme'";
-			mysqli_query($dbh, $tmpQuery);
+      $prefHistory = (isset($_POST['rdoHistory']) && $_POST['rdoHistory'] === 'verbous') ? 'verbous' : 'pgn';
+      $prefHistoryLayout = (isset($_POST['rdoHistorylayout']) && $_POST['rdoHistorylayout'] === 'paragraph') ? 'paragraph' : 'columns';
+      $allowedThemes = array('beholder', 'gnuchess_simple', 'gnuchess_fancy');
+      $prefTheme = isset($_POST['rdoTheme']) && in_array($_POST['rdoTheme'], $allowedThemes, true) ? $_POST['rdoTheme'] : 'beholder';
+      $sessionPlayerId = (int)$_SESSION['playerID'];
+
+      /* Theme */
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'theme'");
+      if ($stmtPrefUpdate)
+      {
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $prefTheme, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
 
       /* GUI Language */
       $tmpLanguage = (isset($_POST['rdoLanguage']) && ($_POST['rdoLanguage'] == 'de')) ? 'de' : 'en';
-      $tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$tmpLanguage."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'language'";
-      mysqli_query($dbh, $tmpQuery);
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'language'");
+      if ($stmtPrefUpdate)
+      {
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $tmpLanguage, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
 
-			/* History format */
-			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoHistory']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'history'";
-			mysqli_query($dbh, $tmpQuery);
+      /* History format */
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'history'");
+      if ($stmtPrefUpdate)
+      {
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $prefHistory, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
 
-			/* History layout */
-			$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".$_POST['rdoHistorylayout']."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'historylayout'";
-			mysqli_query($dbh, $tmpQuery);
+      /* History layout */
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'historylayout'");
+      if ($stmtPrefUpdate)
+      {
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $prefHistoryLayout, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
 
 			/* Auto-Reload */
-			if (is_numeric($_POST['txtReload']))
-			{
-				if (intval($_POST['txtReload']) >= $CFG_MINAUTORELOAD)
-					$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ".$_POST['txtReload']." WHERE playerID = ".$_SESSION['playerID']." AND preference = 'autoreload'";
-				else
-					$tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ".$CFG_MINAUTORELOAD." WHERE playerID = ".$_SESSION['playerID']." AND preference = 'autoreload'";
-
-				mysqli_query($dbh, $tmpQuery);
-			}
+      $reloadValue = $CFG_MINAUTORELOAD;
+      if (isset($_POST['txtReload']) && is_numeric($_POST['txtReload']) && intval($_POST['txtReload']) >= $CFG_MINAUTORELOAD)
+        $reloadValue = intval($_POST['txtReload']);
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'autoreload'");
+      if ($stmtPrefUpdate)
+      {
+        $reloadValueStr = (string)$reloadValue;
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $reloadValueStr, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
 
 			/* Email Notification */
 			if ($CFG_USEEMAILNOTIFICATION)
@@ -520,16 +960,21 @@
         }
         else
         {
-          $tmpQuery = "UPDATE " . $CFG_TABLE['preferences'] . " SET value = '".mysqli_real_escape_string($dbh, $tmpEmailNotification)."' WHERE playerID = ".$_SESSION['playerID']." AND preference = 'emailnotification'";
-          mysqli_query($dbh, $tmpQuery);
+          $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'emailnotification'");
+          if ($stmtPrefUpdate)
+          {
+            mysqli_stmt_bind_param($stmtPrefUpdate, "si", $tmpEmailNotification, $sessionPlayerId);
+            mysqli_stmt_execute($stmtPrefUpdate);
+            mysqli_stmt_close($stmtPrefUpdate);
+          }
           $_SESSION['pref_emailnotification'] = $tmpEmailNotification;
         }
 			}
 
 			/* update current session */
-			$_SESSION['pref_history'] = $_POST['rdoHistory'];
-			$_SESSION['pref_historylayout'] = $_POST['rdoHistorylayout'];
-			$_SESSION['pref_theme'] =  $_POST['rdoTheme'];
+      $_SESSION['pref_history'] = $prefHistory;
+      $_SESSION['pref_historylayout'] = $prefHistoryLayout;
+      $_SESSION['pref_theme'] =  $prefTheme;
       $_SESSION['pref_language'] = $tmpLanguage;
 
 			if (is_numeric($_POST['txtReload']))
@@ -594,8 +1039,15 @@
       }
 			break;
                 case 'HideMessage':
-                        $tmpQuery = "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = " . (int)$_POST['messageID'];
-                        mysqli_query($dbh, $tmpQuery);
+                        $stmtArchive = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['communication'] . " SET ack = 1 WHERE commID = ? AND toID = ?");
+                        if ($stmtArchive)
+                        {
+                          $messageId = isset($_POST['messageID']) ? (int)$_POST['messageID'] : 0;
+                          $sessionPlayerId = (int)$_SESSION['playerID'];
+                          mysqli_stmt_bind_param($stmtArchive, "ii", $messageId, $sessionPlayerId);
+                          mysqli_stmt_execute($stmtArchive);
+                          mysqli_stmt_close($stmtArchive);
+                        }
                         /* set a flash message to be shown after redirect */
                         $_SESSION['flash_msg'] = webchessTranslate('Message archived');
                         $_SESSION['flash_type'] = 'success';
@@ -855,7 +1307,7 @@
                 <li class="nav-item"><a class="nav-link px-2" href="#viewgame"><?php echo webchessTranslate("Replay"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#preferences"><?php echo webchessTranslate("Preferences"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#personalinfo"><?php echo webchessTranslate("Personal"); ?></a></li>
-                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="Toggle Dark Mode">Theme</button></li>
+                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button></li>
                 <li class="nav-item"><button class="btn btn-outline-danger btn-sm" type="button" onclick="reload()" title="<?php echo webchessTranslate('Reload'); ?>"><?php echo webchessTranslate("Reload"); ?></button></li>
                 <li class="nav-item"><button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo webchessTranslate("Logout"); ?></button></li>
             </ul>
@@ -907,17 +1359,22 @@ endif;
                                     </thead>
                                     <tbody id="inProgrTblBdy">
                                         <?php
-                                        $tmpGames = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage IS NULL AND (whitePlayer = ".(int)$_SESSION['playerID']." OR blackPlayer = ".(int)$_SESSION['playerID'].") ORDER BY dateCreated");
-                                        if (mysqli_num_rows($tmpGames) == 0): ?>
+                                        $stmtGames = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage IS NULL AND (whitePlayer = ? OR blackPlayer = ?) ORDER BY dateCreated");
+                                        $tmpGames = false;
+                                        if ($stmtGames) {
+                                            $playerId = (int)$_SESSION['playerID'];
+                                            mysqli_stmt_bind_param($stmtGames, "ii", $playerId, $playerId);
+                                            mysqli_stmt_execute($stmtGames);
+                                            $tmpGames = mysqli_stmt_get_result($stmtGames);
+                                            mysqli_stmt_close($stmtGames);
+                                        }
+                                        if (!$tmpGames || mysqli_num_rows($tmpGames) == 0): ?>
                                             <tr><td colspan="6" class="text-center text-muted"><?php echo webchessTranslate("You do not currently have any games in progress"); ?></td></tr>
                                         <?php else:
                                             while($tmpGame = mysqli_fetch_assoc($tmpGames)):
-                                                $tmpPlayerW = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['whitePlayer']);
-                                                $whiteNick = mysqli_fetch_row($tmpPlayerW)[0];
-                                                $tmpPlayerB = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".$tmpGame['blackPlayer']);
-                                                $blackNick = mysqli_fetch_row($tmpPlayerB)[0];
-                                                $tmpNumMoves = mysqli_query($dbh, "SELECT COUNT(gameID) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$tmpGame['gameID']);
-                                                $numMoves = mysqli_fetch_row($tmpNumMoves)[0];
+                                                $whiteNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['whitePlayer']);
+                                                $blackNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['blackPlayer']);
+                                                $numMoves = webchessCountMovesByGameId($dbh, $CFG_TABLE['history'], (int)$tmpGame['gameID']);
                                                 $isWhite = ($tmpGame['whitePlayer'] == $_SESSION['playerID']);
                                                 $isMyTurn = (($numMoves % 2 == 0) == $isWhite);
                                         ?>
@@ -967,18 +1424,27 @@ endif;
                                     <thead class="table-light"><tr><th>ID</th><th>White</th><th>Black</th><th>Issued</th><th>Action</th></tr></thead>
                                     <tbody>
                                         <?php
-                                        $tmpQuery = "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited' AND ((whitePlayer = ".$_SESSION['playerID']." AND messageFrom = 'black') OR (blackPlayer = ".$_SESSION['playerID']." AND messageFrom = 'white')) ORDER BY dateCreated";
-                                        $tmpGames = mysqli_query($dbh, $tmpQuery);
-                                        if (mysqli_num_rows($tmpGames) == 0): ?>
+                                        $stmtInvites = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited' AND ((whitePlayer = ? AND messageFrom = 'black') OR (blackPlayer = ? AND messageFrom = 'white')) ORDER BY dateCreated");
+                                        $tmpGames = false;
+                                        if ($stmtInvites) {
+                                            $playerId = (int)$_SESSION['playerID'];
+                                            mysqli_stmt_bind_param($stmtInvites, "ii", $playerId, $playerId);
+                                            mysqli_stmt_execute($stmtInvites);
+                                            $tmpGames = mysqli_stmt_get_result($stmtInvites);
+                                            mysqli_stmt_close($stmtInvites);
+                                        }
+                                        if (!$tmpGames || mysqli_num_rows($tmpGames) == 0): ?>
                                             <tr><td colspan="5" class="text-center text-muted"><?php echo webchessTranslate("You are not currently invited to any games"); ?></td></tr>
                                         <?php else:
                                             while($tmpGame = mysqli_fetch_assoc($tmpGames)):
                                                 $tmpFrom = ($tmpGame['whitePlayer'] == $_SESSION['playerID']) ? 'white' : 'black';
+                                                $whiteNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['whitePlayer']);
+                                                $blackNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['blackPlayer']);
                                         ?>
                                             <tr>
                                                                           <td><?php echo (int)$tmpGame['gameID']; ?></td>
-                                                                          <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                          <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                          <td><?php echo htmlspecialchars($whiteNick, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                          <td><?php echo htmlspecialchars($blackNick, ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td><small><?php echo substr($tmpGame['dateCreated'], 0, -3); ?></small></td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
@@ -1109,8 +1575,15 @@ endif;
                             <div class="input-group">
                                 <select id="player_select" class="form-select">
                                     <?php
-                                    $tmpQuery="SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$_SESSION['playerID'];
-                                    $tmpPlayers = mysqli_query($dbh, $tmpQuery);
+                                    $stmtPlayers = mysqli_prepare($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ?");
+                                    $tmpPlayers = false;
+                                    if ($stmtPlayers) {
+                                        $playerId = (int)$_SESSION['playerID'];
+                                        mysqli_stmt_bind_param($stmtPlayers, "i", $playerId);
+                                        mysqli_stmt_execute($stmtPlayers);
+                                        $tmpPlayers = mysqli_stmt_get_result($stmtPlayers);
+                                        mysqli_stmt_close($stmtPlayers);
+                                    }
                                     while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)) {
                                                         echo ('<option value="'.(int)$tmpPlayer['playerID'].'"> '.htmlspecialchars((string)$tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
                                     }
@@ -1128,9 +1601,17 @@ endif;
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $SqlQuery="SELECT * FROM " . $CFG_TABLE['communication'] . " left join " . $CFG_TABLE['players'] . " on " . $CFG_TABLE['communication'] . ".fromID=" . $CFG_TABLE['players'] . ".playerID WHERE ((toID is null) or (toID=" . (int)$_SESSION['playerID'] . ")) and ((fromID is null) or (fromID=playerID)) and ack=0 and gameID is null order by " . $CFG_TABLE['communication'] . ".postDate desc;";
-                                    $tmpGames = mysqli_query($dbh, $SqlQuery);
-                                    if (mysqli_num_rows($tmpGames) == 0): ?>
+                                    $SqlQuery = "SELECT * FROM " . $CFG_TABLE['communication'] . " left join " . $CFG_TABLE['players'] . " on " . $CFG_TABLE['communication'] . ".fromID=" . $CFG_TABLE['players'] . ".playerID WHERE ((toID is null) or (toID=?)) and ((fromID is null) or (fromID=playerID)) and ack=0 and gameID is null order by " . $CFG_TABLE['communication'] . ".postDate desc";
+                                    $stmtComm = mysqli_prepare($dbh, $SqlQuery);
+                                    $tmpGames = false;
+                                    if ($stmtComm) {
+                                        $playerId = (int)$_SESSION['playerID'];
+                                        mysqli_stmt_bind_param($stmtComm, "i", $playerId);
+                                        mysqli_stmt_execute($stmtComm);
+                                        $tmpGames = mysqli_stmt_get_result($stmtComm);
+                                        mysqli_stmt_close($stmtComm);
+                                    }
+                                    if (!$tmpGames || mysqli_num_rows($tmpGames) == 0): ?>
                                         <tr><td colspan="3" class="text-center text-muted"><?php echo webchessTranslate("No pending messages"); ?></td></tr>
                                     <?php else:
                                         while($tmpGame = mysqli_fetch_assoc($tmpGames)): ?>
@@ -1156,7 +1637,15 @@ endif;
                                 <label class="form-label"><?php echo webchessTranslate("Select Opponent");?></label>
                                 <select name="opponent" class="form-select">
                                     <?php
-                                    $tmpPlayers = mysqli_query($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$_SESSION['playerID']);
+                                    $stmtPlayers = mysqli_prepare($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ?");
+                                    $tmpPlayers = false;
+                                    if ($stmtPlayers) {
+                                        $playerId = (int)$_SESSION['playerID'];
+                                        mysqli_stmt_bind_param($stmtPlayers, "i", $playerId);
+                                        mysqli_stmt_execute($stmtPlayers);
+                                        $tmpPlayers = mysqli_stmt_get_result($stmtPlayers);
+                                        mysqli_stmt_close($stmtPlayers);
+                                    }
                                     while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)) {
                                                         echo ('<option value="'.(int)$tmpPlayer['playerID'].'"> '.htmlspecialchars((string)$tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
                                     }
@@ -1192,17 +1681,27 @@ endif;
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $tmpGames = mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE (gameMessage <> '' AND gameMessage <> 'playerInvited' AND gameMessage <> 'inviteDeclined') AND (whitePlayer = ".(int)$_SESSION['playerID']." OR blackPlayer = ".(int)$_SESSION['playerID'].") ORDER BY lastMove DESC");
-                                    if (mysqli_num_rows($tmpGames) == 0): ?>
+                                    $tmpGames = false;
+                                    $stmtEndedGames = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE (gameMessage <> '' AND gameMessage <> 'playerInvited' AND gameMessage <> 'inviteDeclined') AND (whitePlayer = ? OR blackPlayer = ?) ORDER BY lastMove DESC");
+                                    if ($stmtEndedGames) {
+                                        $playerId = (int)$_SESSION['playerID'];
+                                        mysqli_stmt_bind_param($stmtEndedGames, "ii", $playerId, $playerId);
+                                        mysqli_stmt_execute($stmtEndedGames);
+                                        $tmpGames = mysqli_stmt_get_result($stmtEndedGames);
+                                        mysqli_stmt_close($stmtEndedGames);
+                                    }
+                                    if (!$tmpGames || mysqli_num_rows($tmpGames) == 0): ?>
                                         <tr><td colspan="6" class="text-center text-muted"><?php echo webchessTranslate("No finished games found"); ?></td></tr>
                                     <?php else:
                                         while($tmpGame = mysqli_fetch_assoc($tmpGames)):
-                                            $tmpNumMoves = mysqli_fetch_row(mysqli_query($dbh, "SELECT COUNT(gameID) FROM " . $CFG_TABLE['history'] . " WHERE gameID = ".$tmpGame['gameID']))[0];
+                                            $tmpNumMoves = webchessCountMovesByGameId($dbh, $CFG_TABLE['history'], (int)$tmpGame['gameID']);
+                                            $whiteNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['whitePlayer']);
+                                            $blackNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['blackPlayer']);
                                     ?>
                                         <tr>
                                                                   <td><a href="javascript:loadGame(<?php echo (int)$tmpGame['gameID']; ?>)" class="btn btn-xs btn-outline-success">#<?php echo (int)$tmpGame['gameID']; ?></a></td>
-                                                                  <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['whitePlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                  <td><?php echo htmlspecialchars((string)mysqli_fetch_row(mysqli_query($dbh, "SELECT nick FROM ".$CFG_TABLE['players']." WHERE playerID=".$tmpGame['blackPlayer']))[0], ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                  <td><?php echo htmlspecialchars($whiteNick, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                  <td><?php echo htmlspecialchars($blackNick, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo floor($tmpNumMoves / 2); ?></td>
                                                                   <td><small><?php echo htmlspecialchars((string)$tmpGame['gameMessage'], ENT_QUOTES, 'UTF-8'); ?></small></td>
                                             <td><small><?php echo substr($tmpGame['lastMove'], 0, -3); ?></small></td>

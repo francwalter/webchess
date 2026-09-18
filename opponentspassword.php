@@ -19,6 +19,8 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+	require_once 'security.php';
+
 	session_start();
 
 	if (!isset($_CHESSUTILS))
@@ -46,11 +48,45 @@
 	/* invalid password flag */
 	$isInvalidPassword = false;
 
+	function webchessFetchGamePlayers($dbh, $gamesTable, $gameID)
+	{
+		$stmt = mysqli_prepare($dbh, "SELECT whitePlayer, blackPlayer FROM " . $gamesTable . " WHERE gameID = ? LIMIT 1");
+		if (!$stmt)
+			return null;
+		$gameID = (int)$gameID;
+		mysqli_stmt_bind_param($stmt, "i", $gameID);
+		mysqli_stmt_execute($stmt);
+		$res = mysqli_stmt_get_result($stmt);
+		$row = $res ? mysqli_fetch_assoc($res) : null;
+		mysqli_stmt_close($stmt);
+		return $row ?: null;
+	}
+
 	/* check if submitting opponents login information */
 	if (isset($_POST['opponentsID']))
 	{
 		$opponentsID = (int)$_POST['opponentsID'];
 		$opponentsNick = $_POST['opponentsNick'];
+		$gameID = isset($_POST['gameID']) ? (int)$_POST['gameID'] : (isset($_SESSION['gameID']) ? (int)$_SESSION['gameID'] : 0);
+		if ($gameID <= 0 || !webchessPlayerOwnsGame($dbh, $gameID, (int)$_SESSION['playerID']))
+		{
+			header('Location: mainmenu.php');
+			exit();
+		}
+
+		$tmpPlayers = webchessFetchGamePlayers($dbh, $CFG_TABLE['games'], $gameID);
+		if (!$tmpPlayers)
+		{
+			header('Location: mainmenu.php');
+			exit();
+		}
+
+		$expectedOpponentID = ((int)$tmpPlayers['whitePlayer'] === (int)$_SESSION['playerID']) ? (int)$tmpPlayers['blackPlayer'] : (int)$tmpPlayers['whitePlayer'];
+		if ($opponentsID !== $expectedOpponentID)
+		{
+			header('Location: mainmenu.php');
+			exit();
+		}
 
 		/* get opponents password from DB */
 		$dbPassword = null;
@@ -82,8 +118,8 @@
 
 			$_SESSION['isSharedPC'] = true;
             error_log("opponentspassword.php: Shared PC mode enabled. Loading chess.php for gameID: " . (isset($_POST['gameID']) ? $_POST['gameID'] : 'NOT SET'));
-            if (isset($_POST['gameID'])) {
-                $_SESSION['gameID'] = $_POST['gameID']; // Ensure gameID is set in session
+									if ($gameID > 0) {
+										$_SESSION['gameID'] = $gameID; // Ensure gameID is set in session
             }
 			require 'chess.php';
 			die();
@@ -106,10 +142,20 @@
             exit();
         }
 
+		$gameID = (int)$_POST['gameID'];
+		if ($gameID <= 0 || !webchessPlayerOwnsGame($dbh, $gameID, (int)$_SESSION['playerID']))
+		{
+			header('Location: mainmenu.php');
+			exit();
+		}
+
 		/* get the players associated with this game */
-		$tmpQuery = "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ".(int)$_POST['gameID'];
-		$tmpGameData = mysqli_query($dbh, $tmpQuery);
-		$tmpPlayers = mysqli_fetch_assoc($tmpGameData);
+		$tmpPlayers = webchessFetchGamePlayers($dbh, $CFG_TABLE['games'], $gameID);
+		if (!$tmpPlayers)
+		{
+			header('Location: mainmenu.php');
+			exit();
+		}
 
         error_log("opponentspassword.php: GameID: " . $_POST['gameID'] . ", WhitePlayer: " . $tmpPlayers['whitePlayer'] . ", BlackPlayer: " . $tmpPlayers['blackPlayer'] . ", SESSION playerID: " . $_SESSION['playerID']);
 
@@ -122,9 +168,17 @@
         error_log("opponentspassword.php: Opponent ID: " . $opponentsID);
 
 		/* get the opponents information */
-		$tmpQuery = "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ".(int)$opponentsID;
-		$tmpNick = mysqli_query($dbh, $tmpQuery);
-		$opponentsNick = mysqli_fetch_row($tmpNick)[0];
+		$opponentsNick = '';
+		$stmtNick = mysqli_prepare($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . " WHERE playerID = ? LIMIT 1");
+		if ($stmtNick)
+		{
+			mysqli_stmt_bind_param($stmtNick, "i", $opponentsID);
+			mysqli_stmt_execute($stmtNick);
+			$tmpNick = mysqli_stmt_get_result($stmtNick);
+			$tmpNickRow = $tmpNick ? mysqli_fetch_row($tmpNick) : null;
+			$opponentsNick = $tmpNickRow ? (string)$tmpNickRow[0] : '';
+			mysqli_stmt_close($stmtNick);
+		}
         error_log("opponentspassword.php: Opponent Nick: " . $opponentsNick);
 	}
 

@@ -19,13 +19,19 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+	require_once 'security.php';
+
 	session_start();
 
 	/* neededfor fixOldPHPVersions() below */
 	require 'chessutils.php';
+	require 'csrf.php';
 
 	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
 	fixOldPHPVersions();
+
+	/* check session status */
+	require 'sessioncheck.php';
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -142,6 +148,7 @@
 		<div class="preferences">
 			<div class="preferences-form">
 				<form name="newchallenge" action="mainmenu.php" method="post">
+				<?php echo webchessCsrfField(); ?>
 				<div class="form-block">
 					<h1>Issue a challenge</h1>
 						<div class="inputlabel">Opponent</div>
@@ -149,11 +156,18 @@
 						<?php
 							/* connect to the database */
 							require 'connectdb.php';
-							$tmpQuery="SELECT playerID, nick FROM " . $CFG_TABLE[players] . " WHERE playerID <> ".$_SESSION['playerID'];
-							$tmpPlayers = mysqli_query($dbh, $tmpQuery);
-							while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers))
+							$stmtPlayers = mysqli_prepare($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ? ORDER BY nick ASC");
+							if ($stmtPlayers)
 							{
-								echo ('<option value="'.$tmpPlayer['playerID'].'"> '.$tmpPlayer['nick']."</option>\n");
+								$playerId = (int)$_SESSION['playerID'];
+								mysqli_stmt_bind_param($stmtPlayers, "i", $playerId);
+								mysqli_stmt_execute($stmtPlayers);
+								$tmpPlayers = mysqli_stmt_get_result($stmtPlayers);
+								while($tmpPlayers && ($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)))
+								{
+									echo ('<option value="'.(int)$tmpPlayer['playerID'].'"> '.htmlspecialchars($tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
+								}
+								mysqli_stmt_close($stmtPlayers);
 							}
 							mysqli_close($dbh);
 						?>

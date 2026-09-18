@@ -34,19 +34,40 @@
   if (isset($CFG_TABLE['players']))
   {
     $playersTable = $CFG_TABLE['players'];
-    $tmpColumnInfo = @mysqli_query($dbh, "SHOW COLUMNS FROM `" . mysqli_real_escape_string($dbh, $playersTable) . "` LIKE 'password'");
-    if ($tmpColumnInfo && ($tmpPasswordColumn = mysqli_fetch_assoc($tmpColumnInfo)))
+    $tmpPasswordColumn = null;
+
+    $stmtColumnInfo = @mysqli_prepare(
+      $dbh,
+      "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'password' LIMIT 1"
+    );
+    if ($stmtColumnInfo)
     {
-      if (preg_match('/^(?:var)?char\((\d+)\)$/i', (string)$tmpPasswordColumn['Type'], $matches))
+      mysqli_stmt_bind_param($stmtColumnInfo, "ss", $CFG_DATABASE, $playersTable);
+      mysqli_stmt_execute($stmtColumnInfo);
+      $tmpColumnInfo = mysqli_stmt_get_result($stmtColumnInfo);
+      $tmpPasswordColumn = $tmpColumnInfo ? mysqli_fetch_assoc($tmpColumnInfo) : null;
+      mysqli_stmt_close($stmtColumnInfo);
+    }
+
+    if ($tmpPasswordColumn)
+    {
+      if (preg_match('/^(?:var)?char\((\d+)\)$/i', (string)$tmpPasswordColumn['COLUMN_TYPE'], $matches))
       {
         $tmpPasswordLength = (int)$matches[1];
         if ($tmpPasswordLength < 255)
         {
-          $tmpAlterTable = @mysqli_query($dbh, "ALTER TABLE `" . mysqli_real_escape_string($dbh, $playersTable) . "` MODIFY password VARCHAR(255) NOT NULL");
-          if (!$tmpAlterTable)
-            error_log("WebChess: could not widen players.password column for password hashes: " . mysqli_error($dbh));
+          if (!preg_match('/^[A-Za-z0-9_]+$/', $playersTable))
+          {
+            error_log("WebChess: invalid players table name for schema upgrade check.");
+          }
           else
-            error_log("WebChess: upgraded players.password column to VARCHAR(255).");
+          {
+            $tmpAlterTable = @mysqli_query($dbh, "ALTER TABLE `" . $playersTable . "` MODIFY password VARCHAR(255) NOT NULL");
+            if (!$tmpAlterTable)
+              error_log("WebChess: could not widen players.password column for password hashes: " . mysqli_error($dbh));
+            else
+              error_log("WebChess: upgraded players.password column to VARCHAR(255). ");
+          }
         }
       }
     }

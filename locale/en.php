@@ -166,4 +166,12 @@ return array(
     'Are you sure you want to offer a draw?' => 'Are you sure you want to offer a draw?',
     'Are you sure you want to resign?' => 'Are you sure you want to resign?',
     'At the start of the game, no move can be undone yet.' => 'At the start of the game, no move can be undone yet.',
+    'Invalid form token. Please reload and try again.' => 'Invalid form token. Please reload and try again.',
+    'Stalemate - You should offer your opponent a draw' => 'Stalemate - You should offer your opponent a draw',
+    'Insufficient material to checkmate - You should offer your opponent a draw' => 'Insufficient material to checkmate - You should offer your opponent a draw',
+    'Draw (this position has occurred three times) - You should offer your opponent a draw' => 'Draw (this position has occurred three times) - You should offer your opponent a draw',
+    'Draw (50 move rule) - You should offer your opponent a draw' => 'Draw (50 move rule) - You should offer your opponent a draw',
+    'Too many failed login attempts. Please try again in %d seconds.' => 'Too many failed login attempts. Please try again in %d seconds.',
+    'Switch to Dark Mode' => 'Switch to Dark Mode',
+    'Switch to Light Mode' => 'Switch to Light Mode',
 );

@@ -18,7 +18,12 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+require_once 'security.php';
+
 session_start();
+
+require 'csrf.php';
+require 'chessutils.php';
 
 	/* check session status */
 	require 'sessioncheck.php';
@@ -53,24 +58,40 @@ $id=$_SESSION['playerID'];
 
 if(isset($_POST['newMessage']))
 {
+	if (!webchessCsrfValidateRequest())
+		die('Invalid form token. Please reload and try again.');
+
 	/* echo("<PRE>");
 	print_r($_POST);
 	echo("</PRE>"); */
-        $fromPerson = (isset($_POST['from']) && $_POST['from'] != '') ? (int)$_POST['from'] : "NULL";
-        $toPerson = (isset($_POST['to']) && $_POST['to'] != '') ? (int)$_POST['to'] : "NULL";
+        $fromPerson = (int)$id;
+        $toPerson = (isset($_POST['to']) && $_POST['to'] != '') ? (int)$_POST['to'] : 0;
 
 	/* echo("From $fromPerson, To $toPerson<br>"); */
 
-        if ( ($fromPerson !== "NULL") && ($toPerson !== "NULL") ) {
-        $mGame = (isset($_POST['forGame']) && $_POST['forGame'] != '') ? (int)$_POST['forGame'] : "NULL";
-        $msgtitle = mysqli_real_escape_string($dbh, $_POST['txtTitle']);
-        $msgtext = mysqli_real_escape_string($dbh, $_POST['txtMessage']);
-        
-        $msgtype = "0"; // Always 0... yet..
+		if ($toPerson > 0) {
+		$mGame = (isset($_POST['forGame']) && $_POST['forGame'] != '') ? (int)$_POST['forGame'] : null;
+		if ($mGame !== null && !webchessPlayerOwnsGame($dbh, $mGame, $fromPerson))
+			die('Unauthorized game selection.');
 
-        $sql = "INSERT INTO " . $CFG_TABLE['communication'] . " (gameID,fromID,toID,title,text,postDate,expireDate,ack,commType) ";
-        $sql .= "VALUES ( $mGame , $fromPerson , $toPerson, '$msgtitle', '$msgtext', NOW( ) , NULL , '0', '$msgtype' );";
-        mysqli_query($dbh, $sql) or die("can't do query: $sql");
+		$msgtitle = trim((string)($_POST['txtTitle'] ?? ''));
+		$msgtext = trim((string)($_POST['txtMessage'] ?? ''));
+		$msgtype = "0"; // Always 0... yet..
+
+		if ($mGame === null) {
+			$stmt = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['communication'] . " (gameID,fromID,toID,title,text,postDate,expireDate,ack,commType) VALUES (NULL, ?, ?, ?, ?, NOW(), NULL, 0, ?)");
+			if (!$stmt)
+				die('Database error.');
+			mysqli_stmt_bind_param($stmt, "iisss", $fromPerson, $toPerson, $msgtitle, $msgtext, $msgtype);
+		} else {
+			$stmt = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['communication'] . " (gameID,fromID,toID,title,text,postDate,expireDate,ack,commType) VALUES (?, ?, ?, ?, ?, NOW(), NULL, 0, ?)");
+			if (!$stmt)
+				die('Database error.');
+			mysqli_stmt_bind_param($stmt, "iiisss", $mGame, $fromPerson, $toPerson, $msgtitle, $msgtext, $msgtype);
+		}
+
+		mysqli_stmt_execute($stmt);
+		mysqli_stmt_close($stmt);
 ?>
 Message Sent!
 <script type="text/javascript">
@@ -88,22 +109,29 @@ die();
 	<body style="background-color: #808080;">
 		<div style="text-align: center;">
 			<form action="sendmessage.php" method="post" name="FormName">
+				<?php echo webchessCsrfField(); ?>
 				Message Recipient:<br>
-				<input type="hidden" name="from" value="<?php echo $id; ?>">
+				<input type="hidden" name="from" value="<?php echo (int)$id; ?>">
 				<select name="to" size="1">
 <?php
 					$to_get = isset($_GET['to']) ? $_GET['to'] : '';
-					$tmpQuery="SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ".(int)$id." ORDER BY nick ASC";
-	                                $tmpPlayers = mysqli_query($dbh, $tmpQuery) or die("Sorry: $tmpQuery");
-                                        while($tmpPlayer = mysqli_fetch_assoc($tmpPlayers))
+					$stmtPlayers = mysqli_prepare($dbh, "SELECT playerID, nick FROM " . $CFG_TABLE['players'] . " WHERE playerID <> ? ORDER BY nick ASC");
+	                                if (!$stmtPlayers)
+	                                    die('Database error.');
+	                                $idInt = (int)$id;
+	                                mysqli_stmt_bind_param($stmtPlayers, "i", $idInt);
+	                                mysqli_stmt_execute($stmtPlayers);
+	                                $tmpPlayers = mysqli_stmt_get_result($stmtPlayers);
+	                                        while($tmpPlayers && ($tmpPlayer = mysqli_fetch_assoc($tmpPlayers)))
                                         {
                                                 if ($tmpPlayer['nick']){
 						if($tmpPlayer['playerID'] == $to_get)
-        	                                        echo("<option value='".$tmpPlayer['playerID']."' selected=\"selected\"> ".$tmpPlayer['nick']."</option>\n");
+	        	                                        echo("<option value='".(int)$tmpPlayer['playerID']."' selected=\"selected\"> ".htmlspecialchars($tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
 						else
-                	                                echo("<option value='".$tmpPlayer['playerID']."'> ".$tmpPlayer['nick']."</option>\n");
+	                	                                echo("<option value='".(int)$tmpPlayer['playerID']."'> ".htmlspecialchars($tmpPlayer['nick'], ENT_QUOTES, 'UTF-8')."</option>\n");
 						}
                                         }
+	                                mysqli_stmt_close($stmtPlayers);
 
 ?>				
 				</select><br>

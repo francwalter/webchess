@@ -19,6 +19,8 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+	require_once 'security.php';
+
 	session_start();
 
 	/* load settings */

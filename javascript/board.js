@@ -67,7 +67,7 @@ function isGameDrawn()
 			 myColor = BLACK;
 		if(countMoves(myColor) == 0)
 		{
-			alert('Stalemate - You should offer your opponent a draw');
+			alert(typeof window.stalemateDrawText !== 'undefined' ? window.stalemateDrawText : 'Stalemate - You should offer your opponent a draw');
 		}
 	}
 
@@ -87,19 +87,19 @@ function isGameDrawn()
 	}
 	if(count < 2 && !canCheckmate)
 	{
-		alert('Insufficient material to checkmate - You should offer your opponent a draw');
+		alert(typeof window.insufficientMaterialDrawText !== 'undefined' ? window.insufficientMaterialDrawText : 'Insufficient material to checkmate - You should offer your opponent a draw');
 	}
 
 	// Is the game drawn because this is the third time that the exact same position arises?
 	if(numMoves >= 0 && isThirdTimePosDraw(theFEN))
 	{
-		alert('Draw (this position has occurred three times) - You should offer your opponent a draw')
+		alert(typeof window.threefoldRepetitionDrawText !== 'undefined' ? window.threefoldRepetitionDrawText : 'Draw (this position has occurred three times) - You should offer your opponent a draw')
 	}
 
 	// Draw because of no capture of pawn move for the last 50 moves?
 	if(numMoves >= 0 && isFiftyMoveDraw(theFEN[theFEN.length-1]))
 	{
-		alert('Draw (50 move rule) - You should offer your opponent a draw');
+		alert(typeof window.fiftyMoveRuleDrawText !== 'undefined' ? window.fiftyMoveRuleDrawText : 'Draw (50 move rule) - You should offer your opponent a draw');
 	}
 }
 

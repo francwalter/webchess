@@ -19,6 +19,8 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+  require_once 'security.php';
+
 	/* debug flag */
 	define ("DEBUG", 0);
 
@@ -63,22 +65,42 @@
     exit();
   }
 
-	/* check if loading game */
-	if (isset($_POST['gameID']))
-		$_SESSION['gameID'] = $_POST['gameID'];
+  /* check if loading game */
+  if (isset($_POST['gameID']))
+    $_SESSION['gameID'] = (int)$_POST['gameID'];
 
 	/* connect to database */
 	require 'connectdb.php';
 
-	/* get White's nick */
-	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = whitePlayer AND gameID = " . (int)$_SESSION['gameID']);
-	$whiteNick = mysqli_fetch_row($tmpNick)[0];
+  if (!isset($_SESSION['gameID']) || !webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
+  {
+    $_SESSION['flash_msg'] = webchessTranslate('Invalid or unauthorized game selection.');
+    $_SESSION['flash_type'] = 'danger';
+    header('Location: mainmenu.php');
+    exit();
+  }
+
+  $whiteNick = '';
+  $blackNick = '';
+  $gameID = (int)$_SESSION['gameID'];
+  $stmtPlayers = mysqli_prepare(
+    $dbh,
+    "SELECT pw.nick AS whiteNick, pb.nick AS blackNick FROM " . $CFG_TABLE['games'] . " g JOIN " . $CFG_TABLE['players'] . " pw ON pw.playerID = g.whitePlayer JOIN " . $CFG_TABLE['players'] . " pb ON pb.playerID = g.blackPlayer WHERE g.gameID = ? LIMIT 1"
+  );
+  if ($stmtPlayers)
+  {
+    mysqli_stmt_bind_param($stmtPlayers, "i", $gameID);
+    mysqli_stmt_execute($stmtPlayers);
+    $resPlayers = mysqli_stmt_get_result($stmtPlayers);
+    $rowPlayers = $resPlayers ? mysqli_fetch_assoc($resPlayers) : null;
+    if ($rowPlayers)
+    {
+      $whiteNick = (string)$rowPlayers['whiteNick'];
+      $blackNick = (string)$rowPlayers['blackNick'];
+    }
+    mysqli_stmt_close($stmtPlayers);
+  }
     if (DEBUG) error_log("White Nick: " . $whiteNick);
-
-
-	/* get Black's nick */
-	$tmpNick = mysqli_query($dbh, "SELECT nick FROM " . $CFG_TABLE['players'] . ", " . $CFG_TABLE['games'] . " WHERE playerID = blackPlayer AND gameID = " . (int)$_SESSION['gameID']);
-	$blackNick = mysqli_fetch_row($tmpNick)[0];
     if (DEBUG) error_log("Black Nick: " . $blackNick);
 
 
@@ -255,6 +277,10 @@
         echo 'var confirmTitleText = ' . json_encode(webchessTranslate('Please confirm')) . ";\n";
         echo 'var confirmYesText = ' . json_encode(webchessTranslate('Yes')) . ";\n";
         echo 'var confirmNoText = ' . json_encode(webchessTranslate('Cancel')) . ";\n";
+        echo 'var stalemateDrawText = ' . json_encode(webchessTranslate('Stalemate - You should offer your opponent a draw')) . ";\n";
+        echo 'var insufficientMaterialDrawText = ' . json_encode(webchessTranslate('Insufficient material to checkmate - You should offer your opponent a draw')) . ";\n";
+        echo 'var threefoldRepetitionDrawText = ' . json_encode(webchessTranslate('Draw (this position has occurred three times) - You should offer your opponent a draw')) . ";\n";
+        echo 'var fiftyMoveRuleDrawText = ' . json_encode(webchessTranslate('Draw (50 move rule) - You should offer your opponent a draw')) . ";\n";
 
         writeStatus();
         writeHistory();
@@ -282,7 +308,7 @@
             <span id="players"></span>
         </div>
         <div class="ms-auto d-flex gap-2">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" title="<?php echo webchessTranslate('Toggle Dark Mode'); ?>">Theme</button>
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
         </div>
     </div>
 </nav>

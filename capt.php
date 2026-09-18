@@ -22,12 +22,35 @@
 /* connect to database */
 require 'connectdb.php';
 
-$f=mysqli_query($dbh, "SELECT * FROM " . $CFG_TABLE['history'] . " WHERE ((replaced > '') OR (curPiece = 'pawn' AND toCol <> fromCol AND replaced IS NULL)) AND gameID =  '".$_SESSION['gameID']."' ORDER BY curColor DESC, replaced DESC");
+$gameID = isset($_SESSION['gameID']) ? (int)$_SESSION['gameID'] : 0;
+if (
+	$gameID <= 0
+	|| !isset($_SESSION['playerID'])
+	|| !function_exists('webchessPlayerOwnsGame')
+	|| !webchessPlayerOwnsGame($dbh, $gameID, (int)$_SESSION['playerID'])
+)
+{
+	echo "var captPieces = [[], []];\n";
+	return;
+}
+
+$stmt = mysqli_prepare(
+	$dbh,
+	"SELECT * FROM " . $CFG_TABLE['history'] . " WHERE ((replaced > '') OR (curPiece = 'pawn' AND toCol <> fromCol AND replaced IS NULL)) AND gameID = ? ORDER BY curColor DESC, replaced DESC"
+);
+
+$f = false;
+if ($stmt)
+{
+	mysqli_stmt_bind_param($stmt, "i", $gameID);
+	mysqli_stmt_execute($stmt);
+	$f = mysqli_stmt_get_result($stmt);
+}
 
 $c=0;
 $d=0;
 echo('var captPieces = [[');
-while($row=mysqli_fetch_assoc($f)){
+while($f && ($row=mysqli_fetch_assoc($f))){
 	if(preg_match("/white/",$row['curColor']))
 		$c++;
 	if($c==1){
@@ -43,5 +66,8 @@ while($row=mysqli_fetch_assoc($f)){
 	echo "'".$row['replaced']."'";
 
 } // End while
+
+if ($stmt)
+	mysqli_stmt_close($stmt);
 
 echo "]];\n";

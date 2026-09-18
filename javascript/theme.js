@@ -42,23 +42,33 @@
     }
 
     function applyTheme(theme, skipStorage) {
-        if (theme === currentTheme && document.documentElement.getAttribute('data-bs-theme') === theme) {
+        var normalizedTheme = (theme === 'dark') ? 'dark' : 'light';
+        var bodyReady = !!document.body;
+        var bodyThemeApplied = !bodyReady || (
+            normalizedTheme === 'dark'
+                ? document.body.classList.contains('dark-theme')
+                : document.body.classList.contains('light-theme')
+        );
+
+        if (normalizedTheme === currentTheme && document.documentElement.getAttribute('data-bs-theme') === normalizedTheme && bodyThemeApplied) {
             return; 
         }
         
         const root = document.documentElement;
+        root.setAttribute('data-bs-theme', normalizedTheme);
         
-        if (theme === 'dark') {
-            root.setAttribute('data-bs-theme', 'dark');
-            document.body.classList.add('dark-theme');
-            document.body.classList.remove('light-theme');
-        } else {
-            root.setAttribute('data-bs-theme', 'light');
-            document.body.classList.remove('dark-theme');
-            document.body.classList.add('light-theme');
+        if (document.body) {
+            document.body.setAttribute('data-theme', normalizedTheme);
+            if (normalizedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                document.body.classList.remove('light-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+            }
         }
         
-        currentTheme = theme;
+        currentTheme = normalizedTheme;
         
         if (!skipStorage) {
             setStoredTheme(theme);
@@ -79,12 +89,14 @@
     function updateThemeButton() {
         const themeBtn = document.getElementById('theme-toggle-btn');
         if (themeBtn) {
+            var lightTitle = themeBtn.getAttribute('data-title-light') || 'Switch to Light Mode';
+            var darkTitle = themeBtn.getAttribute('data-title-dark') || 'Switch to Dark Mode';
             if (currentTheme === 'dark') {
-                themeBtn.innerHTML = '☀️';
-                themeBtn.title = 'Switch to Light Mode';
+                themeBtn.innerHTML = '&#9728;';
+                themeBtn.title = lightTitle;
             } else {
-                themeBtn.innerHTML = '🌙';
-                themeBtn.title = 'Switch to Dark Mode';
+                themeBtn.innerHTML = '&#9790;';
+                themeBtn.title = darkTitle;
             }
         }
     }
@@ -95,6 +107,9 @@
         applyTheme(preferredTheme, true);
     }
 
+    // Apply early so first paint already uses the preferred theme.
+    initTheme();
+
     // Expose toggleTheme and initTheme to global scope
     window.toggleTheme = toggleTheme;
     window.initTheme = initTheme;
@@ -104,5 +119,10 @@
         if (!document.hidden) {
             initTheme();
         }
+    });
+
+    // Ensure body classes and button state are correct once DOM is ready.
+    document.addEventListener('DOMContentLoaded', function() {
+        initTheme();
     });
 })();

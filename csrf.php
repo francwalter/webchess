@@ -6,6 +6,8 @@
 if (!function_exists('webchessCsrfToken')) {
 	function webchessCsrfToken()
 	{
+		require_once 'security.php';
+
 		if (session_status() !== PHP_SESSION_ACTIVE)
 			session_start();
 
