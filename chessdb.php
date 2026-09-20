@@ -747,7 +747,7 @@
 											mysqli_stmt_execute($stmtDeleteUndoApproved);
 											mysqli_stmt_close($stmtDeleteUndoApproved);
 										}
-							$statusMessage .= "Undo approved";
+																							$statusMessage .= webchessTranslate('Undo approved');
 							break;
 						case 'denied':
 							$isUndoing = false;
@@ -758,7 +758,7 @@
 											mysqli_stmt_execute($stmtDeleteUndoDenied);
 											mysqli_stmt_close($stmtDeleteUndoDenied);
 										}
-							$statusMessage .= "Undo denied";
+																							$statusMessage .= webchessTranslate('Undo denied');
 							break;
 					}
 					break;
@@ -777,7 +777,7 @@
 											mysqli_stmt_execute($stmtDeleteDrawApproved);
 											mysqli_stmt_close($stmtDeleteDrawApproved);
 										}
-							$statusMessage .= "Draw approved";
+																							$statusMessage .= webchessTranslate('Draw approved');
 							break;
 						case 'denied':
 										$stmtDeleteDrawDenied = mysqli_prepare($dbh, "DELETE FROM " . $CFG_TABLE['messages'] . " WHERE gameID = ? AND msgType = 'draw' AND msgStatus = 'denied' AND destination = ?");
@@ -787,7 +787,7 @@
 											mysqli_stmt_execute($stmtDeleteDrawDenied);
 											mysqli_stmt_close($stmtDeleteDrawDenied);
 										}
-							$statusMessage .= "Draw denied";
+																							$statusMessage .= webchessTranslate('Draw denied');
 							break;
 					}
 					break;
@@ -810,10 +810,10 @@
 			switch($tmpMessage['msgType'])
 			{
 				case 'undo':
-					$statusMessage .= "Your undo request is pending";
+					$statusMessage .= webchessTranslate('Your undo request is pending');
 					break;
 				case 'draw':
-					$statusMessage .= "Your request for a draw is pending";
+					$statusMessage .= webchessTranslate('Your request for a draw is pending');
 					break;
 			}
 		}
@@ -848,19 +848,19 @@
 
 		if ($tmpMessage['gameMessage'] == "draw")
 		{
-			$statusMessage .= "Game ended in a draw";
+			$statusMessage .= webchessTranslate('Game ended in a draw');
 			$isGameOver = true;
 		}
 
 		if ($tmpMessage['gameMessage'] == "playerResigned")
 		{
-			$statusMessage .= $tmpMessage['messageFrom']." has resigned the game";
+			$statusMessage .= sprintf(webchessTranslate('%s has resigned the game'), $tmpMessage['messageFrom']);
 			$isGameOver = true;
 		}
 
 		if ($tmpMessage['gameMessage'] == "checkMate")
 		{
-			$statusMessage .= "Checkmate! ".$tmpMessage['messageFrom']." has won the game";
+			$statusMessage .= sprintf(webchessTranslate('Checkmate! %s has won the game'), $tmpMessage['messageFrom']);
 			$isGameOver = true;
 			$isCheckMate = true;
 		}
