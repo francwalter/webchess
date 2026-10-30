@@ -559,7 +559,8 @@ switch($confirm){
                   <input type="hidden" name="pass_last" value="<?php echo $pass; ?>"/>
                </td></tr>
             <tr><td colspan="2"><b><u>Server Settings:</u></b></td></tr>
-            <tr><td><label for="timeout">Time before session expires (seconds):</label></td><td><input type="text" id="timeout" name="timeout"/> (ex: 900)</td></tr>
+            <tr><td><label for="timeout">Time before session expires (minutes):</label></td><td><input type="text" id="timeout" name="timeout" value="30"/> (ex: 30)</td></tr>
+            <tr><td><label for="login_lock_seconds">Login lockout duration after failed attempts (seconds):</label></td><td><input type="text" id="login_lock_seconds" name="login_lock_seconds" value="900"/> (ex: 900, values <= 0 fallback to 900)</td></tr>
             <tr><td><label for="expire">Time before a game expires (days):</label></td><td><input type="text" id="expire" name="expire"/> (ex: 14)</td></tr>
             <tr><td><label for="autoreload">Minimum time interval for auto-reload (seconds):</label></td><td><input type="text" id="autoreload" name="autoreload"/> (ex: 5)</td></tr>
             <tr><td><label for="mail_not">Use e-mail notification:</label></td><td><input type="checkbox" id="mail_not" name="mail_not" value="1"/></td></tr>

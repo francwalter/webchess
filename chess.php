@@ -336,6 +336,14 @@
                         </div>
 
                         <div id="undoWarning" class="alert alert-danger d-none text-center mb-3"></div>
+                        <div id="analysisPrompt" class="alert alert-warning d-none text-center mb-3">
+                            <div class="fw-bold mb-1"><?php echo webchessTranslate('Resume game?'); ?></div>
+                            <div class="small mb-2"><?php echo webchessTranslate('You are viewing an earlier move. In analysis mode you cannot make a move.'); ?></div>
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="resumeLiveGameFromAnalysis()"><?php echo webchessTranslate('Resume game'); ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="continueAnalysisMode()"><?php echo webchessTranslate('Continue analyzing'); ?></button>
+                            </div>
+                        </div>
                         <div id="gamebuttons" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
                             <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="<?php echo webchessTranslate('Request Undo'); ?>" <?php if ($numMoves < 0) echo 'disabled="disabled"'; ?> onclick="undo()" />
                             <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="<?php echo webchessTranslate('Request Draw'); ?>" disabled="disabled" onclick="draw()" />
@@ -356,6 +364,7 @@
 
                     <?php if ($_castlingPossible): ?>
                     <div class="text-muted small text-center mb-3">
+                        <?php echo webchessTranslate('Move pieces by clicking the start square, then the target square (no drag and drop).'); ?><br />
                         <?php echo webchessTranslate('When castling, just move the king (the rook will move automatically).'); ?>
                     </div>
                     <?php endif; ?>
@@ -387,7 +396,15 @@
 
                     <div id="checkmsg" class="alert alert-danger d-none mb-3"></div>
 
-                    <h6 class="border-bottom pb-2 mb-3"><?php echo webchessTranslate('Move History'); ?></h6>
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                        <h6 class="mb-0"><?php echo webchessTranslate('Move History'); ?></h6>
+                        <div class="d-flex gap-1">
+                            <button type="button" id="btnHistStart" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyJumpToStart()">&laquo;</button>
+                            <button type="button" id="btnHistPrev" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyStep(-1)">&larr;</button>
+                            <button type="button" id="btnHistNext" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyStep(1)">&rarr;</button>
+                            <button type="button" id="btnHistEnd" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyJumpToEnd()">&raquo;</button>
+                        </div>
+                    </div>
                     <div id="gamebody" class="overflow-auto" style="max-height: 350px;"></div>
 
                     <div class="mt-4 pt-3 border-top d-grid gap-2">

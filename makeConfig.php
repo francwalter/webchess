@@ -114,7 +114,13 @@ echo "\$CFG_PASSWORD = " . webchessPhpStringLiteral($new_pass) . ";\n";
 echo "\$CFG_DATABASE = " . webchessPhpStringLiteral($dbName) . ";\n";
 echo "\n/* server settings */\n";
 
-echo "\$CFG_SESSIONTIMEOUT = ".(int)$_POST['timeout'].";\n";
+$sessionTimeoutMinutes = isset($_POST['timeout']) ? (int)$_POST['timeout'] : 30;
+if ($sessionTimeoutMinutes <= 0)
+   $sessionTimeoutMinutes = 30;
+echo "\$CFG_SESSIONTIMEOUT = ".($sessionTimeoutMinutes * 60).";\n";
+if (!isset($_POST['login_lock_seconds']) || (int)$_POST['login_lock_seconds'] <= 0)
+   $_POST['login_lock_seconds'] = 900;
+echo "\$CFG_LOGIN_LOCK_SECONDS = ".(int)$_POST['login_lock_seconds'].";\n";
 echo "\$CFG_EXPIREGAME = ".(int)$_POST['expire'].";\n";
 echo "\$CFG_MINAUTORELOAD = ".(int)$_POST['autoreload'].";\n";
 

@@ -14,6 +14,10 @@ WebChess is a browser-based chess application without chess engine.
 
 Please refer to the installation instructions in [docs/INSTALL.txt](docs/INSTALL.txt).
 
+During installer step 3, login lockout duration is configurable via `login_lock_seconds` (values `<= 0` fall back to `900` seconds).
+
+After login, each user can adjust inactivity auto-logout in Preferences via `Session timeout (min)` (minimum `1`, default `30` from server config).
+
 ## Admin Helper (Login Throttle)
 
 WebChess includes a CLI-only helper to inspect or clear the server-side login throttle store.

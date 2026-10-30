@@ -164,10 +164,14 @@ function drawCoordinates(invertBoard) {
 
 function moveTo(objMoveId)
 {
+	var isDarkTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+	var previousMoveBg = isDarkTheme ? '#2f3644' : '#F5F5DC';
+	var currentMoveBg = isDarkTheme ? '#2c5fa7' : '#3C86F6';
+
 	if(currMoveIdx > 0)
 	{
         var prevMoveObj = getObject('m' + currMoveIdx + '');
-		if (prevMoveObj) prevMoveObj.style.backgroundColor = '#F5F5DC';
+		if (prevMoveObj) prevMoveObj.style.backgroundColor = previousMoveBg;
 	}
 	currMoveIdx = objMoveId.id.slice(1);
 	currMoveIdx = parseInt(currMoveIdx);
@@ -177,7 +181,31 @@ function moveTo(objMoveId)
 	if (boardContainer) boardContainer.innerHTML = theBoardHtml;
 	drawCoordinates(perspective == 'black');
 	var currMoveObj = getObject('m' + currMoveIdx + '');
-    if (currMoveObj) currMoveObj.style.backgroundColor = '#3C86F6';
+    if (currMoveObj) currMoveObj.style.backgroundColor = currentMoveBg;
+
+	updateAnalysisModeState();
+
+	if(isPlayersTurn == '1')
+	{
+		for(var i=0; i < 64; i++) {
+			var sq = getObject('tsq' + i);
+			if (sq) sq.onclick = function(){
+				if (isAnalysisMode)
+				{
+					setAnalysisPromptVisible(true);
+					return;
+				}
+				squareClicked(this);
+			};
+		}
+	}
+
+	if (isAnalysisMode && isPlayersTurn == '1')
+		setAnalysisPromptVisible(true);
+	else
+		setAnalysisPromptVisible(false);
+
+	updateHistoryStepButtons();
 }
 
 function moveJmp(moveDelta)
@@ -199,6 +227,83 @@ function moveJmp(moveDelta)
 	if (targetMoveObj) moveTo(targetMoveObj);
 }
 
+function updateHistoryStepButtons()
+{
+	var btnStart = getObject('btnHistStart');
+	var btnPrev = getObject('btnHistPrev');
+	var btnNext = getObject('btnHistNext');
+	var btnEnd = getObject('btnHistEnd');
+	if (!btnStart || !btnPrev || !btnNext || !btnEnd)
+		return;
+
+	if (!theFEN || theFEN.length <= 1)
+	{
+		btnStart.classList.add('d-none');
+		btnPrev.classList.add('d-none');
+		btnNext.classList.add('d-none');
+		btnEnd.classList.add('d-none');
+		return;
+	}
+
+	if (currMoveIdx <= 1)
+	{
+		btnStart.classList.add('d-none');
+		btnPrev.classList.add('d-none');
+	}
+	else
+	{
+		btnStart.classList.remove('d-none');
+		btnPrev.classList.remove('d-none');
+	}
+
+	if (currMoveIdx >= (theFEN.length - 1))
+	{
+		btnNext.classList.add('d-none');
+		btnEnd.classList.add('d-none');
+	}
+	else
+	{
+		btnNext.classList.remove('d-none');
+		btnEnd.classList.remove('d-none');
+	}
+}
+
+function historyStep(delta)
+{
+	if (!theFEN || theFEN.length <= 1)
+		return;
+
+	var targetIdx = currMoveIdx + delta;
+	if (targetIdx < 1)
+		targetIdx = 1;
+	if (targetIdx > (theFEN.length - 1))
+		targetIdx = theFEN.length - 1;
+
+	var targetMoveObj = getObject('m' + targetIdx);
+	if (targetMoveObj)
+		moveTo(targetMoveObj);
+}
+
+function historyJumpToStart()
+{
+	if (!theFEN || theFEN.length <= 1)
+		return;
+
+	var targetMoveObj = getObject('m1');
+	if (targetMoveObj)
+		moveTo(targetMoveObj);
+}
+
+function historyJumpToEnd()
+{
+	if (!theFEN || theFEN.length <= 1)
+		return;
+
+	var targetMoveObj = getObject('m' + (theFEN.length - 1));
+	if (targetMoveObj)
+		moveTo(targetMoveObj);
+}
+
 function displayMovesColumns() {
 	var objGamebody = getObject('gamebody');
     if (!objGamebody) return;
@@ -208,18 +313,20 @@ function displayMovesColumns() {
 	theMoves += '<div align="center" style="padding-top:5px; padding-bottom:5px;"><table cellpadding="0" cellspacing="0" style="padding:0; border-collapse: collapse;border-spacing:0;" width="225px">';
 	for(var i = 0; i < moves.length; i++)
 	{
-		if(isGameOver == '1')
+		theMoves += '<tr><td class="mn" style="border:1px solid #888; text-align:right;">' + (i+1) + '. </td>';
+		theMoves += '<td id="m' + moveId + '" class="wm" onclick="moveTo(this);" style="border:1px solid #888;">' + moves[i][0] + '</td>';
+		moveId++;
+
+		if(moves[i][1] != '')
 		{
-			theMoves += '<tr><td class="mn" style="border:1px solid #888; text-align:right;">' + (i+1) + '. </td>';
-			theMoves += '<td id="m' + (moveId) + '" class="wm" ' + 'onclick="moveTo(this);" style="border:1px solid #888;">' + moves[i][0] + '</td>';
-			theMoves += '<td id="m' + (moveId+1) + '" class="bm" ' + 'onclick="moveTo(this);" style="border:1px solid #888;"> ' + moves[i][1] + '</td></tr>';
-			moveId = moveId + 2;
+			theMoves += '<td id="m' + moveId + '" class="bm" onclick="moveTo(this);" style="border:1px solid #888;"> ' + moves[i][1] + '</td>';
+			moveId++;
 		}
 		else
 		{
-			theMoves += '<tr><td class="mn" style="border:1px solid #888; text-align:right;">' + (i+1) + '.</td> <td class="wm" style="border:1px solid #888;">';
-			theMoves += moves[i][0] + '</td><td style="border:1px solid #888;"> ' + moves[i][1] + '</td></tr>';
+			theMoves += '<td class="bm" style="border:1px solid #888;">&nbsp;</td>';
 		}
+		theMoves += '</tr>';
 	}
 	theMoves += '</table></div>';
 	objGamebody.innerHTML = theMoves;
@@ -233,15 +340,11 @@ function displayMovesParagraph() {
 	var moveId = 1;
 	for(var i = 0; i < moves.length; i++)
 	{
-		if(isGameOver == '1')
-		{
-			theMoves += '<span id="m' + moveId++ + '" class="wm" ' + 'onclick="moveTo(this);"><span class="mn">' + (i+1) + '.</span> ' + moves[i][0] + '</span>';
-			theMoves += '<span id="m' + moveId++ + '" class="bm" ' + 'onclick="moveTo(this);"> ' + moves[i][1] + '</span> ';
-		}
+		theMoves += '<span id="m' + moveId++ + '" class="wm" onclick="moveTo(this);"><span class="mn">' + (i+1) + '.</span> ' + moves[i][0] + '</span>';
+		if(moves[i][1] != '')
+			theMoves += '<span id="m' + moveId++ + '" class="bm" onclick="moveTo(this);"> ' + moves[i][1] + '</span> ';
 		else
-		{
-			theMoves += '<span class="wm"><span class="mn">' + (i+1) + '.</span> ' + moves[i][0] + '</span> ' + moves[i][1] + ' ';
-		}
+			theMoves += ' ';
 	}
 	objGamebody.innerHTML = theMoves;
 }
@@ -352,6 +455,53 @@ function htmlBoard()
 
 var theFEN = new Array();
 var currMoveIdx = 0;
+var isAnalysisMode = false;
+
+function updateAnalysisModeState()
+{
+	isAnalysisMode = (isGameOver != '1') && (currMoveIdx < (theFEN.length - 1));
+}
+
+function setAnalysisPromptVisible(visible)
+{
+	var prompt = document.getElementById('analysisPrompt');
+	if (!prompt)
+		return;
+
+	if (visible)
+		prompt.classList.remove('d-none');
+	else
+		prompt.classList.add('d-none');
+}
+
+function continueAnalysisMode()
+{
+	setAnalysisPromptVisible(false);
+}
+
+function resumeLiveGameFromAnalysis()
+{
+	currMoveIdx = theFEN.length - 1;
+	if (currMoveIdx < 0)
+		currMoveIdx = 0;
+
+	FENToBoard(theFEN[currMoveIdx]);
+	var boardContainer = getObject('chessboard');
+	if (boardContainer)
+		boardContainer.innerHTML = htmlBoard();
+	drawCoordinates(perspective == 'black');
+
+	updateAnalysisModeState();
+	setAnalysisPromptVisible(false);
+
+	if(isPlayersTurn == '1')
+	{
+		for(var i=0; i < 64; i++) {
+			var sq = getObject('tsq' + i);
+			if (sq) sq.onclick = function(){squareClicked(this);};
+		}
+	}
+}
 
 function initChessBoard()
 {
@@ -401,6 +551,11 @@ function initChessBoard()
 	displayCaptPieces();
 
 	theFEN = historyToFEN();
+	currMoveIdx = theFEN.length - 1;
+	if (currMoveIdx < 0)
+		currMoveIdx = 0;
+	updateAnalysisModeState();
+	updateHistoryStepButtons();
 
 	if (getObject("btnMainMenu")) getObject("btnMainMenu").disabled = false;
 	if (getObject("btnReload")) getObject("btnReload").disabled = false;
@@ -455,7 +610,14 @@ function initChessBoard()
 	{ // No need to set event handlers unless it's the player's move
 		for(var i=0; i < 64; i++) {
 			var sq = getObject("tsq" + i);
-            if (sq) sq.onclick = function(){squareClicked(this);};
+	            if (sq) sq.onclick = function(){
+				if (isAnalysisMode)
+				{
+					setAnalysisPromptVisible(true);
+					return;
+				}
+				squareClicked(this);
+			};
 		}
 	}
 

@@ -33,10 +33,15 @@ Quick Start (recommended)
      Enter the DB user that WebChess will use at runtime (ideally a limited
      user with only SELECT/INSERT/UPDATE/DELETE rights).
      Fill in the server settings (session timeout, game expiry, etc.).
+      Session timeout in installer step 3 is entered in minutes (default: 30).
+     Login lockout timeout is configurable (installer field: login_lock_seconds);
+     values <= 0 fall back to 900 seconds.
      Click "Generate config.php" – this downloads the config file.
      Upload config.php to your WebChess directory, then click "Finish".
 
 4. After finishing, log in at index.php and create your first user account.
+   In the logged-in Preferences screen, users can set inactivity auto-logout via
+   "Session timeout (min)" (minimum 1 minute).
 
 Security note
 -------------

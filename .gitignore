@@ -4,3 +4,4 @@
 *.bak
 *.old
 /config.php
+/AGENTS.md

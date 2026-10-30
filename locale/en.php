@@ -46,14 +46,22 @@ return array(
     'White'                          => 'White',
     'Black'                          => 'Black',
     'Mvs'                            => 'Mvs',
+    'Result'                         => 'Result',
     'Current Turn'                   => 'Current Turn',
     'Last Move'                      => 'Last Move',
+    'Issued'                         => 'Issued',
+    'Action'                         => 'Action',
+    'Player'                         => 'Player',
+    'Subject'                        => 'Subject',
+    'Date'                           => 'Date',
     'You do not currently have any games in progress'
         => 'You do not currently have any games in progress',
     'Your move'                      => 'Your move',
     'Opponent'                       => 'Opponent',
     'Will both players play from the same computer?'
         => 'Will both players play from the same computer?',
+    'If enabled, opening a game on this device requires opponent password confirmation before play continues.'
+        => 'If enabled, opening a game on this device requires opponent password confirmation before play continues.',
     'WARNING!'                       => 'WARNING!',
     'Games will expire WITHOUT NOTICE if a move isn\'t made after'
         => 'Games will expire WITHOUT NOTICE if a move isn\'t made after',
@@ -72,6 +80,14 @@ return array(
     'Password Confirmation'          => 'Password Confirmation',
     'History Format'                 => 'History Format',
     'History Layout'                 => 'History Layout',
+    'Columns'                        => 'Columns',
+    'GUI Language'                   => 'GUI Language',
+    'English'                        => 'English',
+    'German'                         => 'German',
+    'Auto-reload (sec)'              => 'Auto-reload (sec)',
+    'GNU Chess Fancy'                => 'GNU Chess Fancy',
+    'GNU Chess Simple'               => 'GNU Chess Simple',
+    'Random'                         => 'Random',
     'Send message to player'         => 'Send message to player',
     'Open Window'                    => 'Open Window',
     'Current messages'               => 'Current messages',
@@ -82,7 +98,19 @@ return array(
     'Invite'                         => 'Invite',
     'View finished games'            => 'View finished games',
     'No finished games found'        => 'No finished games found',
+    'draw'                           => 'Draw',
+    'playerResigned'                 => 'Player resigned',
+    'checkMate'                      => 'Checkmate',
     'Message archived'               => 'Message archived',
+    'Session timed out.'             => 'Session timed out.',
+    'Please login again to continue.'
+        => 'Please login again to continue.',
+    'ERROR: must supply a valid nick!' => 'ERROR: must supply a valid nick!',
+    'ERROR: could not create user.' => 'ERROR: could not create user.',
+    'Invalid Nick or Password. Please try again' => 'Invalid Nick or Password. Please try again',
+    'Sorry, incorrect old password!' => 'Sorry, incorrect old password!',
+    'Sorry, that nick is already in use.' => 'Sorry, that nick is already in use.',
+    'Please enter a valid email address first.' => 'Please enter a valid email address first.',
 
     /* ── newuser.php ────────────────────────────────────────────────── */
     'Create New User'                => 'Create New User',
@@ -119,11 +147,23 @@ return array(
     'Request Undo'                   => 'Request Undo',
     'Request Draw'                   => 'Request Draw',
     'Resign'                         => 'Resign',
+    'Resume game?'                   => 'Resume game?',
+    'Resume game'                    => 'Resume game',
+    'You are viewing an earlier move. In analysis mode you cannot make a move.'
+        => 'You are viewing an earlier move. In analysis mode you cannot make a move.',
+    'OK'                             => 'OK',
+    'Continue analyzing'             => 'Continue analyzing',
+    'Move pieces by clicking the start square, then the target square (no drag and drop).'
+        => 'Move pieces by clicking the start square, then the target square (no drag and drop).',
     'When castling, just move the king (the rook will move automatically).'
         => 'When castling, just move the king (the rook will move automatically).',
     'Captured Pieces'                => 'Captured Pieces',
     'Game Information'               => 'Game Information',
     'Move History'                   => 'Move History',
+    'First move'                     => 'First move',
+    'Previous move'                  => 'Previous move',
+    'Next move'                      => 'Next move',
+    'Last move'                      => 'Last move',
     'Reload Board'                   => 'Reload Board',
     'Download PGN'                   => 'Download PGN',
     'JavaScript must be enabled for WebChess to work properly!'
@@ -152,6 +192,7 @@ return array(
 
     /* ── viewmessage.php ────────────────────────────────────────────── */
     'Message View'                   => 'Message View',
+    'Return to Messages'             => 'Return to Messages',
     'Return to Main Menu'            => 'Return to Main Menu',
     'Message not found!'             => 'Message not found!',
     'Webchess Administrator'         => 'Webchess Administrator',

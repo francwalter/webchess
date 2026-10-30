@@ -51,7 +51,8 @@
         );
 
         if (normalizedTheme === currentTheme && document.documentElement.getAttribute('data-bs-theme') === normalizedTheme && bodyThemeApplied) {
-            return; 
+            updateThemeButton();
+            return;
         }
         
         const root = document.documentElement;
@@ -89,9 +90,10 @@
     function updateThemeButton() {
         const themeBtn = document.getElementById('theme-toggle-btn');
         if (themeBtn) {
+            var effectiveTheme = document.documentElement.getAttribute('data-bs-theme') || currentTheme || 'light';
             var lightTitle = themeBtn.getAttribute('data-title-light') || 'Switch to Light Mode';
             var darkTitle = themeBtn.getAttribute('data-title-dark') || 'Switch to Dark Mode';
-            if (currentTheme === 'dark') {
+            if (effectiveTheme === 'dark') {
                 themeBtn.innerHTML = '&#9728;';
                 themeBtn.title = lightTitle;
             } else {
@@ -123,6 +125,11 @@
 
     // Ensure body classes and button state are correct once DOM is ready.
     document.addEventListener('DOMContentLoaded', function() {
+        initTheme();
+    });
+
+    // bfcache restore: re-sync icon/title with effective theme after browser history navigation.
+    window.addEventListener('pageshow', function() {
         initTheme();
     });
 })();

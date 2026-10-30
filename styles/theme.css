@@ -167,14 +167,99 @@ body.dark-theme #viewgame .btn-outline-success {
 }
 
 body.dark-theme .btn-outline-secondary {
-    color: #6c757d !important;
-    border-color: #6c757d !important;
+    color: #cfd6e4 !important;
+    border-color: #6f7f99 !important;
+    background-color: #273246 !important;
 }
 
 body.dark-theme .btn-outline-secondary:hover {
-    background-color: #6c757d !important;
-    border-color: #6c757d !important;
+    background-color: #3a4a66 !important;
+    border-color: #8fa6c7 !important;
     color: #fff !important;
+}
+
+/* Keep the chess reload button clearly active in dark mode. */
+body.dark-theme #btnReload,
+html[data-bs-theme="dark"] #btnReload {
+    color: #e6edf9 !important;
+    border-color: #86a0c8 !important;
+    background-color: #2b3750 !important;
+}
+
+body.dark-theme #btnReload:hover,
+html[data-bs-theme="dark"] #btnReload:hover {
+    color: #ffffff !important;
+    border-color: #a9c3e8 !important;
+    background-color: #40557a !important;
+}
+
+/* Align all chess action buttons to an equally readable dark-mode style. */
+body.dark-theme #btnMainMenu,
+body.dark-theme #btnPGN,
+body.dark-theme #btnLogout,
+html[data-bs-theme="dark"] #btnMainMenu,
+html[data-bs-theme="dark"] #btnPGN,
+html[data-bs-theme="dark"] #btnLogout {
+    color: #e6edf9 !important;
+    background-color: #2b3750 !important;
+    border-width: 1px !important;
+}
+
+body.dark-theme #btnMainMenu,
+html[data-bs-theme="dark"] #btnMainMenu {
+    color: #ffffff !important;
+    border-color: #9bc1f7 !important;
+    background-color: #3f5f93 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 0 0.15rem rgba(123, 167, 230, 0.35) !important;
+}
+
+body.dark-theme #btnMainMenu:hover,
+html[data-bs-theme="dark"] #btnMainMenu:hover {
+    color: #ffffff !important;
+    border-color: #b7d2fa !important;
+    background-color: #4a6fa8 !important;
+}
+
+/* Main menu is a context switch target, keep it visually prominent in light mode too. */
+body.light-theme #btnMainMenu,
+html[data-bs-theme="light"] #btnMainMenu {
+    color: #ffffff !important;
+    border-color: #2e6fbd !important;
+    background-color: #3b82d0 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 0 0.15rem rgba(59, 130, 208, 0.2) !important;
+}
+
+body.light-theme #btnMainMenu:hover,
+html[data-bs-theme="light"] #btnMainMenu:hover {
+    color: #ffffff !important;
+    border-color: #245a9d !important;
+    background-color: #2f6fb5 !important;
+}
+
+body.dark-theme #btnPGN,
+html[data-bs-theme="dark"] #btnPGN {
+    border-color: #78bf95 !important;
+}
+
+body.dark-theme #btnPGN:hover,
+html[data-bs-theme="dark"] #btnPGN:hover {
+    color: #ffffff !important;
+    border-color: #96ddb3 !important;
+    background-color: #3d6f55 !important;
+}
+
+body.dark-theme #btnLogout,
+html[data-bs-theme="dark"] #btnLogout {
+    border-color: #d28b8b !important;
+}
+
+body.dark-theme #btnLogout:hover,
+html[data-bs-theme="dark"] #btnLogout:hover {
+    color: #ffffff !important;
+    border-color: #f0aaaa !important;
+    background-color: #7a3f3f !important;
 }
 
 body.dark-theme .alert {
@@ -229,6 +314,23 @@ body.dark-theme .text-decoration-none {
 
 body.dark-theme .text-decoration-none:hover {
     color: #0056b3 !important;
+}
+
+/* Messages table links must stay readable in dark mode. */
+body.dark-theme #messages table a,
+body.dark-theme #messages table a:link,
+body.dark-theme #messages table a:visited,
+html[data-bs-theme="dark"] #messages table a,
+html[data-bs-theme="dark"] #messages table a:link,
+html[data-bs-theme="dark"] #messages table a:visited {
+    color: #8fc6ff !important;
+    text-decoration: none;
+}
+
+body.dark-theme #messages table a:hover,
+html[data-bs-theme="dark"] #messages table a:hover {
+    color: #c4e2ff !important;
+    text-decoration: underline;
 }
 
 body.dark-theme .login-container {
@@ -358,6 +460,25 @@ body.dark-theme #gameid {
 body.dark-theme #gamebody {
     color: #e0e0e0 !important;
     background-color: #1a1a1a !important;
+}
+
+/* Apply the same history colors as early as possible (before body classes are set). */
+html[data-bs-theme="dark"] #gamebody {
+    color: #e0e0e0 !important;
+    background-color: #1a1a1a !important;
+}
+
+body.dark-theme #gamebody td,
+body.dark-theme #gamebody span,
+body.dark-theme #gamebody .wm,
+body.dark-theme #gamebody .bm,
+body.dark-theme #gamebody .mn,
+html[data-bs-theme="dark"] #gamebody td,
+html[data-bs-theme="dark"] #gamebody span,
+html[data-bs-theme="dark"] #gamebody .wm,
+html[data-bs-theme="dark"] #gamebody .bm,
+html[data-bs-theme="dark"] #gamebody .mn {
+    color: #e0e0e0 !important;
 }
 
 body.dark-theme #checkmsg {

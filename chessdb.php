@@ -182,9 +182,31 @@
 					else
 						$opponentHistory = 'pgn';
 
+					/* get opponent's preferred language (default: en) */
+					$opponentLang = 'en';
+					$stmtOpponentLang = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'language'");
+					$tmpOpponentLang = false;
+					if ($stmtOpponentLang)
+					{
+						mysqli_stmt_bind_param($stmtOpponentLang, "i", $opponentID);
+						mysqli_stmt_execute($stmtOpponentLang);
+						$tmpOpponentLang = mysqli_stmt_get_result($stmtOpponentLang);
+						mysqli_stmt_close($stmtOpponentLang);
+					}
+					if ($tmpOpponentLang && mysqli_num_rows($tmpOpponentLang) > 0)
+					{
+						$langRow = mysqli_fetch_row($tmpOpponentLang);
+						if ($langRow)
+						{
+							$candidateLang = strtolower(trim((string)$langRow[0]));
+							if ($candidateLang === 'de' || $candidateLang === 'en')
+								$opponentLang = $candidateLang;
+						}
+					}
+
 					/* notify opponent of move via email */
 					if ($opponentHistory == 'pgn')
-						webchessMail('move', $opponentEmail, moveToPGNString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, $history[$numMoves]['promotedTo'], $isInCheck), $opponentNick, $_SESSION['gameID']);
+						webchessMail('move', $opponentEmail, moveToPGNStringLocalized($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, $history[$numMoves]['promotedTo'], $isInCheck, $opponentLang), $opponentNick, $_SESSION['gameID']);
 					else
 						webchessMail('move', $opponentEmail, moveToVerbousString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, '', $isInCheck), $opponentNick, $_SESSION['gameID']);
 				}
@@ -351,9 +373,31 @@
 					else
 						$opponentHistory = 'pgn';
 
+					/* get opponent's preferred language (default: en) */
+					$opponentLang = 'en';
+					$stmtOpponentLang = mysqli_prepare($dbh, "SELECT value FROM " . $CFG_TABLE['preferences'] . " WHERE playerID = ? AND preference = 'language'");
+					$tmpOpponentLang = false;
+					if ($stmtOpponentLang)
+					{
+						mysqli_stmt_bind_param($stmtOpponentLang, "i", $opponentID);
+						mysqli_stmt_execute($stmtOpponentLang);
+						$tmpOpponentLang = mysqli_stmt_get_result($stmtOpponentLang);
+						mysqli_stmt_close($stmtOpponentLang);
+					}
+					if ($tmpOpponentLang && mysqli_num_rows($tmpOpponentLang) > 0)
+					{
+						$langRow = mysqli_fetch_row($tmpOpponentLang);
+						if ($langRow)
+						{
+							$candidateLang = strtolower(trim((string)$langRow[0]));
+							if ($candidateLang === 'de' || $candidateLang === 'en')
+								$opponentLang = $candidateLang;
+						}
+					}
+
 					/* notify opponent of move via email */
 					if ($opponentHistory == 'pgn')
-						webchessMail('move', $opponentEmail, moveToPGNString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, '', $isInCheck), $opponentNick, $_SESSION['gameID']);
+						webchessMail('move', $opponentEmail, moveToPGNStringLocalized($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, '', $isInCheck, $opponentLang), $opponentNick, $_SESSION['gameID']);
 					else
 						webchessMail('move', $opponentEmail, moveToVerbousString($history[$numMoves]['curColor'], $history[$numMoves]['curPiece'], $history[$numMoves]['fromRow'], $history[$numMoves]['fromCol'], $history[$numMoves]['toRow'], $history[$numMoves]['toCol'], $tmpReplaced, '', $isInCheck), $opponentNick, $_SESSION['gameID']);
 				}

@@ -76,6 +76,38 @@
 
     require_once "lang.php";
     require_once "csrf.php";
+
+    function webchessGetLatestProjectDateString($projectRoot)
+    {
+        $latestTs = @filemtime(__FILE__);
+        if ($latestTs === false)
+            $latestTs = time();
+
+        try {
+            $dirIter = new RecursiveDirectoryIterator($projectRoot, FilesystemIterator::SKIP_DOTS);
+            $iter = new RecursiveIteratorIterator($dirIter);
+            foreach ($iter as $fileInfo)
+            {
+                if (!$fileInfo->isFile())
+                    continue;
+
+                $path = $fileInfo->getPathname();
+                if (strpos($path, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR) !== false)
+                    continue;
+
+                $mtime = $fileInfo->getMTime();
+                if ($mtime > $latestTs)
+                    $latestTs = $mtime;
+            }
+        } catch (Exception $e) {
+            // Fallback to current file mtime if directory traversal is not available.
+        }
+
+        return date('F j, Y', $latestTs);
+    }
+
+    $webchessLatestDate = webchessGetLatestProjectDateString(__DIR__);
+    $webchessRepoUrl = 'https://github.com/francwalter/webchess/';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getGuiLanguage(); ?>">
@@ -191,8 +223,8 @@
         </div>
 
         <div class="mt-4 text-center text-muted small">
-            <div><?php echo "WebChess Version 1.0.0, last updated August 15, 2010"?></div>
-            <div><a href="http://webchess.sourceforge.net/" class="text-decoration-none"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL).");?></div>
+            <div><?php echo "WebChess Version 2, last updated " . htmlspecialchars($webchessLatestDate, ENT_QUOTES, 'UTF-8'); ?></div>
+            <div><a href="<?php echo htmlspecialchars($webchessRepoUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL)." );?></div>
         </div>
     </div>
 </div>

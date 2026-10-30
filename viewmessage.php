@@ -34,6 +34,41 @@
         require 'lang.php';
   require 'csrf.php';
 
+  if (!function_exists('webchessGetLatestProjectDateString'))
+  {
+    function webchessGetLatestProjectDateString($projectRoot)
+    {
+      $latestTs = @filemtime(__FILE__);
+      if ($latestTs === false)
+        $latestTs = time();
+
+      try {
+        $dirIter = new RecursiveDirectoryIterator($projectRoot, FilesystemIterator::SKIP_DOTS);
+        $iter = new RecursiveIteratorIterator($dirIter);
+        foreach ($iter as $fileInfo)
+        {
+          if (!$fileInfo->isFile())
+            continue;
+
+          $path = $fileInfo->getPathname();
+          if (strpos($path, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR) !== false)
+            continue;
+
+          $mtime = $fileInfo->getMTime();
+          if ($mtime > $latestTs)
+            $latestTs = $mtime;
+        }
+      } catch (Exception $e) {
+        // Fallback to current file mtime if traversal is unavailable.
+      }
+
+      return date('F j, Y', $latestTs);
+    }
+  }
+
+  $webchessLatestDate = webchessGetLatestProjectDateString(__DIR__);
+  $webchessRepoUrl = 'https://github.com/francwalter/webchess/';
+
 
 
 	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
@@ -70,6 +105,7 @@
         <a class="navbar-brand" href="mainmenu.php">WebChess</a>
         <div class="d-flex gap-2">
             <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
+            <a class="btn btn-outline-light btn-sm" href="mainmenu.php#messages"><?php echo htmlspecialchars(webchessTranslate("Return to Messages"));?></a>
             <a class="btn btn-outline-light btn-sm" href="mainmenu.php"><?php echo htmlspecialchars(webchessTranslate("Return to Main Menu"));?></a>
         </div>
     </div>
@@ -155,7 +191,21 @@
     <?php echo webchessCsrfField(); ?>
 </form>
 
+<div class="alert alert-info text-center small mt-4 mx-3">
+    <div><?php echo "WebChess " . webchessTranslate("Version") . " 2, " . webchessTranslate("last updated") . " " . htmlspecialchars($webchessLatestDate, ENT_QUOTES, 'UTF-8'); ?></div>
+    <div><a href="<?php echo htmlspecialchars($webchessRepoUrl, ENT_QUOTES, 'UTF-8'); ?>" class="alert-link"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL).");?></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript">
+document.addEventListener('keydown', function (event) {
+    var isEscape = event.key === 'Escape' || event.key === 'Esc' || event.keyCode === 27;
+    if (isEscape) {
+        event.preventDefault();
+        window.location.href = 'mainmenu.php#messages';
+    }
+});
+</script>
 </body>
 </html>
 

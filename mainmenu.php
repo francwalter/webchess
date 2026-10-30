@@ -35,6 +35,41 @@
         require 'lang.php';
   require 'csrf.php';
 
+  if (!function_exists('webchessGetLatestProjectDateString'))
+  {
+    function webchessGetLatestProjectDateString($projectRoot)
+    {
+      $latestTs = @filemtime(__FILE__);
+      if ($latestTs === false)
+        $latestTs = time();
+
+      try {
+        $dirIter = new RecursiveDirectoryIterator($projectRoot, FilesystemIterator::SKIP_DOTS);
+        $iter = new RecursiveIteratorIterator($dirIter);
+        foreach ($iter as $fileInfo)
+        {
+          if (!$fileInfo->isFile())
+            continue;
+
+          $path = $fileInfo->getPathname();
+          if (strpos($path, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR) !== false)
+            continue;
+
+          $mtime = $fileInfo->getMTime();
+          if ($mtime > $latestTs)
+            $latestTs = $mtime;
+        }
+      } catch (Exception $e) {
+        // Fallback to current file mtime if traversal is unavailable.
+      }
+
+      return date('F j, Y', $latestTs);
+    }
+  }
+
+  $webchessLatestDate = webchessGetLatestProjectDateString(__DIR__);
+  $webchessRepoUrl = 'https://github.com/francwalter/webchess/';
+
 
 	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
 	fixOldPHPVersions();
@@ -224,11 +259,24 @@
     }
   }
 
+  function webchessLoginThrottleConfig()
+  {
+    global $CFG_LOGIN_MAX_ATTEMPTS, $CFG_LOGIN_WINDOW_SECONDS, $CFG_LOGIN_LOCK_SECONDS;
+
+    $maxAttempts = isset($CFG_LOGIN_MAX_ATTEMPTS) ? (int)$CFG_LOGIN_MAX_ATTEMPTS : 5;
+    $windowSeconds = isset($CFG_LOGIN_WINDOW_SECONDS) ? (int)$CFG_LOGIN_WINDOW_SECONDS : 15 * 60;
+    $lockSeconds = isset($CFG_LOGIN_LOCK_SECONDS) ? (int)$CFG_LOGIN_LOCK_SECONDS : 15 * 60;
+
+    return array(
+      max(1, $maxAttempts),
+      max(1, $windowSeconds),
+      max(1, $lockSeconds),
+    );
+  }
+
   function webchessIsLoginBlocked($nick, &$retryAfterSeconds = 0)
   {
-    $maxAttempts = 5;
-    $windowSeconds = 15 * 60;
-    $lockSeconds = 15 * 60;
+    list($maxAttempts, $windowSeconds, $lockSeconds) = webchessLoginThrottleConfig();
     $key = webchessLoginThrottleKey($nick);
     $now = time();
     $retryAfterSeconds = 0;
@@ -296,8 +344,7 @@
   {
     $key = webchessLoginThrottleKey($nick);
     $now = time();
-    $maxAttempts = 5;
-    $windowSeconds = 15 * 60;
+    list($maxAttempts, $windowSeconds, $lockSeconds) = webchessLoginThrottleConfig();
 
     $fp = @fopen(webchessLoginThrottleFilePath(), 'c+');
     if (!$fp)
@@ -309,7 +356,7 @@
     }
 
     $data = webchessLoginThrottleReadData($fp);
-    webchessLoginThrottleGc($data, $now, $windowSeconds, 15 * 60);
+    webchessLoginThrottleGc($data, $now, $windowSeconds, $lockSeconds);
 
     if (!isset($data[$key]) || ($now - (int)$data[$key]['firstAttempt']) > $windowSeconds)
     {
@@ -326,7 +373,7 @@
 
     $data[$key]['failedCount'] = (int)$data[$key]['failedCount'] + 1;
     if ((int)$data[$key]['failedCount'] >= $maxAttempts)
-      $data[$key]['blockedUntil'] = $now + (15 * 60);
+      $data[$key]['blockedUntil'] = $now + $lockSeconds;
 
     webchessLoginThrottleWriteData($fp, $data);
     flock($fp, LOCK_UN);
@@ -363,7 +410,7 @@
 
 			/* sanity check: empty nick */
 			if ($_POST['txtNick'] == "")
-				die("ERROR: must supply a valid nick!");
+        die(webchessTranslate('ERROR: must supply a valid nick!'));
 
       /* check for existing user with same nick */
       $existingUsers = null;
@@ -384,7 +431,7 @@
       $newPasswordHash = password_hash((string)$_POST['pwdPassword'], PASSWORD_DEFAULT);
       $stmtNewUser = mysqli_prepare($dbh, "INSERT INTO " . $CFG_TABLE['players'] . " (password, firstName, lastName, nick) VALUES (?, ?, ?, ?)");
       if (!$stmtNewUser)
-        die("ERROR: could not create user.");
+        die(webchessTranslate('ERROR: could not create user.'));
       mysqli_stmt_bind_param($stmtNewUser, "ssss", $newPasswordHash, $_POST['txtFirstName'], $_POST['txtLastName'], $_POST['txtNick']);
       mysqli_stmt_execute($stmtNewUser);
       mysqli_stmt_close($stmtNewUser);
@@ -525,7 +572,8 @@
       }
       else {
         webchessRecordLoginFailure($loginNick);
-        echo "<script>alert('Invalid Nick or Password. Please try again'); window.location.replace('index.php');</script>\n";
+        $invalidLoginMsg = addslashes(webchessTranslate('Invalid Nick or Password. Please try again'));
+        echo "<script>alert('" . $invalidLoginMsg . "'); window.location.replace('index.php');</script>\n";
         exit();
       }
 
@@ -546,6 +594,7 @@
 			$isPreferenceFound['theme'] = false;
       $isPreferenceFound['language'] = false;
 			$isPreferenceFound['autoreload'] = false;
+      $isPreferenceFound['sessiontimeout'] = false;
 			$isPreferenceFound['emailnotification'] = false;
 
 			while($tmpPreference = mysqli_fetch_assoc($tmpPreferences))
@@ -559,6 +608,13 @@
 						/* setup SESSION var of name pref_PREF, like pref_history */
 						$_SESSION['pref_'.$tmpPreference['preference']] = $tmpPreference['value'];
 						break;
+
+            case 'sessiontimeout':
+              if (is_numeric($tmpPreference['value']) && intval($tmpPreference['value']) >= 60)
+                $_SESSION['pref_sessiontimeout'] = intval($tmpPreference['value']);
+              else
+                $_SESSION['pref_sessiontimeout'] = (int)$CFG_SESSIONTIMEOUT;
+              break;
 
 					case 'emailnotification':
 						if ($CFG_USEEMAILNOTIFICATION)
@@ -602,6 +658,9 @@
 					case 'autoreload':
 						$defaultValue = $CFG_MINAUTORELOAD;
 						break;
+            case 'sessiontimeout':
+              $defaultValue = (int)$CFG_SESSIONTIMEOUT;
+              break;
 					case 'emailnotification':
 						$defaultValue = "";
 						break;
@@ -827,7 +886,7 @@
       }
 
       if (!webchessPasswordMatches((string)$_POST['pwdOldPassword'], (string)$dbPassword))
-				$errMsg = "Sorry, incorrect old password!";
+        $errMsg = webchessTranslate('Sorry, incorrect old password!');
 			else
 			{
 				$tmpDoUpdate = true;
@@ -847,7 +906,7 @@
 
           if ($existingUsers && mysqli_num_rows($existingUsers) > 0)
 					{
-						$errMsg = "Sorry, that nick is already in use.";
+            $errMsg = webchessTranslate('Sorry, that nick is already in use.');
 						$tmpDoUpdate = false;
 					}
 				}
@@ -949,6 +1008,19 @@
         mysqli_stmt_close($stmtPrefUpdate);
       }
 
+			/* Session timeout */
+      $sessionTimeoutValue = (int)$CFG_SESSIONTIMEOUT;
+      if (isset($_POST['txtSessionTimeoutMinutes']) && is_numeric($_POST['txtSessionTimeoutMinutes']) && intval($_POST['txtSessionTimeoutMinutes']) >= 1)
+        $sessionTimeoutValue = intval($_POST['txtSessionTimeoutMinutes']) * 60;
+      $stmtPrefUpdate = mysqli_prepare($dbh, "UPDATE " . $CFG_TABLE['preferences'] . " SET value = ? WHERE playerID = ? AND preference = 'sessiontimeout'");
+      if ($stmtPrefUpdate)
+      {
+        $sessionTimeoutValueStr = (string)$sessionTimeoutValue;
+        mysqli_stmt_bind_param($stmtPrefUpdate, "si", $sessionTimeoutValueStr, $sessionPlayerId);
+        mysqli_stmt_execute($stmtPrefUpdate);
+        mysqli_stmt_close($stmtPrefUpdate);
+      }
+
 			/* Email Notification */
 			if ($CFG_USEEMAILNOTIFICATION)
 			{
@@ -987,6 +1059,8 @@
 					$_SESSION['pref_autoreload'] = $CFG_MINAUTORELOAD;
 			} else
 				$_SESSION['pref_autoreload'] = $CFG_MINAUTORELOAD;
+
+      $_SESSION['pref_sessiontimeout'] = $sessionTimeoutValue;
 
       if (!isset($_SESSION['flash_type']))
       {
@@ -1083,102 +1157,213 @@
     <script type="text/javascript" src="javascript/messages.js"></script>
      <style>
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(180deg, #f5f7fb 0%, #eef2f8 100%);
             transition: background-color 0.3s ease;
+            font-size: 14px;
         }
         body[data-theme="dark"] {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
+            background: #14171d;
+            color: #e8edf5;
         }
-        .nav-link {
+        .app-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            backdrop-filter: blur(8px);
+            background: rgba(20, 26, 37, 0.92) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .app-brand {
+            letter-spacing: 0.06em;
+            font-size: 1.05rem;
+        }
+        #navlist .nav-link {
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
+            border-radius: 999px;
+            color: rgba(255, 255, 255, 0.82);
+            padding: 0.45rem 0.85rem;
+            transition: all 0.2s ease;
         }
-        .card {
-            margin-bottom: 20px;
-            border-radius: 1rem;
-            border: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+        #navlist .nav-link:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
         }
-        .card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
+        #navlist .nav-link.active {
+            color: #0d6efd !important;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
-        body[data-theme="dark"] .card {
-            background-color: #2d2d2d;
-            color: #e0e0e0;
-        }
-        body[data-theme="dark"] .card-header {
-            background-color: #1a1a1a !important;
-            border-color: #444;
-        }
-        #navlist .active {
-            font-weight: bold;
-            background-color: rgba(255,255,255,0.15);
-            border-bottom: 3px solid #0d6efd;
-            border-radius: 0;
-            padding: 0.5rem 1rem;
+        body[data-theme="dark"] #navlist .nav-link.active {
             color: #fff !important;
+            background: rgba(13, 110, 253, 0.85);
+            box-shadow: none;
         }
-        #navlist .nav-link:hover:not(.active) {
-            background-color: rgba(255,255,255,0.1);
-            border-radius: 0.5rem;
+        .app-toolbar .btn {
+            border-radius: 10px;
+            font-weight: 600;
         }
-        body[data-theme="dark"] #navlist .active {
-            background-color: rgba(255,255,255,0.1);
-            border-bottom-color: #0d6efd;
+        .app-shell {
+            padding-top: 1.25rem;
+            padding-bottom: 2rem;
         }
         .section-content {
             display: none;
         }
-        .section-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
+        .card {
+            margin-bottom: 20px;
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 6px 24px rgba(16, 24, 40, 0.08);
+            transition: all 0.25s ease;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .card:hover {
+            box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12);
+            transform: translateY(-2px);
         }
-        .btn {
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+        .card-header {
+            border-top-left-radius: 1rem !important;
+            border-top-right-radius: 1rem !important;
+            border-bottom: 0;
+            padding: 0.9rem 1rem;
         }
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        .card-body {
+            padding: 1.1rem;
         }
         .table {
             margin-bottom: 0;
         }
-        body[data-theme="dark"] .table {
-            color: #e0e0e0;
-            border-color: #444;
+        .table thead th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #52607a;
+            border-bottom-width: 1px;
         }
-        body[data-theme="dark"] .table-light {
-            background-color: #3a3a3a !important;
-        }
-        body[data-theme="dark"] .table-hover tbody tr:hover {
-            background-color: #3a3a3a;
+        .badge {
+            font-weight: 600;
         }
         .alert {
-            border-radius: 0.75rem;
+            border-radius: 0.8rem;
+        }
+        .form-control,
+        .form-select {
+            border-radius: 0.6rem;
+            border: 1px solid #d5dbe7;
+        }
+        body[data-theme="dark"] .card {
+            background-color: #1f2430;
+            color: #e8edf5;
+            border-color: #2b3242;
+        }
+        body[data-theme="dark"] .card-header {
+            background-color: #181d29 !important;
+            border-color: #2b3242;
+        }
+        body[data-theme="dark"] .table,
+        body[data-theme="dark"] .table thead th,
+        body[data-theme="dark"] .form-label,
+        body[data-theme="dark"] .form-text {
+            color: #d6deea !important;
+            border-color: #323b4e;
+        }
+        html[data-bs-theme="dark"] .table,
+        html[data-bs-theme="dark"] .table thead th {
+            color: #d6deea !important;
+            border-color: #323b4e;
+        }
+        body[data-theme="dark"] .table td,
+        html[data-bs-theme="dark"] .table td {
+            background-color: #1f2635;
+            color: #e3e9f5;
+            border-color: #323b4e;
+        }
+        body[data-theme="dark"] .table-light {
+            background-color: #2a3244 !important;
+        }
+        body[data-theme="dark"] .table-light th,
+        body[data-theme="dark"] .table-light td,
+        html[data-bs-theme="dark"] .table-light th,
+        html[data-bs-theme="dark"] .table-light td {
+            background-color: #2a3244 !important;
+            color: #eef3ff !important;
+            border-color: #3d4860 !important;
+        }
+        body[data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: #2a3347 !important;
+        }
+        body[data-theme="dark"] .table-hover tbody tr:hover td,
+        html[data-bs-theme="dark"] .table-hover tbody tr:hover td {
+            background-color: #2a3347 !important;
+            color: #f1f5ff;
         }
         body[data-theme="dark"] .alert {
-            background-color: #3a3a3a;
-            color: #e0e0e0;
-            border-color: #555;
+            background-color: #222a3a;
+            color: #e0e7f2;
+            border-color: #3b4760;
         }
-        .form-control, .form-select {
-            border-radius: 0.5rem;
-            border: 1px solid #ddd;
+        body[data-theme="dark"] .alert-info .alert-link,
+        html[data-bs-theme="dark"] .alert-info .alert-link {
+            color: #8fc6ff !important;
+        }
+        body[data-theme="dark"] .alert-info .alert-link:hover,
+        html[data-bs-theme="dark"] .alert-info .alert-link:hover {
+            color: #c4e2ff !important;
         }
         body[data-theme="dark"] .form-control,
         body[data-theme="dark"] .form-select {
-            background-color: #3a3a3a;
-            color: #e0e0e0;
-            border-color: #555;
+            background-color: #232a39;
+            color: #e8edf5;
+            border-color: #39445a;
+        }
+        @media (max-width: 991px) {
+            #navbarNav {
+                position: relative;
+            }
+            .app-toolbar {
+                margin-top: 0.75rem;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            #navlist {
+                margin-top: 0.75rem;
+                margin-bottom: 0.75rem;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                width: 100%;
+                padding-bottom: 0.2rem;
+                scrollbar-width: thin;
+            }
+            #navlist .nav-item {
+                flex: 0 0 auto;
+            }
+            #navlist::-webkit-scrollbar {
+                height: 6px;
+            }
+            #navlist::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.35);
+                border-radius: 999px;
+            }
+            #navbarNav::after {
+                content: "";
+                position: absolute;
+                right: 0;
+                top: 0.75rem;
+                width: 22px;
+                height: 2.1rem;
+                pointer-events: none;
+                background: linear-gradient(to right, rgba(20, 26, 37, 0), rgba(20, 26, 37, 0.92));
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            }
+            #navbarNav.has-scroll-right::after {
+                opacity: 1;
+            }
+            body[data-theme="dark"] #navbarNav::after {
+                background: linear-gradient(to right, rgba(20, 26, 37, 0), rgba(20, 26, 37, 0.92));
+            }
         }
      </style>
 	<script type="text/javascript">
@@ -1194,14 +1379,14 @@
 				|| document.PersonalInfo.pwdOldPassword.value == ""
 				|| document.PersonalInfo.pwdPassword.value == "")
 			{
-				alert("Sorry, all personal info fields are required and must be filled out.");
+        alert("<?php echo addslashes(webchessTranslate('Sorry, all personal info fields are required and must be filled out.')); ?>");
 				return;
 			}
 
 			if (document.PersonalInfo.pwdPassword.value == document.PersonalInfo.pwdPassword2.value)
 				document.PersonalInfo.submit();
 			else
-				alert("Sorry, the two password fields don't match.  Please try again.");
+        alert("<?php echo addslashes(webchessTranslate("Sorry, the two password fields don't match. Please try again.")); ?>");
 		}
 
 		function sendResponse(responseType, messageFrom, gameID)
@@ -1260,7 +1445,7 @@
       var emailInput = document.querySelector('input[name="txtEmailNotification"]');
       if (!emailInput || !isValidEmailAddress(emailInput.value.trim()))
       {
-        alert("Please enter a valid email address first.");
+				alert("<?php echo addslashes(webchessTranslate('Please enter a valid email address first.')); ?>");
         return;
       }
 			document.userdata.ToDo.value = "TestEmail";
@@ -1279,6 +1464,28 @@
 		document.logOutForm.submit();
 	}
 
+  function updateNavScrollHint()
+  {
+    var navbarNav = document.getElementById('navbarNav');
+    var navList = document.getElementById('navlist');
+    if (!navbarNav || !navList)
+      return;
+
+    var isMobile = window.matchMedia('(max-width: 991px)').matches;
+    if (!isMobile)
+    {
+      navbarNav.classList.remove('has-scroll-right');
+      return;
+    }
+
+    var hasOverflow = (navList.scrollWidth - navList.clientWidth) > 2;
+    var canScrollRight = (navList.scrollLeft + navList.clientWidth) < (navList.scrollWidth - 2);
+    if (hasOverflow && canScrollRight)
+      navbarNav.classList.add('has-scroll-right');
+    else
+      navbarNav.classList.remove('has-scroll-right');
+  }
+
   window.addEventListener('DOMContentLoaded', function() {
     <?php if ($CFG_USEEMAILNOTIFICATION) { ?>
     var emailInput = document.querySelector('input[name="txtEmailNotification"]');
@@ -1286,20 +1493,26 @@
       emailInput.addEventListener('input', updateTestEmailButtonState);
     updateTestEmailButtonState();
     <?php } ?>
+
+    var navList = document.getElementById('navlist');
+    if (navList)
+      navList.addEventListener('scroll', updateNavScrollHint, { passive: true });
+    window.addEventListener('resize', updateNavScrollHint);
+    updateNavScrollHint();
   });
 
 	</script>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark app-navbar">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="#">WEBCHESS</a>
+        <a class="navbar-brand fw-bold app-brand" href="#continuegame">WEBCHESS</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto d-flex align-items-center gap-2" id="navlist">
+            <ul class="navbar-nav me-auto d-flex align-items-center gap-2" id="navlist">
                 <li class="nav-item"><a class="nav-link px-2" href="#continuegame"><?php echo webchessTranslate("Active games"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#invitations"><?php echo webchessTranslate("Pending challenges"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#messages"><?php echo webchessTranslate("Messages"); ?></a></li>
@@ -1307,10 +1520,12 @@
                 <li class="nav-item"><a class="nav-link px-2" href="#viewgame"><?php echo webchessTranslate("Replay"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#preferences"><?php echo webchessTranslate("Preferences"); ?></a></li>
                 <li class="nav-item"><a class="nav-link px-2" href="#personalinfo"><?php echo webchessTranslate("Personal"); ?></a></li>
-                <li class="nav-item"><button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button></li>
-                <li class="nav-item"><button class="btn btn-outline-danger btn-sm" type="button" onclick="reload()" title="<?php echo webchessTranslate('Reload'); ?>"><?php echo webchessTranslate("Reload"); ?></button></li>
-                <li class="nav-item"><button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo webchessTranslate("Logout"); ?></button></li>
             </ul>
+            <div class="d-flex align-items-center gap-2 app-toolbar">
+                <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
+                <button class="btn btn-outline-light btn-sm" type="button" onclick="reload()" title="<?php echo webchessTranslate('Reload'); ?>"><?php echo webchessTranslate("Reload"); ?></button>
+                <button class="btn btn-danger btn-sm" type="button" onclick="logout()"><?php echo webchessTranslate("Logout"); ?></button>
+            </div>
         </div>
     </div>
 </nav>
@@ -1332,7 +1547,7 @@ endif;
     <?php echo webchessCsrfField(); ?>
 </form>
 
-<div class="container">
+<div class="container app-shell">
     <div class="row">
         <div class="col-12">
             <?php if ($errMsg != ""): ?>
@@ -1400,6 +1615,7 @@ endif;
                                     <input class="form-check-input" name="rdoShare" type="radio" value="no" id="shareNo" checked="checked" />
                                     <label class="form-check-label" for="shareNo"><?php echo webchessTranslate("No");?></label>
                                 </div>
+                                <div class="form-text mt-2"><?php echo webchessTranslate("If enabled, opening a game on this device requires opponent password confirmation before play continues.");?></div>
                             </div>
                             <input type="hidden" name="gameID" value="" />
                             <input type="hidden" name="sharePC" value="no" />
@@ -1421,7 +1637,7 @@ endif;
                             <h6 class="fw-bold"><?php echo webchessTranslate("Challenges from other players");?></h6>
                             <div class="table-responsive mb-4">
                                 <table class="table table-sm">
-                                    <thead class="table-light"><tr><th>ID</th><th>White</th><th>Black</th><th>Issued</th><th>Action</th></tr></thead>
+                                    <thead class="table-light"><tr><th><?php echo webchessTranslate("Id");?></th><th><?php echo webchessTranslate("White");?></th><th><?php echo webchessTranslate("Black");?></th><th><?php echo webchessTranslate("Issued");?></th><th><?php echo webchessTranslate("Action");?></th></tr></thead>
                                     <tbody>
                                         <?php
                                         $stmtInvites = mysqli_prepare($dbh, "SELECT * FROM " . $CFG_TABLE['games'] . " WHERE gameMessage = 'playerInvited' AND ((whitePlayer = ? AND messageFrom = 'black') OR (blackPlayer = ? AND messageFrom = 'white')) ORDER BY dateCreated");
@@ -1480,7 +1696,7 @@ endif;
                             </div>
                             <?php if ($CFG_NICKCHANGEALLOWED): ?>
                             <div class="col-12">
-                                <label class="form-label">Nick</label>
+                                <label class="form-label"><?php echo webchessTranslate("Nick");?></label>
                                           <input name="txtNick" type="text" class="form-control" value="<?php echo htmlspecialchars((string)($_SESSION['nick'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                             </div>
                             <?php endif; ?>
@@ -1514,32 +1730,37 @@ endif;
                         <form name="userdata" method="post" action="mainmenu.php" class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold"><?php echo webchessTranslate("History Format");?></label>
-                                <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="pgn" <?php if ($_SESSION['pref_history'] == 'pgn') echo 'checked'; ?> /> PGN</div>
-                                <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="verbous" <?php if ($_SESSION['pref_history'] != 'pgn') echo 'checked'; ?> /> Verbose</div>
+                                <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="pgn" <?php if ($_SESSION['pref_history'] == 'pgn') echo 'checked'; ?> /> <?php echo webchessTranslate("PGN");?></div>
+                                <div class="form-check"><input class="form-check-input" name="rdoHistory" type="radio" value="verbous" <?php if ($_SESSION['pref_history'] != 'pgn') echo 'checked'; ?> /> <?php echo webchessTranslate("Verbose");?></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold"><?php echo webchessTranslate("History Layout");?></label>
-                                <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="columns" <?php if ($_SESSION['pref_historylayout'] == 'columns') echo 'checked'; ?> /> Columns</div>
-                                <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="paragraph" <?php if ($_SESSION['pref_historylayout'] != 'columns') echo 'checked'; ?> /> Paragraph</div>
+                                <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="columns" <?php if ($_SESSION['pref_historylayout'] == 'columns') echo 'checked'; ?> /> <?php echo webchessTranslate("Columns");?></div>
+                                <div class="form-check"><input class="form-check-input" name="rdoHistorylayout" type="radio" value="paragraph" <?php if ($_SESSION['pref_historylayout'] != 'columns') echo 'checked'; ?> /> <?php echo webchessTranslate("Paragraph");?></div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Theme</label>
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("Theme");?></label>
                                 <select name="rdoTheme" class="form-select">
-                                    <option value="beholder" <?php if ($_SESSION['pref_theme'] == 'beholder') echo 'selected'; ?>>Beholder</option>
-                                    <option value="gnuchess_fancy" <?php if ($_SESSION['pref_theme'] == 'gnuchess_fancy') echo 'selected'; ?>>GNU Chess Fancy</option>
-                                    <option value="gnuchess_simple" <?php if ($_SESSION['pref_theme'] == 'gnuchess_simple') echo 'selected'; ?>>GNU Chess Simple</option>
+                                    <option value="beholder" <?php if ($_SESSION['pref_theme'] == 'beholder') echo 'selected'; ?>><?php echo webchessTranslate("Beholder");?></option>
+                                    <option value="gnuchess_fancy" <?php if ($_SESSION['pref_theme'] == 'gnuchess_fancy') echo 'selected'; ?>><?php echo webchessTranslate("GNU Chess Fancy");?></option>
+                                    <option value="gnuchess_simple" <?php if ($_SESSION['pref_theme'] == 'gnuchess_simple') echo 'selected'; ?>><?php echo webchessTranslate("GNU Chess Simple");?></option>
                                 </select>
                             </div>
                               <div class="col-md-4">
-                                  <label class="form-label fw-bold">GUI Language</label>
+                                  <label class="form-label fw-bold"><?php echo webchessTranslate("GUI Language");?></label>
                                   <select name="rdoLanguage" class="form-select">
-                                      <option value="en" <?php if (!isset($_SESSION['pref_language']) || $_SESSION['pref_language'] == 'en') echo 'selected'; ?>>EN</option>
-                                      <option value="de" <?php if (isset($_SESSION['pref_language']) && $_SESSION['pref_language'] == 'de') echo 'selected'; ?>>DE</option>
+                                      <option value="en" <?php if (!isset($_SESSION['pref_language']) || $_SESSION['pref_language'] == 'en') echo 'selected'; ?>><?php echo webchessTranslate("English");?></option>
+                                      <option value="de" <?php if (isset($_SESSION['pref_language']) && $_SESSION['pref_language'] == 'de') echo 'selected'; ?>><?php echo webchessTranslate("German");?></option>
                                   </select>
                               </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Auto-reload (sec)</label>
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("Auto-reload (sec)");?></label>
                                 <input type="number" class="form-control" name="txtReload" value="<?php echo ($_SESSION['pref_autoreload']); ?>" min="<?php echo $CFG_MINAUTORELOAD; ?>" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"><?php echo webchessTranslate("Session timeout (min)");?></label>
+                                <input type="number" class="form-control" name="txtSessionTimeoutMinutes" value="<?php echo max(1, (int)round(((int)($_SESSION['pref_sessiontimeout'] ?? $CFG_SESSIONTIMEOUT)) / 60)); ?>" min="1" />
+                                <div class="form-text"><?php echo webchessTranslate("Used to auto-logout inactive sessions.");?></div>
                             </div>
                             <?php if ($CFG_USEEMAILNOTIFICATION): ?>
                             <div class="col-12">
@@ -1597,7 +1818,7 @@ endif;
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead class="table-light">
-                                    <tr><th>Player</th><th>Subject</th><th>Date</th></tr>
+                                    <tr><th><?php echo webchessTranslate("Player");?></th><th><?php echo webchessTranslate("Subject");?></th><th><?php echo webchessTranslate("Date");?></th></tr>
                                 </thead>
                                 <tbody>
                                     <?php
@@ -1655,9 +1876,9 @@ endif;
                             <div class="col-md-6">
                                 <label class="form-label"><?php echo webchessTranslate("Your Color");?></label>
                                 <div class="mt-2">
-                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="random" checked /> Random</div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="white" /> White</div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="black" /> Black</div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="random" checked /> <?php echo webchessTranslate("Random");?></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="white" /> <?php echo webchessTranslate("White");?></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" name="color" type="radio" value="black" /> <?php echo webchessTranslate("Black");?></div>
                                 </div>
                             </div>
                             <div class="col-12">
@@ -1677,7 +1898,7 @@ endif;
                          <div class="table-responsive">
                             <table class="table table-sm table-hover">
                                 <thead class="table-light">
-                                    <tr><th>ID</th><th>White</th><th>Black</th><th>Mvs</th><th>Result</th><th>Last Move</th></tr>
+                                    <tr><th><?php echo webchessTranslate("Id");?></th><th><?php echo webchessTranslate("White");?></th><th><?php echo webchessTranslate("Black");?></th><th><?php echo webchessTranslate("Mvs");?></th><th><?php echo webchessTranslate("Result");?></th><th><?php echo webchessTranslate("Last Move");?></th></tr>
                                 </thead>
                                 <tbody>
                                     <?php
@@ -1697,13 +1918,14 @@ endif;
                                             $tmpNumMoves = webchessCountMovesByGameId($dbh, $CFG_TABLE['history'], (int)$tmpGame['gameID']);
                                             $whiteNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['whitePlayer']);
                                             $blackNick = webchessGetNickByPlayerId($dbh, $CFG_TABLE['players'], (int)$tmpGame['blackPlayer']);
+                                            $resultText = webchessTranslate((string)$tmpGame['gameMessage']);
                                     ?>
                                         <tr>
                                                                   <td><a href="javascript:loadGame(<?php echo (int)$tmpGame['gameID']; ?>)" class="btn btn-xs btn-outline-success">#<?php echo (int)$tmpGame['gameID']; ?></a></td>
                                                                   <td><?php echo htmlspecialchars($whiteNick, ENT_QUOTES, 'UTF-8'); ?></td>
                                                                   <td><?php echo htmlspecialchars($blackNick, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo floor($tmpNumMoves / 2); ?></td>
-                                                                  <td><small><?php echo htmlspecialchars((string)$tmpGame['gameMessage'], ENT_QUOTES, 'UTF-8'); ?></small></td>
+										  <td><small><?php echo htmlspecialchars((string)$resultText, ENT_QUOTES, 'UTF-8'); ?></small></td>
                                             <td><small><?php echo substr($tmpGame['lastMove'], 0, -3); ?></small></td>
                                         </tr>
                                     <?php endwhile; endif; ?>
@@ -1715,7 +1937,8 @@ endif;
             </div>
 
              <div class="alert alert-info text-center small mt-5">
-                WebChess Version 2.0.0 &bull; <a href="https://github.com/francwalter/webchess/" class="alert-link">WebChess - Github</a>
+                <div><?php echo "WebChess " . webchessTranslate("Version") . " 2, " . webchessTranslate("last updated") . " " . htmlspecialchars($webchessLatestDate, ENT_QUOTES, 'UTF-8'); ?></div>
+                <div><a href="<?php echo htmlspecialchars($webchessRepoUrl, ENT_QUOTES, 'UTF-8'); ?>" class="alert-link"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL).");?></div>
             </div>
         </div>
     </div>
