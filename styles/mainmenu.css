@@ -20,7 +20,7 @@
 
 A:visited, :link {text-decoration: underline}
 A:link {color : navy}
-A:link:hover, :visited:hover {text-decoration: none}
+A:link:hover, A:visited:hover {text-decoration: none}
 A:visited {color: navy}
 A:link:active, :visited:active {color: green}
 
@@ -300,7 +300,7 @@ padding: 0.5em 0 0.5em 1em;
 border-width: 1px;
 border-color: #ffe #aaab9c #ccc #fff;
 border-style: solid;
-color: #777;
+color: #2f3b52 !important;
 text-decoration: none;
 background: #E9ECEF;
 }
@@ -310,12 +310,17 @@ background: #E9ECEF;
 ul#navlist li#active a
 {
 background: #DDDFF3;
-color: #800000;
+color: #800000 !important;
 }
 
-ul#navlist li a:hover, ul#navlist li#active a:hover
-{
-color: #F1F3F5;
-background: #353C91;
-border-color: #aaab9c #fff #fff #ccc;
+ul#navlist li a:hover {
+	color: #f8fafc !important;   /* hell auf dunklem Hover-Hintergrund */
+	background: #353C91;
+	border-color: #aaab9c #fff #fff #ccc;
+}
+
+ul#navlist li#active a:hover {
+	color: #ffffff !important;   /* aktiv ebenfalls lesbar */
+	background: #353C91;
+	border-color: #aaab9c #fff #fff #ccc;
 }
