@@ -1,7 +1,7 @@
 ﻿<?php
     require_once 'security.php';
     session_start();
-
+require_once 'footer.php';
 /*
     This file is part of WebChess. http://webchess.sourceforge.net
 	Copyright 2010 Jonathan Evraire, Rodrigo Flores
@@ -222,10 +222,7 @@
             </div>
         </div>
 
-        <div class="mt-4 text-center text-muted small">
-            <div><?php echo "WebChess Version 2, last updated " . htmlspecialchars($webchessLatestDate, ENT_QUOTES, 'UTF-8'); ?></div>
-            <div><a href="<?php echo htmlspecialchars($webchessRepoUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL)." );?></div>
-        </div>
+        <?php webchessRenderFooter('2', $webchessLatestDate, $webchessRepoUrl, 'mt-4 text-center text-muted small'); ?>
     </div>
 </div>
 

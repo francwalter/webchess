@@ -1,182 +1,221 @@
-/* $Id: userlogin.css,v 1.2 2010/08/14 16:57:54 sandking Exp $ */
+:root {
+	--bg: #f5f7fb;
+	--card: #ffffff;
+	--card-soft: #f8fafc;
+	--text: #1f2937;
+	--muted: #6b7280;
+	--border: #d1d5db;
+	--primary: #2563eb;
+	--primary-hover: #1d4ed8;
+	--danger: #b91c1c;
+}
 
-/*
-    This file is part of WebChess. http://webchess.sourceforge.net
-	Copyright 2010 Jonathan Evraire, Rodrigo Flores, Dadi Jonsson
-
-    WebChess is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    WebChess is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+* { box-sizing: border-box; }
 
 body {
-	margin: 0px;
-	padding: 0px;
-	color : #333;
-	background-color : #FFF;
-	font-size : 11px;
-	font-family : Arial, Helvetica, sans-serif;
+	margin: 0;
+	padding: 0;
+	color: var(--text);
+	background-color: var(--bg);
+	font-size: 14px;
+	line-height: 1.45;
+	font-family: Arial, Helvetica, sans-serif;
 }
 
 #header {
-	margin:0;
-	margin-top:10px;
-	padding: 0 0 0 10px;
-	height:5%;
-	height: 35px;
-	width: auto;
-	border-style:solid;
-	border-color:black;
-	border-width:0px 0px 1px 0px;
-	background-color:#353C91;
-	color: white;
+	margin: 0;
+	margin-top: 10px;
+	padding: 0 12px;
+	min-height: 42px;
+	border-bottom: 1px solid #1f2a72;
+	background-color: #353c91;
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 }
 
 #heading {
-	font-family: Verdana, helvetica, sans-serif;
+	font-family: Verdana, Helvetica, sans-serif;
 	font-size: 20px;
-	font-weight: bold;
-	line-height: 1.5;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 #break {
-	height: 50px;
+	height: 24px;
 }
 
 form {
-    margin: 0px;
+	margin: 0;
 }
 
 .button {
-	border : solid 1px #cccccc;
-	background: #E9ECEF;
-	color : #666666;
-	font-weight : bold;
-	font-size : 11px;
-	padding: 4px;
+	border: 1px solid var(--primary);
+	background: var(--primary);
+	color: #fff;
+	font-weight: 600;
+	font-size: 13px;
+	border-radius: 6px;
+	padding: 8px 12px;
 	margin: 3px;
+	cursor: pointer;
 }
 
-.login {
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 6em;
-	padding: 15px;
-	border: 1px solid #cccccc;
-	width: 429px;
-	background: #F1F3F5;
+.button:hover {
+	background: var(--primary-hover);
+	border-color: var(--primary-hover);
 }
 
-.login h1 {
-	color: #333;
-	margin: 0px;
-	height: 50px;
-	padding: 15px 4px 0 50px;
- 	text-align: left;
-	font-size: 1.5em;
-}
-
+.login,
 .preferences {
 	margin-left: auto;
 	margin-right: auto;
-	margin-top: 6em;
-	padding: 15px;
-	border: 1px solid #cccccc;
-	width: 600px;
-	background: #F1F3F5;
+	margin-top: 3rem;
+	padding: 18px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--card);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+.login { width: min(92vw, 520px); }
+.preferences { width: min(94vw, 760px); }
+
+.login h1,
 .preferences h1 {
-	color: #333;
-	margin: 0px;
-	height: 50px;
-	padding: 15px 4px 0 50px;
- 	text-align: left;
-	font-size: 1.5em;
+	color: var(--text);
+	margin: 0 0 14px 0;
+	padding: 0;
+	text-align: left;
+	font-size: 1.45rem;
+	height: auto;
 }
 
 .login p {
-	padding: 0 1em 0 1em;
-	}
+	padding: 0;
+}
 
 .form-block {
-	border: 1px solid #cccccc;
-	background: #E9ECEF;
-	padding-top: 15px;
-	padding-left: 10px;
-	padding-bottom: 10px;
-	padding-right: 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--card-soft);
+	padding: 14px 12px;
 }
 
 .login-form {
 	text-align: left;
 	float: right;
-	width: 60%;
+	width: 62%;
 }
 
 .preferences-form {
 	text-align: left;
 	float: right;
-	width: 70%;
+	width: 72%;
 }
 
 .login-text {
 	text-align: left;
-	width: 25%;
+	width: 28%;
 	float: left;
+	color: var(--muted);
+	font-weight: 600;
 }
 
 .inputlabel {
-	font-weight: bold;
+	font-weight: 700;
 	text-align: left;
-	}
+}
 
 .inputbox {
-	width: 150px;
+	width: 100%;
+	max-width: 280px;
 	margin: 0 0 1em 0;
-	border: 1px solid #ccc;
-	}
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 7px 9px;
+	background: #fff;
+	color: var(--text);
+}
+
+.inputbox:focus {
+	outline: none;
+	border-color: #93c5fd;
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
 
 .remember {
 	margin: 0 0 1em 0;
-	}
+}
 
 .clr {
-    clear:both;
-    }
+	clear: both;
+}
 
 .ctr {
 	text-align: center;
 }
 
 .warning {
-	color: #f00;
-	margin:0;
-	margin-bottom: 10px;
-	font-size:1.2em;
+	color: var(--danger);
+	margin: 0 0 10px;
+	font-size: 1rem;
+	font-weight: 600;
 }
 
 .instruction {
-	color: #000;
-	margin:0;
-	margin-bottom: 10px;
-	font-size:1.2em;
+	color: var(--text);
+	margin: 0 0 10px;
+	font-size: 1rem;
 }
 
 .version {
-	font-size: 0.8em;
+	font-size: 0.85em;
+	color: var(--muted);
+}
+.language-switch {
+	margin: 0;
+	font-size: 0.95rem;
+	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	gap: 10px;
 }
 
-.footer {
+.language-switch a {
+	color: #ffffff;
+	text-decoration: none;
+	font-weight: 700;
+	opacity: 0.95;
+}
 
+.language-switch a:hover,
+.language-switch a:focus {
+	color: #ffeb99;
+	text-decoration: underline;
+	opacity: 1;
+}
+
+.language-switch a + a::before {
+	content: "|";
+	color: #dbeafe;
+	margin-right: 10px;
+}
+.footer {
+	margin: 18px auto 24px;
+	max-width: 760px;
+	text-align: center;
+	color: var(--muted);
+}
+
+.footer a {
+	color: #1d4ed8;
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.footer a:hover,
+.footer a:focus {
+	text-decoration: underline;
 }
