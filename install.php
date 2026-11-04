@@ -818,31 +818,48 @@ require_once 'lang.php';
             //Once we know the user which will create the tables, we call the function
             //which will create them.
             $action = isset($_POST['action']) ? (string)$_POST['action'] : 'next';
+            $configError = '';
+
+            if ($action === 'generate_config') {
+                $postedReuse = isset($_POST['reuse']) && $_POST['reuse'] === 'true';
+                $postedUser = trim((string)($_POST['user'] ?? ''));
+                $postedPass = (string)($_POST['pass'] ?? '');
+                $postedUserLast = trim((string)($_POST['user_last'] ?? ''));
+                $postedPassLast = (string)($_POST['pass_last'] ?? '');
+
+                $effectiveUser = $postedReuse ? $postedUserLast : $postedUser;
+                if ($effectiveUser === '') {
+                    $configError = t('error_config_user_required');
+                } else {
+                    // Erfolgreich validiert: POST unverändert an makeConfig.php weiterreichen
+                    echo '<form id="forwardMakeConfig" method="post" action="makeConfig.php">';
+                    foreach ($_POST as $k => $v) {
+                        if (is_array($v)) {
+                            foreach ($v as $item) {
+                                echo '<input type="hidden" name="' . ie((string)$k) . '[]" value="' . ie((string)$item) . '">';
+                            }
+                        } else {
+                            echo '<input type="hidden" name="' . ie((string)$k) . '" value="' . ie((string)$v) . '">';
+                        }
+                    }
+                    echo '</form>';
+                    echo '<script>document.getElementById("forwardMakeConfig").submit();</script>';
+                    // Fallback ohne JS:
+                    echo '<noscript><p><button form="forwardMakeConfig" type="submit">' . ie(t('submit_generate_config')) . '</button></p></noscript>';
+                    break;
+                }
+            }
             $DBname = trim((string)($_POST['DBname'] ?? ''));
             $result = true; // neutral für Back-Navigation
-            if ($action !== 'back') {
+            if ($action !== 'back' && $action !== 'generate_config') {
                 $result = createTables($user, $pass, $server, $DBname);
             }
-            if ($action !== 'back' && is_string($result) && $result !== '') {
+            if ($action !== 'back' && $action !== 'generate_config' && is_string($result) && $result !== '') {
                 echo '<p><strong>' . ie(t((string)$result)) . '</strong></p>';
                 // Optional: Hinweis zu erlaubten Zeichen
                 if ($result === 'error_invalid_database_name') {
                     echo '<p>' . ie(t('db_name_allowed_chars_hint')) . '</p>';
                 }
-                break;
-
-                // kleines Back-Form, das wieder zu Schritt 2 geht und Werte mitgibt
-                ?>
-                <form action="install.php" method="post">
-                    <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
-                    <input type="hidden" name="confirm" value="2">
-                    <input type="hidden" name="server" value="<?php echo ie((string)$server); ?>">
-                    <input type="hidden" name="DBname" value="<?php echo ie((string)$DBname); ?>">
-                    <input type="hidden" name="user" value="<?php echo ie((string)$user); ?>">
-                    <input type="hidden" name="pass" value="<?php echo ie((string)$pass); ?>">
-                    <input type="submit" value="<?php echo ie(t('back_to_step2')); ?>">
-                </form>
-                <?php
                 break;
             }
             // We start step 3 with this presentation. This step 3 is breaked into two
@@ -857,7 +874,14 @@ require_once 'lang.php';
             <p><?php echo ie(t('step3_p2')); ?></p>
             <p><?php echo ie(t('step3_p3')); ?></p>
 
-            <form action='makeConfig.php' method='POST' name='generateConfigForm'>
+            <?php if ($configError !== '') { ?>
+            <div style="background:#f8d7da;border:1px solid #f5c2c7;color:#842029;padding:12px 14px;border-radius:6px;margin:10px 0 14px;">
+                <?php echo ie($configError); ?>
+            </div>
+        <?php } ?>
+            <form action='install.php' method='POST' name='generateConfigForm'>
+                <input type="hidden" name="confirm" value="3">
+                <input type="hidden" name="action" value="generate_config">
                 <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
                 <table>
                     <tr>
@@ -958,7 +982,7 @@ require_once 'lang.php';
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2"><input type='hidden' name='confirm' value='finish'/>
+                        <td colspan="2">
                             <input type='submit' value="<?php echo ie(t('submit_generate_config')); ?>"/></td>
                     </tr>
                 </table>
