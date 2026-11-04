@@ -257,6 +257,6 @@ $INSTALLER_STRINGS = [
         'hint_board_square_size' => '(z. B. 50)',
         'label_image_extension' => 'Bildendung:',
         'button_back' => 'Zurück',
-        'error_config_user_required' => 'Bitte geben Sie einen Datenbank-Benutzernamen an oder aktivieren Sie "Use the same user as in step 2.".',
+        'error_config_user_required' => 'Bitte geben Sie einen Datenbank-Benutzernamen an oder aktivieren Sie "Denselben Benutzer wie in Schritt 2 verwenden.".',
     ],
 ];
