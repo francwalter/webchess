@@ -66,19 +66,17 @@ if (isset($_POST['reuse']) && $_POST['reuse']=='true')
    $new_user=$_POST['user_last'];
    $new_pass=$_POST['pass_last'];
 } else {
-   //We would need to create a new user.
-   $new_user=$_POST['user'];
-   $new_pass=$_POST['pass'];
-   $user=$_POST['user_last'];
-   $pass=$_POST['pass_last'];
+    $new_user = trim((string)($_POST['user'] ?? ''));
+    $new_pass = (string)($_POST['pass'] ?? '');
+    $user = (string)($_POST['user_last'] ?? '');
+    $pass = (string)($_POST['pass_last'] ?? '');
 
-   $result=createUser($new_user,$new_pass,$user,$pass,$_POST['server'],$_POST['DBname']);
-   /*
-    * This code is called to make config.php. There is no way to write a warning code
-    * as it will be in the config.php. What we will do is post it as commented php
-    * code insider config.php if there is an error. It is not perfect, but it is
-    * the only solution I find.
-    */
+    if ($new_user === '') {
+        echo '<div class="alert alert-danger" role="alert">Bitte Datenbank-Benutzer angeben oder "Use the same user as in step 2." aktivieren.</div>';
+        exit;
+    }
+
+    $result = createUser($new_user, $new_pass, $user, $pass, $_POST['server'], $_POST['DBname']);
     if ($result !== true) {
         echo '<div class="alert alert-danger" role="alert">Der Datenbankbenutzer konnte nicht erstellt werden. Bitte Eingaben und Rechte pruefen.</div>';
         exit;
