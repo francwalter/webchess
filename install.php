@@ -867,29 +867,31 @@ require_once 'lang.php';
             $configDbUser = '';
             $configDbPass = '';
             $configErrors = [];
+            $shouldValidateConfig = ($action !== 'back');
 
-            if (isset($_POST['reuse']) && $_POST['reuse'] === 'true') {
-                $configDbUser = trim((string)($_POST['user_last'] ?? ''));
-                $configDbPass = (string)($_POST['pass_last'] ?? '');
-            } else {
-                $configDbUser = trim((string)($_POST['user'] ?? ''));
-                $configDbPass = (string)($_POST['pass'] ?? '');
-            }
+            if ($shouldValidateConfig) {
+                if (isset($_POST['reuse']) && $_POST['reuse'] === 'true') {
+                    $configDbUser = trim((string)($_POST['user_last'] ?? ''));
+                    $configDbPass = (string)($_POST['pass_last'] ?? '');
+                } else {
+                    $configDbUser = trim((string)($_POST['user'] ?? ''));
+                    $configDbPass = (string)($_POST['pass'] ?? '');
+                }
 
-            if ($configDbUser === '') {
-                $configErrors[] = t('error_config_user_required'); // neuen i18n-key anlegen
+                if ($configDbUser === '') {
+                    $configErrors[] = t('error_config_user_required');
+                }
             }
 
             if (!empty($configErrors)) {
-                echo '<div class="alert alert-danger" role="alert">';
+                echo '<div style="background:#f8d7da;border:1px solid #f5c2c7;color:#842029;padding:12px 14px;border-radius:6px;margin:10px 0 14px;">';
                 foreach ($configErrors as $msg) {
-                    echo ie($msg) . '<br>';
+                    echo '<div>' . ie($msg) . '</div>';
                 }
                 echo '</div>';
             }
-            if (empty($configErrors)) { ?>
-                <form action='makeConfig.php' method='POST' name='generateConfigForm' target="_blank">
-                    <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
+            ?>
+    <form action='makeConfig.php' method='POST' name='generateConfigForm' target="_blank">                    <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
                     <table>
                         <tr>
                             <td colspan="2"><b><u><?php echo ie(t('section_database_settings')); ?></u></b>
@@ -994,7 +996,6 @@ require_once 'lang.php';
                         </tr>
                     </table>
                 </form>
-            <?php } ?>
             <p><?php echo ie(t('after_config_download_text')); ?></p>
 
             <form action='install.php' method='POST' name='finish'>

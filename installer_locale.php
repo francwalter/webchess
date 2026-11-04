@@ -128,6 +128,7 @@ $INSTALLER_STRINGS = [
         'hint_board_square_size' => '(e.g. 50)',
         'label_image_extension' => 'Image extension:',
         'button_back' => 'Back',
+        'error_config_user_required' => 'Please provide a database username or enable "Use the same user as in step 2.".',
     ],
     'de' => [
         'page_title'            => 'WebChess-Installation',
@@ -256,5 +257,6 @@ $INSTALLER_STRINGS = [
         'hint_board_square_size' => '(z. B. 50)',
         'label_image_extension' => 'Bildendung:',
         'button_back' => 'Zurück',
+        'error_config_user_required' => 'Bitte geben Sie einen Datenbank-Benutzernamen an oder aktivieren Sie "Use the same user as in step 2.".',
     ],
 ];
