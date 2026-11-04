@@ -58,6 +58,7 @@ function renderHiddenFromPost(array $keys): void
         echo '<input type="hidden" name="' . ie($key) . '" value="' . ie((string)$value) . '">' . "\n";
     }
 }
+
 /*******************************************************************************
  *                                                                             *
  *        This block of functions creates the table-system of WebChess.        *
@@ -593,13 +594,15 @@ require_once 'lang.php';
             <input type="hidden" name="action" value="stay">
             <?php
             renderHiddenFromPost([
-                'server','user','pass','DBname','skip','reuse','user_last','pass_last',
-                'timeout','login_lock_seconds','expire','autoreload','mail_not','mail_adr',
-                'url','maxUsers','maxGames','changeNick','newUsers','size','imageExtension',
+                'server', 'user', 'pass', 'DBname', 'skip', 'reuse', 'user_last', 'pass_last',
+                'timeout', 'login_lock_seconds', 'expire', 'autoreload', 'mail_not', 'mail_adr',
+                'url', 'maxUsers', 'maxGames', 'changeNick', 'newUsers', 'size', 'imageExtension',
                 'action'
             ]);
             ?>
-            <button type="submit" class="btn <?php echo $installerLang === 'en' ? 'btn-primary' : 'btn-secondary'; ?>">English</button>
+            <button type="submit" class="btn <?php echo $installerLang === 'en' ? 'btn-primary' : 'btn-secondary'; ?>">
+                English
+            </button>
         </form>
 
         <form method="post" action="install.php" style="display:inline;">
@@ -608,13 +611,15 @@ require_once 'lang.php';
             <input type="hidden" name="action" value="stay">
             <?php
             renderHiddenFromPost([
-                'server','user','pass','DBname','skip','reuse','user_last','pass_last',
-                'timeout','login_lock_seconds','expire','autoreload','mail_not','mail_adr',
-                'url','maxUsers','maxGames','changeNick','newUsers','size','imageExtension',
+                'server', 'user', 'pass', 'DBname', 'skip', 'reuse', 'user_last', 'pass_last',
+                'timeout', 'login_lock_seconds', 'expire', 'autoreload', 'mail_not', 'mail_adr',
+                'url', 'maxUsers', 'maxGames', 'changeNick', 'newUsers', 'size', 'imageExtension',
                 'action'
             ]);
             ?>
-            <button type="submit" class="btn <?php echo $installerLang === 'de' ? 'btn-primary' : 'btn-secondary'; ?>">Deutsch</button>
+            <button type="submit" class="btn <?php echo $installerLang === 'de' ? 'btn-primary' : 'btn-secondary'; ?>">
+                Deutsch
+            </button>
         </form>
     </div>
     <h1><?php echo ie(t('page_title')); ?></h1>
@@ -858,110 +863,138 @@ require_once 'lang.php';
             //at the end of the file for tracking reasons. Then it must be deleted
             //by the user before he uploads it. This needs to be very clear in the
             //installer and in the installer FAQ.
-            ?>
-            <form action='makeConfig.php' method='POST' name='generateConfigForm' target="_blank">
-                <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
-                <table>
-                    <tr>
-                        <td colspan="2"><b><u><?php echo ie(t('section_database_settings')); ?></u></b>
-                            <input type="hidden" name="server" value="<?php echo $_POST['server']; ?>"/></td>
-                    </tr>
-                    <tr>
-                        <td><label for="user3"><?php echo ie(t('label_user')); ?></label></td>
-                        <td><input type="text" id="user3" name="user"/></td>
-                    </tr>
-                    <tr>
-                        <td><label for="pass3"><?php echo ie(t('label_password')); ?></label></td>
-                        <td><input type="password" id="pass3" name="pass"/></td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <input type="hidden" name="DBname" value="<?php echo $_POST['DBname']; ?>"/></td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <input type="checkbox" id="reuse2" name="reuse" value="true"/><label
-                                    for="reuse2"><?php echo ie(t('reuse_user_step2')); ?></label>
-                            <input type="hidden" name="user_last" value="<?php echo $user; ?>"/>
-                            <input type="hidden" name="pass_last" value="<?php echo $pass; ?>"/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2"><b><u><?php echo ie(t('section_server_settings')); ?></u></b></td>
-                    </tr>
-                    <tr>
-                        <td><label for="timeout"><?php echo ie(t('label_timeout_minutes')); ?></label></td>
-                        <td><input type="text" id="timeout" name="timeout"
-                                   value="30"/> <?php echo ie(t('hint_timeout_minutes')); ?></td>
-                    </tr>
-                    <tr>
-                        <td><label for="login_lock_seconds"><?php echo ie(t('label_login_lock_seconds')); ?></label>
-                        </td>
-                        <td><input type="text" id="login_lock_seconds" name="login_lock_seconds"
-                                   value="900"/> <?php echo ie(t('hint_login_lock_seconds')); ?></td>
-                    </tr>
-                    <tr>
-                        <td><label for="expire"><?php echo ie(t('label_expire_days')); ?></label></td>
-                        <td><input type="text" id="expire" name="expire"/> <?php echo ie(t('hint_expire_days')); ?></td>
-                    </tr>
-                    <tr>
-                        <td><label for="autoreload"><?php echo ie(t('label_autoreload_seconds')); ?></label></td>
-                        <td><input type="text" id="autoreload"
-                                   name="autoreload"/> <?php echo ie(t('hint_autoreload_seconds')); ?></td>
-                    </tr>
-                    <tr>
-                        <td><label for="mail_not"><?php echo ie(t('label_mail_notification')); ?></label></td>
-                        <td><input type="checkbox" id="mail_not" name="mail_not" value="1"/></td>
-                    </tr>
-                    <tr>
-                        <td><label for="mail_adr"><?php echo ie(t('label_mail_address')); ?></label></td>
-                        <td><input type="text" id="mail_adr" name="mail_adr"/> <?php echo ie(t('hint_mail_address')); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="url"><?php echo ie(t('label_main_page_address')); ?></label></td>
-                        <td><input type="text" id="url" name="url"/> <?php echo ie(t('hint_main_page_address')); ?></td>
-                    </tr>
-                    <tr>
-                        <td><label for="maxUsers"><?php echo ie(t('label_max_users')); ?></label></td>
-                        <td><input type="text" id="maxUsers" name="maxUsers"/> <?php echo ie(t('hint_max_users')); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="maxGames"><?php echo ie(t('label_max_games')); ?></label></td>
-                        <td><input type="text" id="maxGames" name="maxGames"/> <?php echo ie(t('hint_max_games')); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="changeNick"><?php echo ie(t('label_change_nick')); ?></label></td>
-                        <td><input type="checkbox" id="changeNick" name="changeNick" value="1"/></td>
-                    </tr>
-                    <tr>
-                        <td><label for="newUsers"><?php echo ie(t('label_new_users')); ?></label></td>
-                        <td><input type="checkbox" id="newUsers" name="newUsers" value="1"/></td>
-                    </tr>
-                    <tr>
-                        <td><label for="size"><?php echo ie(t('label_board_square_size')); ?></label></td>
-                        <td><input type="text" id="size" name="size"/> <?php echo ie(t('hint_board_square_size')); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="imageExtension"><?php echo ie(t('label_image_extension')); ?></label></td>
-                        <td><select id="imageExtension" name="imageExtension" size="1">
-                                <option value="gif">gif</option>
-                                <option value="png">png</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2"><input type='hidden' name='confirm' value='finish'/>
-                            <input type='submit' value="<?php echo ie(t('submit_generate_config')); ?>"/></td>
-                    </tr>
-                </table>
-            </form>
 
-            <?php //This form is just to end the installation procedure.
-            ?>
+            $configDbUser = '';
+            $configDbPass = '';
+            $configErrors = [];
+
+            if (isset($_POST['reuse']) && $_POST['reuse'] === 'true') {
+                $configDbUser = trim((string)($_POST['user_last'] ?? ''));
+                $configDbPass = (string)($_POST['pass_last'] ?? '');
+            } else {
+                $configDbUser = trim((string)($_POST['user'] ?? ''));
+                $configDbPass = (string)($_POST['pass'] ?? '');
+            }
+
+            if ($configDbUser === '') {
+                $configErrors[] = t('error_config_user_required'); // neuen i18n-key anlegen
+            }
+
+            if (!empty($configErrors)) {
+                echo '<div class="alert alert-danger" role="alert">';
+                foreach ($configErrors as $msg) {
+                    echo ie($msg) . '<br>';
+                }
+                echo '</div>';
+            }
+            if (empty($configErrors)) { ?>
+                <form action='makeConfig.php' method='POST' name='generateConfigForm' target="_blank">
+                    <input type="hidden" name="installer_lang" value="<?php echo ie($installerLang); ?>">
+                    <table>
+                        <tr>
+                            <td colspan="2"><b><u><?php echo ie(t('section_database_settings')); ?></u></b>
+                                <input type="hidden" name="server" value="<?php echo $_POST['server']; ?>"/></td>
+                        </tr>
+                        <tr>
+                            <td><label for="user3"><?php echo ie(t('label_user')); ?></label></td>
+                            <td><input type="text" id="user3" name="user"/></td>
+                        </tr>
+                        <tr>
+                            <td><label for="pass3"><?php echo ie(t('label_password')); ?></label></td>
+                            <td><input type="password" id="pass3" name="pass"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <input type="hidden" name="DBname" value="<?php echo $_POST['DBname']; ?>"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <input type="checkbox" id="reuse2" name="reuse" value="true"/><label
+                                        for="reuse2"><?php echo ie(t('reuse_user_step2')); ?></label>
+                                <input type="hidden" name="user_last" value="<?php echo $user; ?>"/>
+                                <input type="hidden" name="pass_last" value="<?php echo $pass; ?>"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><b><u><?php echo ie(t('section_server_settings')); ?></u></b></td>
+                        </tr>
+                        <tr>
+                            <td><label for="timeout"><?php echo ie(t('label_timeout_minutes')); ?></label></td>
+                            <td><input type="text" id="timeout" name="timeout"
+                                       value="30"/> <?php echo ie(t('hint_timeout_minutes')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><label for="login_lock_seconds"><?php echo ie(t('label_login_lock_seconds')); ?></label>
+                            </td>
+                            <td><input type="text" id="login_lock_seconds" name="login_lock_seconds"
+                                       value="900"/> <?php echo ie(t('hint_login_lock_seconds')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><label for="expire"><?php echo ie(t('label_expire_days')); ?></label></td>
+                            <td><input type="text" id="expire" name="expire"/> <?php echo ie(t('hint_expire_days')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="autoreload"><?php echo ie(t('label_autoreload_seconds')); ?></label></td>
+                            <td><input type="text" id="autoreload"
+                                       name="autoreload"/> <?php echo ie(t('hint_autoreload_seconds')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><label for="mail_not"><?php echo ie(t('label_mail_notification')); ?></label></td>
+                            <td><input type="checkbox" id="mail_not" name="mail_not" value="1"/></td>
+                        </tr>
+                        <tr>
+                            <td><label for="mail_adr"><?php echo ie(t('label_mail_address')); ?></label></td>
+                            <td><input type="text" id="mail_adr"
+                                       name="mail_adr"/> <?php echo ie(t('hint_mail_address')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="url"><?php echo ie(t('label_main_page_address')); ?></label></td>
+                            <td><input type="text" id="url" name="url"/> <?php echo ie(t('hint_main_page_address')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="maxUsers"><?php echo ie(t('label_max_users')); ?></label></td>
+                            <td><input type="text" id="maxUsers"
+                                       name="maxUsers"/> <?php echo ie(t('hint_max_users')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="maxGames"><?php echo ie(t('label_max_games')); ?></label></td>
+                            <td><input type="text" id="maxGames"
+                                       name="maxGames"/> <?php echo ie(t('hint_max_games')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="changeNick"><?php echo ie(t('label_change_nick')); ?></label></td>
+                            <td><input type="checkbox" id="changeNick" name="changeNick" value="1"/></td>
+                        </tr>
+                        <tr>
+                            <td><label for="newUsers"><?php echo ie(t('label_new_users')); ?></label></td>
+                            <td><input type="checkbox" id="newUsers" name="newUsers" value="1"/></td>
+                        </tr>
+                        <tr>
+                            <td><label for="size"><?php echo ie(t('label_board_square_size')); ?></label></td>
+                            <td><input type="text" id="size"
+                                       name="size"/> <?php echo ie(t('hint_board_square_size')); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="imageExtension"><?php echo ie(t('label_image_extension')); ?></label></td>
+                            <td><select id="imageExtension" name="imageExtension" size="1">
+                                    <option value="gif">gif</option>
+                                    <option value="png">png</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><input type='hidden' name='confirm' value='finish'/>
+                                <input type='submit' value="<?php echo ie(t('submit_generate_config')); ?>"/></td>
+                        </tr>
+                    </table>
+                </form>
+            <?php } ?>
             <p><?php echo ie(t('after_config_download_text')); ?></p>
 
             <form action='install.php' method='POST' name='finish'>
@@ -976,7 +1009,8 @@ require_once 'lang.php';
 
         /******************************************************************************/
 
-        case 'finish':
+        case
+        'finish':
             ?>
             <h2><?php echo ie(t('finish_heading')); ?></h2>
 

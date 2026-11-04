@@ -54,14 +54,7 @@ function webchessPhpStringLiteral($value) {
 /* debug flag */
 define ("DEBUG", 0);
 
-header('Cache-Control: no-store, no-cache, must-revalidate'); // HTTP 1.1
-header('Cache-Control: pre-check=0, post-check=0, max-age=0'); // HTTP 1.1
-header('Pragma: no-cache'); // HTTP 1.0
-header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-header('Content-Transfer-Encoding: none');
-header('Content-Type: text/php; name="config.php"');
-header('Content-Disposition: attachment; filename="config.php"');
-// header("Content-length: $content_len");
+
 //We see if the administrator has provided a new user to be used. If it is so
 //(FALSE case) we will create the new user, if it is not (TRUE case) we won't
 //create any user.
@@ -86,22 +79,33 @@ if (isset($_POST['reuse']) && $_POST['reuse']=='true')
     * code insider config.php if there is an error. It is not perfect, but it is
     * the only solution I find.
     */
-   if ($result==true)
-   {
-      //No need to mess with config.php if everything has gone allright.
-      //echo "New user created correctly<br>";
-   } else {
-      //We write this sentence in config.php. There must be a FAQ entry to explain it.
-      echo "/* There was a problem and the new user was not created */\n";
-   }
+    if ($result !== true) {
+        echo '<div class="alert alert-danger" role="alert">Der Datenbankbenutzer konnte nicht erstellt werden. Bitte Eingaben und Rechte pruefen.</div>';
+        exit;
+    }
+}
+
+$new_user = trim((string)$new_user);
+if ($new_user === '') {
+    echo '<div class="alert alert-danger" role="alert">Bitte Datenbank-Benutzer angeben oder "Use the same user as in step 2." aktivieren.</div>';
+    exit;
 }
 
 $server = isset($_POST['server']) ? (string)$_POST['server'] : '';
 $dbName = isset($_POST['DBname']) ? (string)$_POST['DBname'] : '';
-if (!webchessIsSafeSqlIdentifier($dbName) || !webchessIsSafeSqlIdentifier((string)$new_user))
-{
-   echo "/* Invalid database or username format supplied to installer. */\n";
+if (!webchessIsSafeSqlIdentifier($dbName) || !webchessIsSafeSqlIdentifier((string)$new_user)) {
+    echo '<div class="alert alert-danger" role="alert">Ungueltiger Datenbankname oder Benutzername.</div>';
+    exit;
 }
+
+header('Cache-Control: no-store, no-cache, must-revalidate'); // HTTP 1.1
+header('Cache-Control: pre-check=0, post-check=0, max-age=0'); // HTTP 1.1
+header('Pragma: no-cache'); // HTTP 1.0
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Content-Transfer-Encoding: none');
+header('Content-Type: text/php; name="config.php"');
+header('Content-Disposition: attachment; filename="config.php"');
+// header("Content-length: $content_len");
 
 //Here we start the second part. We start to generate config.php.
 echo "<?php\n";
