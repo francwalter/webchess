@@ -821,7 +821,12 @@ require_once 'lang.php';
             $configError = '';
 
             if ($action === 'generate_config') {
-                $postedReuse = isset($_POST['reuse']) && $_POST['reuse'] === 'true';
+                $postedReuse = (
+                    (isset($_POST['reuse']) && $_POST['reuse'] === 'true') ||
+                    (isset($_POST['reuse2']) && $_POST['reuse2'] === 'true')
+                );
+                // Debug temporär:
+# echo '<pre>' . ie(print_r($_POST, true)) . '</pre>';
                 $postedUser = trim((string)($_POST['user'] ?? ''));
                 $postedPass = (string)($_POST['pass'] ?? '');
                 $postedUserLast = trim((string)($_POST['user_last'] ?? ''));
@@ -832,6 +837,11 @@ require_once 'lang.php';
                     $configError = t('error_config_user_required');
                 } else {
                     // Erfolgreich validiert: POST unverändert an makeConfig.php weiterreichen
+                    echo '<h2>' . ie(t('page_title')) . '</h2>';
+                    echo '<p>' . ie(t('download_starting')) . '...</p>';
+                    echo '<p>' . ie(t('download_manual_hint')) . '</p>';
+                    echo '<p>' . ie(t('download_place_config_hint')) . '</p>';
+
                     echo '<form id="forwardMakeConfig" method="post" action="makeConfig.php">';
                     foreach ($_POST as $k => $v) {
                         if (is_array($v)) {
@@ -842,11 +852,11 @@ require_once 'lang.php';
                             echo '<input type="hidden" name="' . ie((string)$k) . '" value="' . ie((string)$v) . '">';
                         }
                     }
+                    echo '<button type="submit">' . ie(t('submit_generate_config')) . '</button>';
                     echo '</form>';
+
                     echo '<script>document.getElementById("forwardMakeConfig").submit();</script>';
-                    // Fallback ohne JS:
-                    echo '<noscript><p><button form="forwardMakeConfig" type="submit">' . ie(t('submit_generate_config')) . '</button></p></noscript>';
-                    break;
+                    exit;
                 }
             }
             $DBname = trim((string)($_POST['DBname'] ?? ''));

@@ -27,19 +27,33 @@
 //Normally it would be expected for this file to be located in install.php
 //but coding the installer has yeld to the conclusion that it is easier to put it
 //right here.
-function createUser($new_user, $new_password, $user, $password, $server, $DBname)
+function createUser($new_user, $new_password, $user, $password, $server, $DBname, &$error = '')
 {
-    if (!webchessIsSafeSqlIdentifier($DBname) || !webchessIsSafeSqlIdentifier($new_user))
+    if (!webchessIsSafeSqlIdentifier($DBname) || !webchessIsSafeSqlIdentifier($new_user)) {
+        $error = 'invalid_identifier';
         return false;
+    }
 
-    $dbh = mysqli_connect($server, $user, $password)
-    or die ('WebChess cannot connect to the database.
-              Please check the database settings you provided.<br>');
-    mysqli_select_db($dbh, $DBname);
+    $dbh = @mysqli_connect($server, $user, $password);
+    if (!$dbh) {
+        $error = 'connect: ' . (string)mysqli_connect_error();
+        return false;
+    }
+
+    if (!mysqli_select_db($dbh, $DBname)) {
+        $error = 'select_db: ' . mysqli_error($dbh);
+        mysqli_close($dbh);
+        return false;
+    }
 
     $escapedPassword = mysqli_real_escape_string($dbh, (string)$new_password);
-    $query = "GRANT SELECT, INSERT, UPDATE, DELETE ON `" . $DBname . "`.* TO '" . $new_user . "'@'%' IDENTIFIED BY '" . $escapedPassword . "'";
+    $query = "GRANT SELECT, INSERT, UPDATE, DELETE ON `".$DBname."`.* TO '".$new_user."'@'%' IDENTIFIED BY '".$escapedPassword."'";
+
     $result = mysqli_query($dbh, $query);
+    if (!$result) {
+        $error = 'grant: ' . mysqli_error($dbh);
+    }
+
     mysqli_close($dbh);
     return $result;
 }
@@ -107,10 +121,14 @@ if (isset($_POST['reuse']) && $_POST['reuse'] == 'true') {
     if ($new_user === '') {
         installerError(installerMsg('db_user_required', $installerLang));
     }
-
-    $result = createUser($new_user, $new_pass, $user, $pass, $_POST['server'], $_POST['DBname']);
+    $dbUserError = '';
+    $result = createUser($new_user, $new_pass, $user, $pass, $_POST['server'], $_POST['DBname'], $dbUserError);
     if ($result !== true) {
-        installerError(installerMsg('db_user_create_failed', $installerLang));
+        $safeDetail = trim((string)$dbUserError);
+        if ($safeDetail === '') {
+            $safeDetail = 'unknown';
+        }
+        installerError(installerMsg('db_user_create_failed', $installerLang) . ' [' . $safeDetail . ']');
     }
 }
 
