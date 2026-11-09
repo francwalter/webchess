@@ -18,12 +18,23 @@
 
 function MessagePlayer(playerID)
 {
-        var where="sendmessage.php?to="+playerID;
-        var height=400;
-        var width=600;
-        var left=(screen.availWidth/2)-(width/2);
-        var top=(screen.availHeight/2)-(height/2)-100;
-        window.open(where,"","height="+height+",width="+width+",left="+left+",top="+top);
+    var frame = document.getElementById('messageFrame');
+    if (!frame) {
+        return;
+    }
+
+    var currentTheme = document.body.getAttribute("data-theme")
+        || document.documentElement.getAttribute("data-bs-theme")
+        || "light";
+    frame.src = "sendmessage.php?to=" + encodeURIComponent(playerID) + "&theme=" + encodeURIComponent(currentTheme);
+
+    var modalElement = document.getElementById('messageModal');
+    if (!modalElement) {
+        return;
+    }
+
+    var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    modal.show();
 }
 
 function HideMessage(messageID)

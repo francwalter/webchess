@@ -54,10 +54,10 @@
             updateThemeButton();
             return;
         }
-        
+
         const root = document.documentElement;
         root.setAttribute('data-bs-theme', normalizedTheme);
-        
+
         if (document.body) {
             document.body.setAttribute('data-theme', normalizedTheme);
             if (normalizedTheme === 'dark') {
@@ -68,9 +68,9 @@
                 document.body.classList.add('light-theme');
             }
         }
-        
+
         currentTheme = normalizedTheme;
-        
+
         if (!skipStorage) {
             setStoredTheme(theme);
         }
@@ -84,7 +84,9 @@
     function toggleTheme() {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
-        return false; 
+        if (typeof syncMessageFrameTheme === 'function')
+            syncMessageFrameTheme();
+        return false;
     }
 
     function updateThemeButton() {

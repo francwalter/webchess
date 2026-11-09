@@ -1994,9 +1994,45 @@ endif;
             type="hidden" name="sharePC" value="no"/><?php echo webchessCsrfField(); ?></form>
 <form name="withdrawRequestForm" action="mainmenu.php" method="post"><input type="hidden" name="gameID" value=""/><input
             type="hidden" name="ToDo" value="WithdrawRequest"/><?php echo webchessCsrfField(); ?></form>
-
+<!-- Floating message window (Bootstrap modal) -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true" data-bs-keyboard="true" data-bs-backdrop="true">    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel"><?php echo webchessTranslate("Send Message"); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?php echo webchessTranslate("Close"); ?>"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="messageFrame" src="about:blank" style="width:100%;height:70vh;border:0;" title="Message Composer"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Bootstrap JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    window.addEventListener('message', function (event) {
+        if (!event.data || !event.data.type)
+            return;
+
+        if (event.data.type !== 'webchess-message-sent' && event.data.type !== 'webchess-message-close')
+            return;
+
+        var modalElement = document.getElementById('messageModal');
+        if (!modalElement)
+            return;
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal.hide();
+
+        // Optional: Iframe leeren, damit ESC/Focus/alte Inhalte sauber sind
+        var frame = document.getElementById('messageFrame');
+        if (frame)
+            frame.src = 'about:blank';
+
+        if (event.data.type === 'webchess-message-sent')
+            window.location.reload();
+    });
+</script>
 </body>
 </html>
 <?php mysqli_close($dbh); ?>

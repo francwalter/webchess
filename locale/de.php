@@ -234,4 +234,8 @@ return array(
     'Too many failed login attempts. Please try again in %d seconds.' => 'Zu viele fehlgeschlagene Login-Versuche. Bitte versuche es in %d Sekunden erneut.',
     'Switch to Dark Mode' => 'In den Dunkelmodus wechseln',
     'Switch to Light Mode' => 'In den Hellmodus wechseln',
+    'Send Message' => 'Nachricht senden',
+    'Message Recipient' => 'Nachrichtenempfänger',
+    'Message Subject' => 'Nachricht Betreff',
+    'Message Text' => 'Nachricht Text',
 );
