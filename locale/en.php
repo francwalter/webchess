@@ -224,4 +224,7 @@ return array(
     'Too many failed login attempts. Please try again in %d seconds.' => 'Too many failed login attempts. Please try again in %d seconds.',
     'Switch to Dark Mode' => 'Switch to Dark Mode',
     'Switch to Light Mode' => 'Switch to Light Mode',
+    'Own messages'                    => 'Own messages',
+    'No sent messages'                => 'No sent messages',
+    'Recipient'                       => 'Recipient',
 );

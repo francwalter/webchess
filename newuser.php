@@ -22,14 +22,16 @@
 require_once 'security.php';
 require_once 'footer.php';
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 /* load settings */
 if (!isset($_CONFIG))
-    require 'config.php';
+    require_once 'config.php';
 
 if (!isset($_CHESSUTILS))
-    require 'chessutils.php';
+    require_once 'chessutils.php';
 
 require "lang.php";
 $requestedLang = null;
@@ -55,8 +57,10 @@ if ($CFG_NEW_USERS_ALLOWED == false) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles/theme.css">
     <link rel="stylesheet" href="styles/userlogin.css">
     <script src="javascript/cookies.js" defer></script>
+    <script src="javascript/theme.js"></script>
     <title><?php echo webchessTranslate("WebChess") . " :: " . webchessTranslate("Create New User"); ?></title>
 
     <script>
@@ -82,7 +86,7 @@ if ($CFG_NEW_USERS_ALLOWED == false) {
     </script>
 </head>
 
-<body>
+<body class="newuser-page">
 <div id="header">
     <div id="heading"><?php echo webchessTranslate("WebChess") . " :: " . webchessTranslate("Create New User"); ?></div>
     <div class="language-switch">

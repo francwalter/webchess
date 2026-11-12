@@ -238,4 +238,7 @@ return array(
     'Message Recipient' => 'Nachrichtenempfänger',
     'Message Subject' => 'Nachricht Betreff',
     'Message Text' => 'Nachricht Text',
+    'Own messages'                    => 'Eigene Nachrichten',
+    'No sent messages'                => 'Keine gesendeten Nachrichten',
+    'Recipient'                       => 'Empfänger',
 );

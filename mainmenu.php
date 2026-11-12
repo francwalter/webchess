@@ -26,7 +26,7 @@ session_start();
 
 /* load settings */
 if (!isset($_CONFIG))
-    require 'config.php';
+    require_once 'config.php';
 
 /* load external functions for setting up new game */
 require 'chessutils.php';
@@ -1859,6 +1859,69 @@ endif;
                                             <td><small><?php echo $tmpGame['postDate']; ?></small></td>
                                         </tr>
                                     <?php endwhile; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <h6 class="fw-bold mt-4"><?php echo webchessTranslate('Own messages'); ?></h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                <tr>
+                                    <th><?php echo webchessTranslate('Recipient'); ?></th>
+                                    <th><?php echo webchessTranslate('Subject'); ?></th>
+                                    <th><?php echo webchessTranslate('Date'); ?></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php
+                                $playerId = (int)$_SESSION['playerID'];
+                                $stmtSent = mysqli_prepare(
+                                        $dbh,
+                                        "SELECT c.commID, c.title, c.postDate, p.nick
+             FROM " . $CFG_TABLE['communication'] . " c
+             LEFT JOIN " . $CFG_TABLE['players'] . " p ON p.playerID = c.toID
+             WHERE c.fromID = ? AND c.toID IS NOT NULL AND c.gameID IS NULL
+             ORDER BY c.postDate DESC"
+                                );
+
+                                if (!$stmtSent) {
+                                    die('Database error.');
+                                }
+
+                                mysqli_stmt_bind_param($stmtSent, 'i', $playerId);
+                                if (!mysqli_stmt_execute($stmtSent)) {
+                                    mysqli_stmt_close($stmtSent);
+                                    die('Database error.');
+                                }
+
+                                $sentMessages = mysqli_stmt_get_result($stmtSent);
+                                mysqli_stmt_close($stmtSent);
+
+                                if (!$sentMessages) {
+                                    die('Database error.');
+                                }
+
+                                if (mysqli_num_rows($sentMessages) === 0): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">
+                                            <?php echo webchessTranslate('No sent messages'); ?>
+                                        </td>
+                                    </tr>
+                                <?php else:
+                                    while ($sentMessage = mysqli_fetch_assoc($sentMessages)):
+                                        $title = (string)($sentMessage['title'] ?? '');
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <a href="javascript:viewMessage(<?php echo (int)$sentMessage['commID']; ?>)">
+                                                    <?php echo htmlspecialchars((string)($sentMessage['nick'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                                </a>
+                                            </td>
+                                            <td><?php echo htmlspecialchars(strlen($title) > 40 ? substr($title, 0, 37) . '...' : $title, ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><small><?php echo htmlspecialchars((string)$sentMessage['postDate'], ENT_QUOTES, 'UTF-8'); ?></small></td>
+                                        </tr>
+                                    <?php endwhile;
+                                endif; ?>
                                 </tbody>
                             </table>
                         </div>

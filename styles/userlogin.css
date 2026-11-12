@@ -219,3 +219,55 @@ form {
 .footer a:focus {
 	text-decoration: underline;
 }
+html[data-bs-theme="dark"] body,
+body.dark-theme {
+	background-color: #1a1a1a !important;
+	color: #e0e0e0 !important;
+}
+
+html[data-bs-theme="dark"] #header,
+body.dark-theme #header {
+	background-color: #0d0d0d !important;
+	border-color: #333 !important;
+}
+
+html[data-bs-theme="dark"] .preferences,
+html[data-bs-theme="dark"] .form-block,
+body.dark-theme .preferences,
+body.dark-theme .form-block {
+	background-color: #2a2a2a !important;
+	border-color: #444 !important;
+	color: #e0e0e0 !important;
+}
+
+html[data-bs-theme="dark"] .preferences h1,
+html[data-bs-theme="dark"] .inputlabel,
+html[data-bs-theme="dark"] .login-text,
+html[data-bs-theme="dark"] .instruction,
+body.dark-theme .preferences h1,
+body.dark-theme .inputlabel,
+body.dark-theme .login-text,
+body.dark-theme .instruction {
+	color: #e0e0e0 !important;
+}
+
+html[data-bs-theme="dark"] .inputbox,
+body.dark-theme .inputbox {
+	background-color: #333 !important;
+	border-color: #666 !important;
+	color: #fff !important;
+}
+html[data-bs-theme="dark"] .newuser-page .form-block a:link,
+html[data-bs-theme="dark"] .newuser-page .form-block a:visited,
+body.dark-theme.newuser-page .form-block a:link,
+body.dark-theme.newuser-page .form-block a:visited {
+	color: #8fc6ff !important;
+}
+
+html[data-bs-theme="dark"] .newuser-page .form-block a:hover,
+html[data-bs-theme="dark"] .newuser-page .form-block a:focus,
+body.dark-theme.newuser-page .form-block a:hover,
+body.dark-theme.newuser-page .form-block a:focus {
+	color: #c4e2ff !important;
+	text-decoration: underline;
+}
