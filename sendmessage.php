@@ -145,6 +145,10 @@ if (isset($_POST['newMessage'])) {
 }
 
 $to_get = isset($_GET['to']) ? (int)$_GET['to'] : 0;
+$forGame_get = isset($_GET['forGame']) && $_GET['forGame'] !== '' ? (int)$_GET['forGame'] : 0;
+if ($forGame_get > 0 && !webchessPlayerOwnsGame($dbh, $forGame_get, $id)) {
+    $forGame_get = 0;
+}
 
 $stmtPlayers = mysqli_prepare(
     $dbh,
@@ -215,6 +219,9 @@ $tmpPlayers = mysqli_stmt_get_result($stmtPlayers);
                     <form action="sendmessage.php" method="post" name="FormName">
                         <?php echo webchessCsrfField(); ?>
                         <input type="hidden" name="from" value="<?php echo $id; ?>">
+                        <?php if ($forGame_get > 0) { ?>
+                            <input type="hidden" name="forGame" value="<?php echo $forGame_get; ?>">
+                        <?php } ?>
 
                         <div class="mb-3">
                             <label for="to" class="form-label"><?php echo webchessTranslate("Message Recipient"); ?></label>

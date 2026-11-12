@@ -19,193 +19,240 @@
     along with WebChess.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-  require_once 'security.php';
+require_once 'security.php';
 
-	/* debug flag */
-	define ("DEBUG", 0);
+/* debug flag */
+define("DEBUG", 0);
 
-	session_start();
+session_start();
 
-    /* only on debug */
-    if (DEBUG)
-    {
-        error_log("--- chess.php Debug Start ---");
-        error_log("SESSION playerID: " . (isset($_SESSION['playerID']) ? $_SESSION['playerID'] : 'NOT SET'));
-        error_log("SESSION gameID: " . (isset($_SESSION['gameID']) ? $_SESSION['gameID'] : 'NOT SET'));
-    }
+/* only on debug */
+if (DEBUG) {
+    error_log("--- chess.php Debug Start ---");
+    error_log("SESSION playerID: " . (isset($_SESSION['playerID']) ? $_SESSION['playerID'] : 'NOT SET'));
+    error_log("SESSION gameID: " . (isset($_SESSION['gameID']) ? $_SESSION['gameID'] : 'NOT SET'));
+}
 
-	/* load settings */
-	if (!isset($_CONFIG))
-		require 'config.php';
+/* load settings */
+if (!isset($_CONFIG))
+    require 'config.php';
 
-	/* define constants */
-	require 'chessconstants.php';
+/* define constants */
+require 'chessconstants.php';
 
-	/* include outside functions */
-	if (!isset($_CHESSUTILS))
-		require 'chessutils.php';
-  require 'lang.php';
-  require 'csrf.php';
-	require 'gui.php';
-	require 'chessdb.php';
-	require 'move.php';
-	require 'undo.php';
+/* include outside functions */
+if (!isset($_CHESSUTILS))
+    require 'chessutils.php';
+require 'lang.php';
+require 'csrf.php';
+require 'gui.php';
+require 'chessdb.php';
+require 'move.php';
+require 'undo.php';
 
-	/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
-	fixOldPHPVersions();
+/* allow WebChess to be run on PHP systems < 4.1.0, using old http vars */
+fixOldPHPVersions();
 
-	/* check session status */
-	require 'sessioncheck.php';
+/* check session status */
+require 'sessioncheck.php';
 
-  if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateRequest())
-  {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateRequest()) {
     $_SESSION['flash_msg'] = webchessTranslate('Your session form token expired. Please reload the page and try again.');
     $_SESSION['flash_type'] = 'danger';
     header('Location: mainmenu.php');
     exit();
-  }
+}
 
-  /* check if loading game */
-  if (isset($_POST['gameID']))
+/* check if loading game */
+if (isset($_POST['gameID']))
     $_SESSION['gameID'] = (int)$_POST['gameID'];
 
-	/* connect to database */
-	require 'connectdb.php';
+/* connect to database */
+require 'connectdb.php';
 
-  if (!isset($_SESSION['gameID']) || !webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID']))
-  {
+if (!isset($_SESSION['gameID']) || !webchessPlayerOwnsGame($dbh, (int)$_SESSION['gameID'], (int)$_SESSION['playerID'])) {
     $_SESSION['flash_msg'] = webchessTranslate('Invalid or unauthorized game selection.');
     $_SESSION['flash_type'] = 'danger';
     header('Location: mainmenu.php');
     exit();
-  }
+}
 
-  $whiteNick = '';
-  $blackNick = '';
-  $gameID = (int)$_SESSION['gameID'];
-  $stmtPlayers = mysqli_prepare(
+$whiteNick = '';
+$blackNick = '';
+$gameID = (int)$_SESSION['gameID'];
+$stmtPlayers = mysqli_prepare(
     $dbh,
     "SELECT pw.nick AS whiteNick, pb.nick AS blackNick FROM " . $CFG_TABLE['games'] . " g JOIN " . $CFG_TABLE['players'] . " pw ON pw.playerID = g.whitePlayer JOIN " . $CFG_TABLE['players'] . " pb ON pb.playerID = g.blackPlayer WHERE g.gameID = ? LIMIT 1"
-  );
-  if ($stmtPlayers)
-  {
+);
+if ($stmtPlayers) {
     mysqli_stmt_bind_param($stmtPlayers, "i", $gameID);
     mysqli_stmt_execute($stmtPlayers);
     $resPlayers = mysqli_stmt_get_result($stmtPlayers);
     $rowPlayers = $resPlayers ? mysqli_fetch_assoc($resPlayers) : null;
-    if ($rowPlayers)
-    {
-      $whiteNick = (string)$rowPlayers['whiteNick'];
-      $blackNick = (string)$rowPlayers['blackNick'];
+    if ($rowPlayers) {
+        $whiteNick = (string)$rowPlayers['whiteNick'];
+        $blackNick = (string)$rowPlayers['blackNick'];
     }
     mysqli_stmt_close($stmtPlayers);
-  }
-    if (DEBUG) error_log("White Nick: " . $whiteNick);
-    if (DEBUG) error_log("Black Nick: " . $blackNick);
+}
+$opponentID = 0;
+$playerID = (int)$_SESSION['playerID'];
 
+$stmtOpponent = mysqli_prepare(
+    $dbh,
+    "SELECT whitePlayer, blackPlayer FROM " . $CFG_TABLE['games'] . " WHERE gameID = ? LIMIT 1"
+);
+if ($stmtOpponent) {
+    mysqli_stmt_bind_param($stmtOpponent, "i", $gameID);
+    mysqli_stmt_execute($stmtOpponent);
+    $resOpponent = mysqli_stmt_get_result($stmtOpponent);
+    $rowOpponent = $resOpponent ? mysqli_fetch_assoc($resOpponent) : null;
 
-	/* load game */
-	$isInCheck = (isset($_POST['isInCheck']) && $_POST['isInCheck'] == 'true');
-	$isCheckMate = false;
-	$isPromoting = false;
-	$isUndoing = false;
-	loadHistory();
-	loadGame();
-	processMessages();
+    if ($rowOpponent) {
+        $whitePlayer = (int)$rowOpponent['whitePlayer'];
+        $blackPlayer = (int)$rowOpponent['blackPlayer'];
 
-    // Declare these variables as global to make them accessible in the main script scope
-    global $isPlayersTurn, $currentPlayer, $opponentColor, $playersColor, $numMoves;
-
-    if (DEBUG) {
-        error_log("numMoves after loadHistory(): " . $numMoves);
-        error_log("playersColor after loadGame(): " . $playersColor);
-        error_log("isPlayersTurn after calculation: " . ($isPlayersTurn ? 'true' : 'false'));
-        error_log("currentPlayer after processMessages(): " . $currentPlayer);
-        error_log("opponentColor after processMessages(): " . $opponentColor);
+        if ($playerID === $whitePlayer)
+            $opponentID = $blackPlayer;
+        elseif ($playerID === $blackPlayer)
+            $opponentID = $whitePlayer;
     }
 
+    mysqli_stmt_close($stmtOpponent);
+}
 
-	if ($isUndoing)
-	{
-		doUndo();
-		saveGame();
-	}
-	elseif ((isset($_POST['promotion']) && $_POST['promotion'] != "") && (isset($_POST['toRow']) && $_POST['toRow'] != "") && (isset($_POST['toCol']) && $_POST['toCol'] != ""))
-	{
-		savePromotion();
-		$board[$_POST['toRow']][$_POST['toCol']] = $_POST['promotion'] | ($board[$_POST['toRow']][$_POST['toCol']] & BLACK);
-		saveGame();
-	}
-	elseif ((isset($_POST['fromRow']) && $_POST['fromRow'] != "") && (isset($_POST['fromCol']) && $_POST['fromCol'] != "") && (isset($_POST['toRow']) && $_POST['toRow'] != "") && (isset($_POST['toCol']) && $_POST['toCol'] != ""))
-	{
-		/* ensure it's the current player moving				 */
-		/* NOTE: if not, this will currently ignore the command...               */
-		/*       perhaps the status should be instead?                           */
-		/*       (Could be confusing to player if they double-click or something */
-		$tmpIsValid = true;
-		if (($numMoves == -1) || ($numMoves % 2 == 1))
-		{
-			/* White's move... ensure that piece being moved is white */
-			if ((($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK) != 0) || ($board[$_POST['fromRow']][$_POST['fromCol']] == 0))
-				/* invalid move */
-				$tmpIsValid = false;
-		}
-		else
-		{
-			/* Black's move... ensure that piece being moved is black */
-			if ((($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK) != BLACK) || ($board[$_POST['fromRow']][$_POST['fromCol']] == 0))
-				/* invalid move */
-				$tmpIsValid = false;
-		}
+$sendMessageUrl = "sendmessage.php";
+if ($opponentID > 0) {
+    $sendMessageUrl .= "?to=" . $opponentID . "&forGame=" . $gameID;
+}
+$uiThemeForMessage = 'light';
 
-		if ($tmpIsValid)
-		{
-			saveHistory();
-			doMove();
-			saveGame();
-		}
-	}
-	elseif(isset($history[$numMoves]) && $history[$numMoves]['curPiece'] == 'pawn' && $history[$numMoves]['promotedTo'] == null)
-	{	// Incomplete promotion?
-		if($history[$numMoves]['toRow'] == 7 || $history[$numMoves]['toRow'] == 0)
-		{
-			$isPromoting = true;
-		}
-	}
+if (isset($_SESSION['pref_ui_theme']) && ($_SESSION['pref_ui_theme'] === 'dark' || $_SESSION['pref_ui_theme'] === 'light')) {
+    $uiThemeForMessage = $_SESSION['pref_ui_theme'];
+} elseif (isset($_GET['theme']) && ($_GET['theme'] === 'dark' || $_GET['theme'] === 'light')) {
+    $uiThemeForMessage = $_GET['theme'];
+}
 
-	mysqli_close($dbh);
-    if (DEBUG) error_log("--- chess.php Debug End ---");
+$separator = (strpos($sendMessageUrl, '?') === false) ? '?' : '&';
+$sendMessageUrl .= $separator . 'theme=' . rawurlencode($uiThemeForMessage);
+if (DEBUG) error_log("White Nick: " . $whiteNick);
+if (DEBUG) error_log("Black Nick: " . $blackNick);
 
-	/* check whether the current player's king has already moved (castling no longer possible) */
-  /* also check if both rooks have moved - castling is impossible then too */
-	$_kingHasMoved  = false;
-	$_rookMoveCount = 0;
-	if ($numMoves >= 0)
-	{
-		foreach ($history as $_move)
-		{
-			if ($_move['curColor'] !== $playersColor)
-				continue;
 
-			if ($_move['curPiece'] === 'king')
-				$_kingHasMoved = true;
+/* load game */
+$isInCheck = (isset($_POST['isInCheck']) && $_POST['isInCheck'] == 'true');
+$isCheckMate = false;
+$isPromoting = false;
+$isUndoing = false;
+loadHistory();
+loadGame();
+processMessages();
 
-			if ($_move['curPiece'] === 'rook')
-				$_rookMoveCount++;
-		}
-	}
-	/* castling hint is irrelevant once the king moved OR both rooks have moved */
-	$_castlingPossible = !$_kingHasMoved && ($_rookMoveCount < 2);
+$hasUnreadGameMessages = false;
+$unreadGameMessagesCount = 0;
+
+$stmtUnread = mysqli_prepare(
+    $dbh,
+    "SELECT COUNT(*) AS cnt
+     FROM " . $CFG_TABLE['communication'] . "
+     WHERE toID = ?
+       AND ack = 0
+       AND (gameID = ? OR gameID IS NULL)"
+);
+
+if ($stmtUnread) {
+    mysqli_stmt_bind_param($stmtUnread, "ii", $playerID, $gameID);
+    mysqli_stmt_execute($stmtUnread);
+    $resUnread = mysqli_stmt_get_result($stmtUnread);
+    $rowUnread = $resUnread ? mysqli_fetch_assoc($resUnread) : null;
+
+    if ($rowUnread) {
+        $unreadGameMessagesCount = (int)$rowUnread['cnt'];
+        $hasUnreadGameMessages = ($unreadGameMessagesCount > 0);
+    }
+
+    mysqli_stmt_close($stmtUnread);
+}
+
+// Declare these variables as global to make them accessible in the main script scope
+global $isPlayersTurn, $currentPlayer, $opponentColor, $playersColor, $numMoves;
+
+if (DEBUG) {
+    error_log("numMoves after loadHistory(): " . $numMoves);
+    error_log("playersColor after loadGame(): " . $playersColor);
+    error_log("isPlayersTurn after calculation: " . ($isPlayersTurn ? 'true' : 'false'));
+    error_log("currentPlayer after processMessages(): " . $currentPlayer);
+    error_log("opponentColor after processMessages(): " . $opponentColor);
+}
+
+
+if ($isUndoing) {
+    doUndo();
+    saveGame();
+} elseif ((isset($_POST['promotion']) && $_POST['promotion'] != "") && (isset($_POST['toRow']) && $_POST['toRow'] != "") && (isset($_POST['toCol']) && $_POST['toCol'] != "")) {
+    savePromotion();
+    $board[$_POST['toRow']][$_POST['toCol']] = $_POST['promotion'] | ($board[$_POST['toRow']][$_POST['toCol']] & BLACK);
+    saveGame();
+} elseif ((isset($_POST['fromRow']) && $_POST['fromRow'] != "") && (isset($_POST['fromCol']) && $_POST['fromCol'] != "") && (isset($_POST['toRow']) && $_POST['toRow'] != "") && (isset($_POST['toCol']) && $_POST['toCol'] != "")) {
+    /* ensure it's the current player moving				 */
+    /* NOTE: if not, this will currently ignore the command...               */
+    /*       perhaps the status should be instead?                           */
+    /*       (Could be confusing to player if they double-click or something */
+    $tmpIsValid = true;
+    if (($numMoves == -1) || ($numMoves % 2 == 1)) {
+        /* White's move... ensure that piece being moved is white */
+        if ((($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK) != 0) || ($board[$_POST['fromRow']][$_POST['fromCol']] == 0))
+            /* invalid move */
+            $tmpIsValid = false;
+    } else {
+        /* Black's move... ensure that piece being moved is black */
+        if ((($board[$_POST['fromRow']][$_POST['fromCol']] & BLACK) != BLACK) || ($board[$_POST['fromRow']][$_POST['fromCol']] == 0))
+            /* invalid move */
+            $tmpIsValid = false;
+    }
+
+    if ($tmpIsValid) {
+        saveHistory();
+        doMove();
+        saveGame();
+    }
+} elseif (isset($history[$numMoves]) && $history[$numMoves]['curPiece'] == 'pawn' && $history[$numMoves]['promotedTo'] == null) {    // Incomplete promotion?
+    if ($history[$numMoves]['toRow'] == 7 || $history[$numMoves]['toRow'] == 0) {
+        $isPromoting = true;
+    }
+}
+
+mysqli_close($dbh);
+if (DEBUG) error_log("--- chess.php Debug End ---");
+
+/* check whether the current player's king has already moved (castling no longer possible) */
+/* also check if both rooks have moved - castling is impossible then too */
+$_kingHasMoved = false;
+$_rookMoveCount = 0;
+if ($numMoves >= 0) {
+    foreach ($history as $_move) {
+        if ($_move['curColor'] !== $playersColor)
+            continue;
+
+        if ($_move['curPiece'] === 'king')
+            $_kingHasMoved = true;
+
+        if ($_move['curPiece'] === 'rook')
+            $_rookMoveCount++;
+    }
+}
+/* castling hint is irrelevant once the king moved OR both rooks have moved */
+$_castlingPossible = !$_kingHasMoved && ($_rookMoveCount < 2);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getGuiLanguage(); ?>">
 <head>
     <meta charset="ISO-8859-1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="pragma" content="no-cache"/>
     <!-- Use inline script to prevent theme flicker on reload -->
     <script type="text/javascript">
-        (function() {
+        (function () {
             var theme = localStorage.getItem('webchess-theme');
             if (!theme) {
                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -219,44 +266,68 @@
     </script>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles/chess.css" type="text/css" />
+    <link rel="stylesheet" href="styles/chess.css" type="text/css"/>
+    <style>
+        /* Grundzustand: gleich wie die anderen unteren Outline-Buttons */
+        #btnMessage,
+        #btnMessage:link,
+        #btnMessage:visited {
+            text-decoration: none !important;
+        }
+
+        /* Hover/Fokus: hellblau */
+        #btnMessage:hover,
+        #btnMessage:focus,
+        #btnMessage:active {
+            background-color: #0dcaf0 !important; /* Bootstrap info */
+            border-color: #0dcaf0 !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+
+        /* Optional: im Dark Mode lesbar halten */
+        html[data-bs-theme="dark"] #btnMessage {
+            color: #f8f9fa;
+            border-color: #6c757d;
+        }
+    </style>
     <?php
-        echo("<link rel='stylesheet' href='images/");
-        $safeTheme = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($_SESSION['pref_theme'] ?? 'beholder'));
-        if ($safeTheme === '')
-            $safeTheme = 'beholder';
-        echo($safeTheme . "/wctheme.css' type='text/css' />\n");
+    echo("<link rel='stylesheet' href='images/");
+    $safeTheme = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($_SESSION['pref_theme'] ?? 'beholder'));
+    if ($safeTheme === '')
+        $safeTheme = 'beholder';
+    echo($safeTheme . "/wctheme.css' type='text/css' />\n");
 
-        /* find out if it's the current player's turn */
-        if (( (($numMoves == -1) || (($numMoves % 2) == 1)) && ($playersColor == "white"))
-                || ((($numMoves % 2) == 0) && ($playersColor == "black")))
-            $isPlayersTurn = true;
-        else
-            $isPlayersTurn = false;
+    /* find out if it's the current player's turn */
+    if (((($numMoves == -1) || (($numMoves % 2) == 1)) && ($playersColor == "white"))
+        || ((($numMoves % 2) == 0) && ($playersColor == "black")))
+        $isPlayersTurn = true;
+    else
+        $isPlayersTurn = false;
 
-        if ($_SESSION['isSharedPC'])
-            echo("<title>WebChess</title>\n");
-        else if ($isPlayersTurn)
-            echo("<title>WebChess - " . webchessTranslate("Your Move") . "</title>\n");
-        else
-            echo("<title>WebChess - " . webchessTranslate("Opponent's Move") . "</title>\n");
+    if ($_SESSION['isSharedPC'])
+        echo("<title>WebChess</title>\n");
+    else if ($isPlayersTurn)
+        echo("<title>WebChess - " . webchessTranslate("Your Move") . "</title>\n");
+    else
+        echo("<title>WebChess - " . webchessTranslate("Opponent's Move") . "</title>\n");
     ?>
-    <link rel="stylesheet" href="styles/theme.css" type="text/css" />
+    <link rel="stylesheet" href="styles/theme.css" type="text/css"/>
     <script type="text/javascript" src="javascript/theme.js"></script>
     <script type="text/javascript">
-    <?php
+        <?php
         echo("var cfgImageExt = '$CFG_IMAGE_EXT';\n");
         /* transfer board data to javacript */
         writeJSboard();
         /* if it's not the player's turn, enable auto-refresh */
         $autoRefresh = !$isPlayersTurn && !isBoardDisabled() && !$_SESSION['isSharedPC'];
         echo('var autoreload = ');
-        if(!$autoRefresh)
+        if (!$autoRefresh)
             echo('0');
         else if ($_SESSION['pref_autoreload'] >= $CFG_MINAUTORELOAD)
-            echo ($_SESSION['pref_autoreload']);
+            echo($_SESSION['pref_autoreload']);
         else
-            echo ($CFG_MINAUTORELOAD);
+            echo($CFG_MINAUTORELOAD);
         echo(";\n");
         writeJSHistory();
         drawboard();
@@ -286,15 +357,15 @@
         writeHistory();
         // Captured pieces..
         require 'capt.php';
-    ?>
+        ?>
     </script>
     <script type="text/javascript" src="javascript/chessutils.js"></script>
     <script type="text/javascript" src="javascript/commands.js"></script>
     <script type="text/javascript" src="javascript/validation.js"></script>
     <?php
-    if($isPlayersTurn || $_SESSION['isSharedPC'] || $isPromoting)
+    if ($isPlayersTurn || $_SESSION['isSharedPC'] || $isPromoting)
         echo('<script type="text/javascript" src="javascript/isCheckMate.js"></script>');
-    if(!isBoardDisabled() || $_SESSION['isSharedPC'])
+    if (!isBoardDisabled() || $_SESSION['isSharedPC'])
         echo('<script type="text/javascript" src="javascript/squareclicked.js"></script>');
     ?>
     <script type="text/javascript" src="javascript/board.js"></script>
@@ -308,7 +379,12 @@
             <span id="players"></span>
         </div>
         <div class="ms-auto d-flex gap-2">
-            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()" data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>" data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
+            <button id="theme-toggle-btn" class="btn btn-outline-light btn-sm" type="button" onclick="toggleTheme()"
+                    data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>"
+                    data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>"
+                    title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">
+                &#9790;
+            </button>
         </div>
     </div>
 </nav>
@@ -321,12 +397,12 @@
                 <div class="card-body p-3">
                     <form name="gamedata" method="post" action="chess.php">
                         <?php
-                            if ($isPromoting && (!$isPlayersTurn || $_SESSION['isSharedPC']))
-                                writePromotion();
-                            if (isset($isUndoRequested) && $isUndoRequested)
-                                writeUndoRequest();
-                            if (isset($isDrawRequested) && $isDrawRequested)
-                                writeDrawRequest();
+                        if ($isPromoting && (!$isPlayersTurn || $_SESSION['isSharedPC']))
+                            writePromotion();
+                        if (isset($isUndoRequested) && $isUndoRequested)
+                            writeUndoRequest();
+                        if (isset($isDrawRequested) && $isDrawRequested)
+                            writeDrawRequest();
                         ?>
                         <div id="chessboard" class="text-center mb-3"></div>
 
@@ -340,33 +416,44 @@
                             <div class="fw-bold mb-1"><?php echo webchessTranslate('Resume game?'); ?></div>
                             <div class="small mb-2"><?php echo webchessTranslate('You are viewing an earlier move. In analysis mode you cannot make a move.'); ?></div>
                             <div class="d-flex justify-content-center gap-2">
-                                <button type="button" class="btn btn-sm btn-primary" onclick="resumeLiveGameFromAnalysis()"><?php echo webchessTranslate('Resume game'); ?></button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="continueAnalysisMode()"><?php echo webchessTranslate('Continue analyzing'); ?></button>
+                                <button type="button" class="btn btn-sm btn-primary"
+                                        onclick="resumeLiveGameFromAnalysis()"><?php echo webchessTranslate('Resume game'); ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        onclick="continueAnalysisMode()"><?php echo webchessTranslate('Continue analyzing'); ?></button>
                             </div>
                         </div>
                         <div id="gamebuttons" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
-                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm" value="<?php echo webchessTranslate('Request Undo'); ?>" <?php if ($numMoves < 0) echo 'disabled="disabled"'; ?> onclick="undo()" />
-                            <input type="button" id="btnDraw" class="btn btn-info btn-sm" value="<?php echo webchessTranslate('Request Draw'); ?>" disabled="disabled" onclick="draw()" />
-                            <input type="button" id="btnResign" class="btn btn-danger btn-sm" value="<?php echo webchessTranslate('Resign'); ?>" disabled="disabled" onclick="resigngame()" />
+                            <input type="button" id="btnUndo" class="btn btn-warning btn-sm"
+                                   value="<?php echo webchessTranslate('Request Undo'); ?>" <?php if ($numMoves < 0) echo 'disabled="disabled"'; ?>
+                                   onclick="undo()"/>
+                            <input type="button" id="btnDraw" class="btn btn-info btn-sm"
+                                   value="<?php echo webchessTranslate('Request Draw'); ?>" disabled="disabled"
+                                   onclick="draw()"/>
+                            <input type="button" id="btnResign" class="btn btn-danger btn-sm"
+                                   value="<?php echo webchessTranslate('Resign'); ?>" disabled="disabled"
+                                   onclick="resigngame()"/>
                         </div>
 
-                        <input type="hidden" name="requestUndo" value="no" />
-                        <input type="hidden" name="requestDraw" value="no" />
-                        <input type="hidden" name="resign" value="no" />
-                        <input type="hidden" name="fromRow" value="<?php if ($isPromoting) echo ($_POST['fromRow']); ?>" />
-                        <input type="hidden" name="fromCol" value="<?php if ($isPromoting) echo ($_POST['fromCol']); ?>" />
-                        <input type="hidden" name="toRow" value="<?php if ($isPromoting) echo ($_POST['toRow']); ?>" />
-                        <input type="hidden" name="toCol" value="<?php if ($isPromoting) echo ($_POST['toCol']); ?>" />
-                        <input type="hidden" name="isInCheck" value="false" />
-                        <input type="hidden" name="isCheckMate" value="false" />
+                        <input type="hidden" name="requestUndo" value="no"/>
+                        <input type="hidden" name="requestDraw" value="no"/>
+                        <input type="hidden" name="resign" value="no"/>
+                        <input type="hidden" name="fromRow"
+                               value="<?php if ($isPromoting) echo($_POST['fromRow']); ?>"/>
+                        <input type="hidden" name="fromCol"
+                               value="<?php if ($isPromoting) echo($_POST['fromCol']); ?>"/>
+                        <input type="hidden" name="toRow" value="<?php if ($isPromoting) echo($_POST['toRow']); ?>"/>
+                        <input type="hidden" name="toCol" value="<?php if ($isPromoting) echo($_POST['toCol']); ?>"/>
+                        <input type="hidden" name="isInCheck" value="false"/>
+                        <input type="hidden" name="isCheckMate" value="false"/>
                         <?php echo webchessCsrfField(); ?>
                     </form>
 
                     <?php if ($_castlingPossible): ?>
-                    <div class="text-muted small text-center mb-3">
-                        <?php echo webchessTranslate('Move pieces by clicking the start square, then the target square (no drag and drop).'); ?><br />
-                        <?php echo webchessTranslate('When castling, just move the king (the rook will move automatically).'); ?>
-                    </div>
+                        <div class="text-muted small text-center mb-3">
+                            <?php echo webchessTranslate('Move pieces by clicking the start square, then the target square (no drag and drop).'); ?>
+                            <br/>
+                            <?php echo webchessTranslate('When castling, just move the king (the rook will move automatically).'); ?>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -391,7 +478,16 @@
                 </div>
                 <div class="card-body">
                     <div id="gameid" class="mb-3 small text-muted"></div>
-
+                    <?php if ($hasUnreadGameMessages): ?>
+                        <div class="alert alert-warning mb-3" id="unreadMsgHint">
+                            <a href="<?php echo htmlspecialchars($sendMessageUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                               class="alert-link"
+                               onclick="return openMessageComposerModal(this.href);">
+                                <?php echo webchessTranslate('You have unread messages'); ?>
+                                (<?php echo $unreadGameMessagesCount; ?>)
+                            </a>
+                        </div>
+                    <?php endif; ?>
                     <div class="alert alert-info mb-3" id="statusmsg"></div>
 
                     <div id="checkmsg" class="alert alert-danger d-none mb-3"></div>
@@ -399,19 +495,52 @@
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                         <h6 class="mb-0"><?php echo webchessTranslate('Move History'); ?></h6>
                         <div class="d-flex gap-1">
-                            <button type="button" id="btnHistStart" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyJumpToStart()">&laquo;</button>
-                            <button type="button" id="btnHistPrev" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyStep(-1)">&larr;</button>
-                            <button type="button" id="btnHistNext" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyStep(1)">&rarr;</button>
-                            <button type="button" id="btnHistEnd" class="btn btn-sm btn-outline-secondary d-none" title="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>" onclick="historyJumpToEnd()">&raquo;</button>
+                            <button type="button" id="btnHistStart" class="btn btn-sm btn-outline-secondary d-none"
+                                    title="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-label="<?php echo htmlspecialchars(webchessTranslate('First move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    onclick="historyJumpToStart()">&laquo;
+                            </button>
+                            <button type="button" id="btnHistPrev" class="btn btn-sm btn-outline-secondary d-none"
+                                    title="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-label="<?php echo htmlspecialchars(webchessTranslate('Previous move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    onclick="historyStep(-1)">&larr;
+                            </button>
+                            <button type="button" id="btnHistNext" class="btn btn-sm btn-outline-secondary d-none"
+                                    title="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-label="<?php echo htmlspecialchars(webchessTranslate('Next move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    onclick="historyStep(1)">&rarr;
+                            </button>
+                            <button type="button" id="btnHistEnd" class="btn btn-sm btn-outline-secondary d-none"
+                                    title="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-label="<?php echo htmlspecialchars(webchessTranslate('Last move'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    onclick="historyJumpToEnd()">&raquo;
+                            </button>
                         </div>
                     </div>
                     <div id="gamebody" class="overflow-auto" style="max-height: 350px;"></div>
 
                     <div class="mt-4 pt-3 border-top d-grid gap-2">
-                        <input type="button" id="btnMainMenu" class="btn btn-outline-primary" value="<?php echo webchessTranslate('Main Menu'); ?>" disabled="disabled" onclick="displayMainmenu()" />
-                        <input type="button" id="btnReload" class="btn btn-outline-secondary" value="<?php echo webchessTranslate('Reload Board'); ?>" disabled="disabled" onclick="reloadPage(this)" />
-                        <input type="button" id="btnPGN" class="btn btn-outline-success" value="<?php echo webchessTranslate('Download PGN'); ?>" disabled="disabled" onclick="downloadPGN()" />
-                        <input type="button" id="btnLogout" class="btn btn-outline-danger" value="<?php echo webchessTranslate('Logout'); ?>" disabled="disabled" onclick="logout()" />
+                        <?php if ($opponentID > 0): ?>
+                            <a id="btnMessage"
+                               class="btn btn-outline-secondary text-decoration-none"
+
+                               href="<?php echo htmlspecialchars($sendMessageUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                               onclick="return openMessageComposerModal(this.href);">
+                                <?php echo webchessTranslate('Send Message'); ?>
+                            </a>
+                        <?php endif; ?>
+                        <input type="button" id="btnMainMenu" class="btn btn-outline-primary"
+                               value="<?php echo webchessTranslate('Main Menu'); ?>" disabled="disabled"
+                               onclick="displayMainmenu()"/>
+                        <input type="button" id="btnReload" class="btn btn-outline-secondary"
+                               value="<?php echo webchessTranslate('Reload Board'); ?>" disabled="disabled"
+                               onclick="reloadPage(this)"/>
+                        <input type="button" id="btnPGN" class="btn btn-outline-success"
+                               value="<?php echo webchessTranslate('Download PGN'); ?>" disabled="disabled"
+                               onclick="downloadPGN()"/>
+                        <input type="button" id="btnLogout" class="btn btn-outline-danger"
+                               value="<?php echo webchessTranslate('Logout'); ?>" disabled="disabled"
+                               onclick="logout()"/>
                     </div>
                 </div>
             </div>
@@ -420,7 +549,7 @@
 </div>
 
 <form name="gamemenu" method="post" action="chess.php" style="display:none;">
-    <input type="hidden" name="ToDo" value="Logout" />
+    <input type="hidden" name="ToDo" value="Logout"/>
     <?php echo webchessCsrfField(); ?>
 </form>
 
@@ -435,8 +564,28 @@
                 <p id="confirmModalText"></p>
             </div>
             <div class="modal-footer">
-                <button type="button" id="confirmModalNoBtn" class="btn btn-secondary" data-bs-dismiss="modal" onclick="confirmModalNo()">Cancel</button>
-                <button type="button" id="confirmModalYesBtn" class="btn btn-primary" onclick="confirmModalYes()">Yes</button>
+                <button type="button" id="confirmModalNoBtn" class="btn btn-secondary" data-bs-dismiss="modal"
+                        onclick="confirmModalNo()">Cancel
+                </button>
+                <button type="button" id="confirmModalYesBtn" class="btn btn-primary" onclick="confirmModalYes()">Yes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="messageComposerModal" tabindex="-1" aria-labelledby="messageComposerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageComposerModalLabel"><?php echo webchessTranslate('Send Message'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?php echo htmlspecialchars(webchessTranslate('Close'), ENT_QUOTES, 'UTF-8'); ?>"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 75vh;">
+                <iframe id="messageComposerFrame"
+                        src="about:blank"
+                        title="<?php echo htmlspecialchars(webchessTranslate('Send Message'), ENT_QUOTES, 'UTF-8'); ?>"
+                        style="width:100%; height:100%; border:0;"
+                        loading="lazy"></iframe>
             </div>
         </div>
     </div>
@@ -452,9 +601,54 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="text/javascript">
+    function openMessageComposerModal(url) {
+        var frame = document.getElementById('messageComposerFrame');
+        var modalEl = document.getElementById('messageComposerModal');
+        if (!frame || !modalEl) {
+            window.location.href = url; // Fallback
+            return false;
+        }
+
+        // Theme immer live aus dem aktuellen Dokument holen
+        var currentTheme = document.documentElement.getAttribute('data-bs-theme');
+        if (currentTheme !== 'dark' && currentTheme !== 'light') {
+            currentTheme = 'light';
+        }
+
+        // URL robust mit theme-Parameter ergänzen/ersetzen
+        var finalUrl = url;
+        if (finalUrl.indexOf('theme=') !== -1) {
+            finalUrl = finalUrl.replace(/([?&])theme=(dark|light)/, '$1theme=' + encodeURIComponent(currentTheme));
+        } else {
+            finalUrl += (finalUrl.indexOf('?') === -1 ? '?' : '&') + 'theme=' + encodeURIComponent(currentTheme);
+        }
+
+        frame.src = finalUrl;
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+        return false;
+    }
+    window.addEventListener('message', function (event) {
+        if (!event || !event.data || typeof event.data.type !== 'string') {
+            return;
+        }
+
+        if (event.data.type === 'webchess-message-close' || event.data.type === 'webchess-message-sent') {
+            var modalEl = document.getElementById('messageComposerModal');
+            var frame = document.getElementById('messageComposerFrame');
+            if (!modalEl) return;
+
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.hide();
+
+            if (frame) {
+                frame.src = 'about:blank';
+            }
+        }
+    });
     // Ensure buttons are enabled and working
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
             var btnMainMenu = document.getElementById('btnMainMenu');
             var btnReload = document.getElementById('btnReload');
             var btnPGN = document.getElementById('btnPGN');

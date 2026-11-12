@@ -65,3 +65,48 @@
 
 		return true;
 	}
+function webchessGetMessageLinkForCurrentGame($dbh, $cfgTable, $gameID, $playerID, $theme = '')
+{
+    $gameID = (int)$gameID;
+    $playerID = (int)$playerID;
+
+    if ($gameID <= 0 || $playerID <= 0) {
+        return 'sendmessage.php';
+    }
+
+    $stmt = mysqli_prepare(
+        $dbh,
+        'SELECT whitePlayer, blackPlayer FROM ' . $cfgTable['games'] . ' WHERE gameID = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return 'sendmessage.php';
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $gameID);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = $res ? mysqli_fetch_assoc($res) : null;
+    mysqli_stmt_close($stmt);
+
+    if (!$row) {
+        return 'sendmessage.php';
+    }
+
+    $white = (int)$row['whitePlayer'];
+    $black = (int)$row['blackPlayer'];
+
+    if ($playerID === $white) {
+        $opponentID = $black;
+    } elseif ($playerID === $black) {
+        $opponentID = $white;
+    } else {
+        return 'sendmessage.php';
+    }
+
+    $query = 'to=' . $opponentID . '&forGame=' . $gameID;
+    if ($theme === 'dark' || $theme === 'light') {
+        $query .= '&theme=' . rawurlencode($theme);
+    }
+
+    return 'sendmessage.php?' . $query;
+}
