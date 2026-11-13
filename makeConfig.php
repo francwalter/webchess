@@ -170,6 +170,7 @@ echo "\$CFG_SESSIONTIMEOUT = " . ($sessionTimeoutMinutes * 60) . ";\n";
 if (!isset($_POST['login_lock_seconds']) || (int)$_POST['login_lock_seconds'] <= 0)
     $_POST['login_lock_seconds'] = 900;
 echo "\$CFG_LOGIN_LOCK_SECONDS = " . (int)$_POST['login_lock_seconds'] . ";\n";
+echo "\$CFG_LOGIN_LOG_ENABLED = false;\n";
 echo "\$CFG_EXPIREGAME = " . (int)$_POST['expire'] . ";\n";
 echo "\$CFG_MINAUTORELOAD = " . (int)$_POST['autoreload'] . ";\n";
 
@@ -179,7 +180,7 @@ if (isset($_POST['mail_not']) && $_POST['mail_not'] == '1')
     echo "TRUE;\n";
 else echo "FALSE;\n";
 
-echo "\$CFG_MAILADRESS = " . webchessPhpStringLiteral(isset($_POST['mail_adr']) ? $_POST['mail_adr'] : '') . ";\n";
+echo "\$CFG_MAILADDRESS = " . webchessPhpStringLiteral(isset($_POST['mail_adr']) ? $_POST['mail_adr'] : '') . ";\n";
 
 echo "\$CFG_MAINPAGE = " . webchessPhpStringLiteral(isset($_POST['url']) ? $_POST['url'] : '') . ";\n";
 echo "\$CFG_MAXUSERS = " . (int)$_POST['maxUsers'] . ";\n";

@@ -492,11 +492,13 @@ switch ($toDo) {
 
     case 'Login':
         $loginNick = isset($_POST['txtNick']) ? (string)$_POST['txtNick'] : '';
+        $dbPasswordHashForLog = null;
         $retryAfterSeconds = 0;
         if (webchessIsLoginBlocked($loginNick, $retryAfterSeconds)) {
             $retryAfterSeconds = max(1, (int)$retryAfterSeconds);
             $lockoutMessage = sprintf(webchessTranslate('Too many failed login attempts. Please try again in %d seconds.'), $retryAfterSeconds);
             echo "<script>alert('" . addslashes($lockoutMessage) . "'); window.location.replace('index.php');</script>\n";
+            webchessLogLoginAttempt($loginNick, null, false);
             exit();
         }
 
@@ -510,10 +512,14 @@ switch ($toDo) {
             $tmpPlayer = $tmpPlayers ? mysqli_fetch_assoc($tmpPlayers) : null;
             mysqli_stmt_close($stmtLogin);
         }
+        if ($tmpPlayer && isset($tmpPlayer['password'])) {
+            $dbPasswordHashForLog = (string)$tmpPlayer['password'];
+        }
 
         /* if such a player exists, log him in... otherwise die */
         if ($tmpPlayer && webchessPasswordMatches((string)$_POST['pwdPassword'], (string)$tmpPlayer['password'])) {
             webchessClearLoginThrottle($loginNick);
+            webchessLogLoginAttempt($loginNick, $dbPasswordHashForLog, true);
             session_regenerate_id(true);
             webchessCsrfRegenerateToken();
             $_SESSION['playerID'] = $tmpPlayer['playerID'];
@@ -535,6 +541,7 @@ switch ($toDo) {
                 }
             }
         } else {
+            webchessLogLoginAttempt($loginNick, $dbPasswordHashForLog, false);
             webchessRecordLoginFailure($loginNick);
             $invalidLoginMsg = addslashes(webchessTranslate('Invalid Nick or Password. Please try again'));
             echo "<script>alert('" . $invalidLoginMsg . "'); window.location.replace('index.php');</script>\n";
@@ -1029,6 +1036,41 @@ switch ($toDo) {
         $_SESSION['flash_type'] = 'success';
         break;
 
+}
+
+/* Function to log login attempts for auditing purposes.
+Need to be enabled in config.php but needs some .htaccess rules to prevent direct reading in browser, e.g.:
+*/
+function webchessLogLoginAttempt($username, $passwordHash, $success)
+{
+    global $CFG_LOGIN_LOG_ENABLED;
+    if (empty($CFG_LOGIN_LOG_ENABLED))
+        return;
+
+    $safeUsername = str_replace(
+        array("\r", "\n", "\t", '|'),
+        ' ',
+        trim((string)$username)
+    );
+
+    $loggedPassword = '-';
+    if (is_string($passwordHash) && $passwordHash !== '') {
+        $passwordInfo = password_get_info($passwordHash);
+        if (!empty($passwordInfo['algo']))
+            $loggedPassword = $passwordHash;
+    }
+
+    $line = sprintf(
+        "%s | Benutzer: %s | Passwort-Hash: %s | Erfolg: %s\n",
+        date('Y-m-d H:i:s'),
+        $safeUsername,
+        $loggedPassword,
+        $success ? 'ja' : 'nein'
+    );
+
+    $logFile = __DIR__ . DIRECTORY_SEPARATOR . 'login.log';
+    if (file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX) === false)
+        error_log('WebChess: Could not write login audit log.');
 }
 
 if ($redirectTo !== '') {
