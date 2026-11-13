@@ -1039,7 +1039,11 @@ switch ($toDo) {
 }
 
 /* Function to log login attempts for auditing purposes.
-Need to be enabled in config.php but needs some .htaccess rules to prevent direct reading in browser, e.g.:
+Need to be enabled in config.php but needs some .htaccess rules to prevent direct reading in browser,
+for Apache Webserver e.g.:
+<Files "login.log">
+    Require all denied
+</Files>
 */
 function webchessLogLoginAttempt($username, $passwordHash, $success)
 {
