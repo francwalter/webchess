@@ -86,7 +86,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !webchessCsrfValidateReq
         exit();
     }
 
-    die(webchessTranslate('Your session form token expired. Please reload the page and try again.'));
+    require 'sessioncheck.php';
+    exit();
+}
+
+$toDo = $_POST['ToDo'] ?? '';
+
+if (!(
+        ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+        && in_array($toDo, ['Login', 'NewUser'], true)
+)) {
+    require 'sessioncheck.php';
 }
 
 /* connect to database */
@@ -151,7 +161,6 @@ if ($stmtDeleteGame)
 $tmpNewUser = false;
 $errMsg = "";
 $redirectTo = '';
-$toDo = isset($_POST['ToDo']) ? $_POST['ToDo'] : '';
 
 function webchessGetNickByPlayerId($dbh, $tablePlayers, $playerId)
 {
@@ -1880,7 +1889,12 @@ endif;
                                 </thead>
                                 <tbody>
                                 <?php
-                                $SqlQuery = "SELECT * FROM " . $CFG_TABLE['communication'] . " left join " . $CFG_TABLE['players'] . " on " . $CFG_TABLE['communication'] . ".fromID=" . $CFG_TABLE['players'] . ".playerID WHERE ((toID is null) or (toID=?)) and ((fromID is null) or (fromID=playerID)) and ack=0 and gameID is null order by " . $CFG_TABLE['communication'] . ".postDate desc";
+                                $SqlQuery = "SELECT c.*, p.nick 
+                                    FROM " . $CFG_TABLE['communication'] . " c
+                                    LEFT JOIN " . $CFG_TABLE['players'] . " p ON c.fromID = p.playerID
+                                    WHERE (c.toID IS NULL OR c.toID = ?)
+                                    AND c.ack IN (0, 2)
+                                    ORDER BY c.postDate DESC";
                                 $stmtComm = mysqli_prepare($dbh, $SqlQuery);
                                 $tmpGames = false;
                                 if ($stmtComm) {
@@ -1899,10 +1913,15 @@ endif;
                                     while ($tmpGame = mysqli_fetch_assoc($tmpGames)): ?>
                                         <tr>
                                             <td>
-                                                <a href="javascript:viewMessage(<?php echo (int)$tmpGame['commID']; ?>)"><?php echo htmlspecialchars((string)($tmpGame['fromID'] != 0 ? $tmpGame['nick'] : "Webchess"), ENT_QUOTES, 'UTF-8'); ?></a>
+                                                <a href="javascript:viewMessage(<?php echo (int)$tmpGame['commID']; ?>)"><?php echo htmlspecialchars((string)($tmpGame['fromID'] != 0 ? $tmpGame['nick'] : 'Webchess'), ENT_QUOTES, 'UTF-8'); ?></a>
                                             </td>
-                                            <td><?php echo htmlspecialchars((string)(strlen($tmpGame['title']) > 40 ? substr($tmpGame['title'], 0, 37) . "..." : $tmpGame['title']), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><small><?php echo $tmpGame['postDate']; ?></small></td>
+                                            <td>
+                                                <?php if ($tmpGame['toID'] !== null && (int)$tmpGame['ack'] === 0): ?>
+                                                    <span class="badge text-bg-warning me-1"><?php echo htmlspecialchars(webchessTranslate('Unread'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <?php endif; ?>
+                                                <?php echo htmlspecialchars((string)(strlen($tmpGame['title']) > 40 ? substr($tmpGame['title'], 0, 37) . '...' : $tmpGame['title']), ENT_QUOTES, 'UTF-8'); ?>
+                                            </td>
+                                            <td><small><?php echo htmlspecialchars((string)$tmpGame['postDate'], ENT_QUOTES, 'UTF-8'); ?></small></td>
                                         </tr>
                                     <?php endwhile; endif; ?>
                                 </tbody>

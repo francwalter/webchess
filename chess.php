@@ -24,7 +24,9 @@ require_once 'security.php';
 /* debug flag */
 define("DEBUG", 0);
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 /* only on debug */
 if (DEBUG) {
@@ -480,9 +482,7 @@ $_castlingPossible = !$_kingHasMoved && ($_rookMoveCount < 2);
                     <div id="gameid" class="mb-3 small text-muted"></div>
                     <?php if ($hasUnreadGameMessages): ?>
                         <div class="alert alert-warning mb-3" id="unreadMsgHint">
-                            <a href="<?php echo htmlspecialchars($sendMessageUrl, ENT_QUOTES, 'UTF-8'); ?>"
-                               class="alert-link"
-                               onclick="return openMessageComposerModal(this.href);">
+                            <a href="mainmenu.php#messages" class="alert-link">
                                 <?php echo webchessTranslate('You have unread messages'); ?>
                                 (<?php echo $unreadGameMessagesCount; ?>)
                             </a>

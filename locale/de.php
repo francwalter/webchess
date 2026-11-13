@@ -241,4 +241,5 @@ return array(
     'Own messages'                    => 'Eigene Nachrichten',
     'No sent messages'                => 'Keine gesendeten Nachrichten',
     'Recipient'                       => 'Empfänger',
-);
+    'Unread' => 'Ungelesen',
+    );

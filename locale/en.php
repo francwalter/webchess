@@ -227,4 +227,5 @@ return array(
     'Own messages'                    => 'Own messages',
     'No sent messages'                => 'No sent messages',
     'Recipient'                       => 'Recipient',
+    'You have unread messages' => 'You have unread messages',
 );

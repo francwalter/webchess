@@ -623,3 +623,13 @@ body.light-theme .button:hover {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
 }
 
+html[data-bs-theme="dark"] #unreadMsgHint a,
+html[data-bs-theme="dark"] #unreadMsgHint a:visited {
+    color: #ffe69c !important;
+}
+
+html[data-bs-theme="dark"] #unreadMsgHint a:hover,
+html[data-bs-theme="dark"] #unreadMsgHint a:focus-visible {
+    color: #fff3cd !important;
+    text-decoration: underline;
+}

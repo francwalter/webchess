@@ -185,64 +185,55 @@
 	mysqli_close($dbh);
 ?>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="<?php echo htmlspecialchars(getGuiLanguage(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" href="styles/userlogin.css" type="text/css" />
-<title>WebChess :: <?php echo webchessTranslate("Login");?></title>
-<script language="javascript" type="text/javascript">
-window.onload = function()
-{
-<?php
-	if ($isInvalidPassword)
-		echo "alert('Invalid password. Please try again');\n";
-?>
-	document.loginForm.opponentsNick.focus();
-	document.loginForm.opponentsNick.select();
-}
-</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebChess :: <?php echo htmlspecialchars(webchessTranslate('Login'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/theme.css">
+    <script src="javascript/theme.js"></script>
 </head>
+<body class="bg-body-tertiary">
+<div class="container py-5" style="max-width: 520px;">
+    <div class="text-end mb-3">
+        <button id="theme-toggle-btn" class="btn btn-outline-secondary" type="button"
+                onclick="toggleTheme()"
+                data-title-dark="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>"
+                data-title-light="<?php echo htmlspecialchars(webchessTranslate('Switch to Light Mode'), ENT_QUOTES, 'UTF-8'); ?>"
+                title="<?php echo htmlspecialchars(webchessTranslate('Switch to Dark Mode'), ENT_QUOTES, 'UTF-8'); ?>">&#9790;</button>
+    </div>
 
-<body>
+    <div class="card shadow">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-3">WebChess :: <?php echo htmlspecialchars(webchessTranslate('Login'), ENT_QUOTES, 'UTF-8'); ?></h1>
+            <p><?php echo htmlspecialchars(webchessTranslate('Enter password for ') . $opponentsNick, ENT_QUOTES, 'UTF-8'); ?></p>
 
-<div id="header">
-  <div id="heading">WebChess :: <?php echo webchessTranslate("Login");?></div>
-</div>
+            <?php if ($isInvalidPassword): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo htmlspecialchars(webchessTranslate('Invalid Nick or Password. Please try again'), ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
 
-<div id="ctr" align="center">
-	<div class="login">
-		<div class="login-form">
-			<form name="loginForm" id="loginForm" method="post" action="opponentspassword.php">
-				<div class="form-block">
-                                        <div class="inputlabel"><?php echo webchessTranslate("Password");?></div>
-					<div><input id="pwdPassword" name="pwdPassword" type="password" class="inputbox" size="15" /></div>
-					<input name="opponentsNick" type="hidden" value="<?php echo htmlspecialchars((string)($opponentsNick ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-					<input name="opponentsID" type="hidden" value="<?php echo (int)($opponentsID ?? 0); ?>" />
-					<input name="gameID" value="<?php echo (int)($_POST['gameID'] ?? 0); ?>" type="hidden" />
-					<?php echo webchessCsrfField(); ?>
-					<div align="left">
-						<input type="submit" name="login" class="button" value="<?php echo webchessTranslate("Login");?>" />
-						<input name="Cancel" class="button" value="<?php echo webchessTranslate("Cancel");?>" type="button" onClick="window.open('mainmenu.php', '_self')" /></div>
-				</div>
-			</form>
-		</div>
-		<div class="login-text">
-			<div class="ctr"><img src="images/webchess.jpg" width="65" height="92" alt="security" /></div>
-						<p><?php echo webchessTranslate("Enter password for ");?><?php echo htmlspecialchars((string)($opponentsNick ?? 'opponent'), ENT_QUOTES, 'UTF-8'); ?></p>
-    	</div>
-		<div class="clr"></div>
-	</div>
-</div>
+            <form name="loginForm" id="loginForm" method="post" action="opponentspassword.php">
+                <div class="mb-3">
+                    <label class="form-label" for="pwdPassword"><?php echo htmlspecialchars(webchessTranslate('Password'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input id="pwdPassword" name="pwdPassword" type="password"
+                           class="form-control" autocomplete="current-password" autofocus required>
+                </div>
+                <input name="opponentsNick" type="hidden" value="<?php echo htmlspecialchars((string)$opponentsNick, ENT_QUOTES, 'UTF-8'); ?>">
+                <input name="opponentsID" type="hidden" value="<?php echo (int)$opponentsID; ?>">
+                <input name="gameID" type="hidden" value="<?php echo (int)$gameID; ?>">
+                <?php echo webchessCsrfField(); ?>
 
-<div id="break"></div>
-<noscript>
-!Warning! Javascript must be enabled for proper operation of WebChess
-</noscript>
-<div class="footer" align="center">
-<div align="center"><?php echo "WebChess " . webchessTranslate("Version") . " 1.0.0, " . webchessTranslate("last updated") ." ". webchessTranslate("August"). " 15, 2010"?></div>
-<div align="center"><a href="http://webchess.sourceforge.net/"><?php echo webchessTranslate("WebChess");?></a> <?php echo webchessTranslate("is Free Software released under the GNU General Public License (GPL).");?></div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" type="submit"><?php echo htmlspecialchars(webchessTranslate('Login'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    <a class="btn btn-outline-secondary" href="mainmenu.php"><?php echo htmlspecialchars(webchessTranslate('Cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 </body>
 </html>
